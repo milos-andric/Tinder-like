@@ -1,68 +1,27 @@
-version: "3.9"
+version: "3.7"
+
 services:
-
-  # client:
-  #   build: ./frontend
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./frontend/:/usr/src/app
-  #   # command: "npm start --prefix /usr/src/app"
-  #   restart: always
-
-  server:
-    build: ./backend
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./backend/:/usr/src/app
-    depends_on:
-      - mysql-db
-      - redis
-    # command: "npm start --prefix /usr/src/app"
-    # ["./wait-for-it.sh", "mysql-db:3306", "--", "npm", "start", "--prefix", "/usr/src/app"]
-    restart: always
-    networks:
-      - webappnetwork
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: pma
-    depends_on:
-      - mysql-db
-    environment:
-      PMA_HOST: mysql-db
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
-    restart: always
-    networks:
-      - webappnetwork
-    ports:
-      - 8080:80
-
   mysql-db:
-    image: mysql:5.7
+    image: mysql/mysql-server:latest
     container_name: mysql
     restart: always
     ports:
-      - 3306:3306
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
-      MYSQL_DATABASE: matcha
+      - 3307:3307
     # volumes:
-      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      # - sql-data:/var/lib/mysql
-    networks:
-      - webappnetwork
+    #   - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   redis:
-    image: "redis:alpine"
-    networks:
-      - webappnetwork
+    image: "redis:5-alpine"
 
-networks:
-  webappnetwork:
-    driver: bridge
-
-volumes:
-  sql-data:
-    external: true
+  matcha-front:
+    build: ./matcha
+    container_name: matcha-front
+    env_file: .env
+    volumes:
+      - "${PWD}/matcha/matcha:/usr/src/app/"
+    command: sh -c "npm i && npm run dev -- --port 3001"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql-db
+      - redis
