@@ -1,27 +1,57 @@
 version: "3.7"
 
 services:
-  mysql-db:
-    image: mysql/mysql-server:latest
-    container_name: mysql
-    restart: always
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /data/postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - 3307:3307
-    # volumes:
-    #   - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - postgres
+    restart: unless-stopped
 
   redis:
     image: "redis:5-alpine"
 
-  matcha-front:
+  matcha:
     build: ./matcha
-    container_name: matcha-front
+    container_name: matcha
     env_file: .env
     volumes:
       - "${PWD}/matcha/matcha:/usr/src/app/"
-    command: sh -c "npm i && npm run dev -- --port 3001"
+    command: sh -c "npm i && npm run dev -- --port 3000"
     ports:
-      - "3000:3000"
+      - "8000:3000"
     depends_on:
-      - mysql-db
+      - postgres
       - redis
+    networks:
+      - postgres
+networks:
+  postgres:
+    driver: bridge
+volumes:
+  postgres:
+  pgadmin:
