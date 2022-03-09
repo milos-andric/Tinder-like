@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      PGDATA: /data/postgres
+      POSTGRES_DB: matcha_db
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
