@@ -7,21 +7,21 @@
       <div class="field">
         <label class="label">First name</label>
         <div class="control">
-          <input v-model="firstName" type="text" class="input" name="firstName" required />
+          <input v-model="first_name" type="text" class="input" name="first_name" required />
         </div>
       </div>
 
       <div class="field">
         <label class="label">Last name</label>
         <div class="control">
-          <input v-model="lastName" type="text" class="input" name="lastName" required />
+          <input v-model="last_name" type="text" class="input" name="last_name" required />
         </div>
       </div>
 
       <div class="field">
         <label class="label">Username</label>
         <div class="control">
-          <input v-model="userName" type="text" class="input" name="userName" required />
+          <input v-model="user_name" type="text" class="input" name="user_name" required />
         </div>
       </div>
 
@@ -67,9 +67,9 @@ export default {
 
   data() {
     return {
-      firstName: '',
-      lastName: '',
-      userName: '',
+      first_name: '',
+      last_name: '',
+      user_name: '',
       email: '',
       password: '',
       gender: 0,
@@ -81,13 +81,14 @@ export default {
     async register() {
       try {
         await this.$axios.post('register', {
-          firstName: this.first_name,
-          lastName: this.last_name,
-          userName: this.username,
+          first_name: this.first_name,
+          last_name: this.last_name,
+          user_name: this.user_name,
           email: this.email,
           password: this.password,
           gender: this.gender,
         })
+        console.log("hellooooooo");
 
         this.$router.push('/')
       } catch (e) {
