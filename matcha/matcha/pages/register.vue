@@ -1,9 +1,9 @@
 <template>
-  <p>Hello</p>
+  <RegisterForm />
 </template>
 
 <script>
 export default {
-  name: 'IndexPage',
+  name: 'RegisterPage',
 }
 </script>

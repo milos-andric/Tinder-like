@@ -22,7 +22,20 @@ app.get("/test", (req, res) => {
   res.send('test')
 });
 
+app.get("/login", (req, res) => {
+  
+  console.log('You tried to login')
+  res.send('You tried to login')
+});
+
+app.get("/register", (req, res) => {
+  
+  console.log('You tried to register')
+  res.send('You tried to register')
+});
+
 export default {
   path: '/api',
-  handler: app
+  handler: app,
+  middleware: "auth",
 }

@@ -47,6 +47,10 @@ export default {
     host: '0.0.0.0',
   },
 
+  router: {
+    middleware: ["auth"],
+  },
+
   // Express middleware route
   serverMiddleware: {
     '/api': '~/api',
