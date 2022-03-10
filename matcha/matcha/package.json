@@ -15,10 +15,12 @@
   },
   "dependencies": {
     "@nuxtjs/axios": "^5.13.6",
+    "bcrypt": "^5.0.1",
     "bootstrap": "^4.6.1",
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.19.3",
     "express": "^4.17.3",
+    "factory-girl": "^5.0.4",
     "nuxt": "^2.15.8",
     "pg-promise": "^10.11.1",
     "vue": "^2.6.14",

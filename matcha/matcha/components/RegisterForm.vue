@@ -5,9 +5,23 @@
     <form method="post" @submit.prevent="register">
 
       <div class="field">
+        <label class="label">First name</label>
+        <div class="control">
+          <input v-model="firstName" type="text" class="input" name="firstName" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Last name</label>
+        <div class="control">
+          <input v-model="lastName" type="text" class="input" name="lastName" required />
+        </div>
+      </div>
+
+      <div class="field">
         <label class="label">Username</label>
         <div class="control">
-          <input v-model="username" type="text" class="input" name="username" required />
+          <input v-model="userName" type="text" class="input" name="userName" required />
         </div>
       </div>
 
@@ -22,6 +36,17 @@
         <label class="label">Password</label>
         <div class="control">
           <input v-model="password" type="password" class="input" name="password" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Gender</label>
+        <div class="control">
+          <label for="man">Man</label>
+          <input id="man" v-model="gender" type="radio" class="input"  name="gender" value="0"  required />
+
+          <label for="woman">Woman</label>
+          <input id="woman" v-model="gender" type="radio" class="input" name="gender" value="1" required />
         </div>
       </div>
 
@@ -42,10 +67,13 @@ export default {
 
   data() {
     return {
-      username: '',
+      firstName: '',
+      lastName: '',
+      userName: '',
       email: '',
       password: '',
-      error: null
+      gender: 0,
+      error: null,
     }
   },
 
@@ -53,9 +81,12 @@ export default {
     async register() {
       try {
         await this.$axios.post('register', {
-          username: this.username,
+          firstName: this.first_name,
+          lastName: this.last_name,
+          userName: this.username,
           email: this.email,
-          password: this.password
+          password: this.password,
+          gender: this.gender,
         })
 
         this.$router.push('/')

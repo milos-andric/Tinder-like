@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS "users" (
     "tags" VARCHAR(16)[],
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
-    "created_on" TIMESTAMP NOT NULL
+    "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS "images" (
     "image_id" serial PRIMARY KEY,
     "url" VARCHAR(255) NOT NULL,
     "user_id" INT NOT NULL,
-    "created_on" TIMESTAMP NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
     
     CONSTRAINT "fk_user" FOREIGN KEY("user_id") REFERENCES "users"("user_id")
 );
@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS "images" (
 CREATE TABLE IF NOT EXISTS "likes" (
     "like_id" serial PRIMARY KEY,
     "user_id" INT NOT NULL,
-    "created_on" TIMESTAMP NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
 
     CONSTRAINT "fk_user" FOREIGN KEY("user_id") REFERENCES "users"("user_id")
 );
+
+-- INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "created_on") VALUES ("thais", "marcon", "diams", "mthais.web@gmail.com", "diams", 0, NOW())
