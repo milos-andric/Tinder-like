@@ -3,18 +3,30 @@
     <h2 class="title has-text-centered">Login!</h2>
 
     <form method="post" @submit.prevent="login">
-
       <div class="field">
         <label class="label">Username</label>
         <div class="control">
-          <input v-model="username" type="text" class="input" name="username" required />
+          <input
+            v-model="username"
+            type="text"
+            class="input"
+            name="username"
+            required
+          />
         </div>
       </div>
 
       <div class="field">
         <label class="label">Password</label>
         <div class="control">
-          <input v-model="password" autocomplete="current-password" type="password" class="input" name="password" required />
+          <input
+            v-model="password"
+            autocomplete="current-password"
+            type="password"
+            class="input"
+            name="password"
+            required
+          />
         </div>
       </div>
 
@@ -32,13 +44,12 @@
 </template>
 
 <script>
-
 export default {
   data() {
     return {
       username: '',
       password: '',
-      error: null
+      error: null,
     }
   },
 
@@ -47,14 +58,14 @@ export default {
       try {
         await this.$axios.post('login', {
           username: this.username,
-          password: this.password
+          password: this.password,
         })
 
         this.$router.push('/')
       } catch (e) {
         this.error = e.response.data.message
       }
-    }
-  }
+    },
+  },
 }
 </script>
