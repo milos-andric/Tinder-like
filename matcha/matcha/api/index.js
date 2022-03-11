@@ -4,21 +4,21 @@ const bcrypt = require('bcrypt')
 const saltRounds = 10
 
 const jwt = require('jsonwebtoken')
-
+require('dotenv').config();
 const app = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
-const pgp = require('pg-promise')(/* options */)
-const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db')
-
+const db = require("../api/connect")
+function generateAccessToken(user) {
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' });
+}
 app.get('/test', (req, res) => {
   db.query('SELECT * FROM users')
     .then((data) => {
       res.send(data)
     })
-    .catch((error) => {
-      console.log('ERROR:', error)
+    .catch((_error) => {
     })
 })
 
@@ -28,15 +28,13 @@ app.get('/test', (req, res) => {
 // })
 
 app.post('/register', (req, res) => {
-  console.log(req.body)
-
   const firstName = req.body.first_name
   const lastName = req.body.last_name
   const userName = req.body.user_name
   const email = req.body.email
   const gender = req.body.gender
 
-  const sql = `INSERT INTO users 
+  const sql = `INSERT INTO users
             (
               first_name, last_name, user_name, email, password, gender
             )
@@ -53,7 +51,6 @@ app.post('/register', (req, res) => {
         function (err, data) {
           if (err) {
             // some error occured
-            console.log(err)
             res.sendStatus(500)
           } else {
             // successfully inserted into db
@@ -66,15 +63,13 @@ app.post('/register', (req, res) => {
           // success;
           res.sendStatus(200)
         })
-        .catch((error) => {
+        .catch((_error) => {
           res.sendStatus(500)
-          console.log(error)
           // error;
         })
     })
-    .catch((error) => {
+    .catch((_error) => {
       res.sendStatus(500)
-      console.log(error)
       // error;
     })
 })
@@ -82,57 +77,23 @@ app.post('/register', (req, res) => {
 app.post('/login', (req, res) => {
   const username = req.body.username
 
-  db.any('SELECT * FROM users WHERE user_name = $1', username)
+  db.one('SELECT * FROM users WHERE user_name = $1', username)
     .then(function (data) {
-      bcrypt.compare(req.body.password, data[0].password, function (err, res) {
-        if (err) {
-          // handle error
-          res.send(err)
-        }
-        if (res) {
-          // Send JWT
-          const id = res[0].id
-          const token = jwt.sign({ id }, process.env.LOGIN_SECRET, {
-            expiresIn: 300 * 1000,
-          })
-          req.session.user = res
+      bcrypt.compare(req.body.password, data.password, function (_err, result) {
+        if (result === true) {
+              const accessToken = generateAccessToken(data);
+              res.send({
+                accessToken,
+              })
+            } else {
+              res.status(404).send('Sorry,bad password');
 
-          res.send({ auth: true, token, result: res })
-        } else {
-          // response is OutgoingMessage object that server response http request
-          return res.send({ success: false, message: 'passwords do not match' })
         }
       })
-    })
-    .catch(function (error) {
-      // error;
-      res.send(error)
-    })
-
-  // db.query(
-  //   "SELECT * FROM users WHERE mail = ?;",
-  //   mail,
-  //   (err, result) => {
-  //     if (err) console.log(err);
-  //     if (err || !result) return res.send({err: "no database"})
-  //     // console.log(result);
-  //     if (result.length > 0) {
-  //       bcrypt.compare(password, result[0].pass, (error, response) => {
-  //         if (response) {
-  //           const id = result[0].id
-  //           const token = jwt.sign({id}, process.env.LOGIN_SECRET, {
-  //             expiresIn: 300 * 1000,
-  //           })
-  //           req.session.user = result
-
-  //           res.json({auth: true, token: token, result: result})
-  //         }
-  //         else res.json({auth: false, message: "Wrong mail/password combination!"})
-  //       })
-  //     }
-  //     else res.json({auth: false, message: "This mail isnt registered!"})
-  //   }
-  // )
+  }).catch(function (_error) {
+    // error;
+    res.status(404).send('Sorry, no user found');
+  })
 })
 
 export default {

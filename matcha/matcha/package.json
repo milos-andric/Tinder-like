@@ -19,6 +19,7 @@
     "bootstrap": "^4.6.1",
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.19.3",
+    "dotenv": "^16.0.0",
     "express": "^4.17.3",
     "factory-girl": "^5.0.4",
     "jsonwebtoken": "^8.5.1",
