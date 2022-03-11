@@ -21,6 +21,7 @@
     "core-js": "^3.19.3",
     "express": "^4.17.3",
     "factory-girl": "^5.0.4",
+    "jsonwebtoken": "^8.5.1",
     "nuxt": "^2.15.8",
     "pg-promise": "^10.11.1",
     "vue": "^2.6.14",
