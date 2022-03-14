@@ -1,110 +1,110 @@
 <template>
-  <div class="column is-4 is-offset-4">
-    <h2 class="title has-text-centered">Register!</h2>
+  <div class="mx-auto col-4 h-100">
+    <h2>Register</h2>
 
     <form method="post" @submit.prevent="register">
-      <div class="field">
-        <label class="label">First name</label>
-        <div class="control">
-          <input
-            v-model="first_name"
-            type="text"
-            class="input"
-            name="first_name"
-            required
-          />
+      <div class="form-outline mb-4">
+        <label class="form-label">First name</label>
+        <input
+          v-model="first_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="first_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Last name</label>
+        <input
+          v-model="last_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="last_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Username</label>
+        <input
+          v-model="user_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="user_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Email</label>
+        <input
+          v-model="email"
+          type="email"
+          class="form-control form-control-lg"
+          name="email"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Password</label>
+        <input
+          v-model="password"
+          type="password"
+          class="form-control form-control-lg"
+          name="password"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-3">
+        <label class="form-label">Gender</label>
+        <div class="d-flex">
+          <div class="d-flex flex-column align-items-center justify-content-center flex-fill">
+            <input
+              id="man"
+              v-model="gender"
+              type="radio"
+              class="form-control form-control-lg mb-2"
+              name="gender"
+              value="0"
+              required
+            />
+            <label for="man">Man</label>
+
+          </div>
+
+          <div class="d-flex flex-column align-items-center justify-content-center flex-fill">
+            <input
+              id="woman"
+              v-model="gender"
+              type="radio"
+              class="form-control form-control-lg mb-2"
+              name="gender"
+              value="1"
+              required
+            />
+            <label for="woman">Woman</label>
+
+          </div>
         </div>
       </div>
 
-      <div class="field">
-        <label class="label">Last name</label>
-        <div class="control">
-          <input
-            v-model="last_name"
-            type="text"
-            class="input"
-            name="last_name"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Username</label>
-        <div class="control">
-          <input
-            v-model="user_name"
-            type="text"
-            class="input"
-            name="user_name"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Email</label>
-        <div class="control">
-          <input
-            v-model="email"
-            type="email"
-            class="input"
-            name="email"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Password</label>
-        <div class="control">
-          <input
-            v-model="password"
-            type="password"
-            class="input"
-            name="password"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Gender</label>
-        <div class="control">
-          <label for="man">Man</label>
-          <input
-            id="man"
-            v-model="gender"
-            type="radio"
-            class="input"
-            name="gender"
-            value="0"
-            required
-          />
-
-          <label for="woman">Woman</label>
-          <input
-            id="woman"
-            v-model="gender"
-            type="radio"
-            class="input"
-            name="gender"
-            value="1"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="control">
-        <button type="submit" class="button is-dark is-fullwidth">
+      <div class="text-lg-start mt-4 pt-2">
+        <button
+          type="submit"
+          class="btn btn-primary btn-lg"
+          style="padding-left: 2.5rem; padding-right: 2.5rem"
+        >
           Register
         </button>
+
+        <p class="small fw-bold mt-2 pt-1 mb-0">
+          Already got an account? <nuxt-link to="/login">Login</nuxt-link>
+        </p>
       </div>
     </form>
-
-    <div class="has-text-centered" style="margin-top: 20px">
-      Already got an account? <nuxt-link to="/login">Login</nuxt-link>
-    </div>
   </div>
 </template>
 

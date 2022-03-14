@@ -4,28 +4,18 @@ const bcrypt = require('bcrypt')
 const saltRounds = 10
 
 const jwt = require('jsonwebtoken')
-require('dotenv').config();
+require('dotenv').config()
 const app = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
-const db = require("../api/connect")
-function generateAccessToken(user) {
-  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' });
-}
-app.get('/test', (req, res) => {
-  db.query('SELECT * FROM users')
-    .then((data) => {
-      res.send(data)
-    })
-    .catch((_error) => {
-    })
-})
+const db = require('../api/connect')
 
-// app.get('/login', (req, res) => {
-//   console.log('You tried to login')
-//   res.send('You tried to login')
-// })
+function generateAccessToken(user) {
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' })
+}
+
+// Post Routes
 
 app.post('/register', (req, res) => {
   const firstName = req.body.first_name
@@ -59,16 +49,16 @@ app.post('/register', (req, res) => {
           }
         }
       )
-        .then(() => {
-          // success;
-          res.sendStatus(200)
-        })
-        .catch((_error) => {
-          res.sendStatus(500)
-          // error;
-        })
+      .then(() => {
+        // success;
+        res.sendStatus(200)
+      })
+      .catch((e) => {
+        res.sendStatus(500)
+        // error;
+      })
     })
-    .catch((_error) => {
+    .catch((e) => {
       res.sendStatus(500)
       // error;
     })
@@ -81,19 +71,17 @@ app.post('/login', (req, res) => {
     .then(function (data) {
       bcrypt.compare(req.body.password, data.password, function (_err, result) {
         if (result === true) {
-              const accessToken = generateAccessToken(data);
-              res.send({
-                accessToken,
-              })
-            } else {
-              res.status(404).send('Sorry,bad password');
-
+          const accessToken = generateAccessToken(data)
+          res.send({token: accessToken, msg: 'Success'})
+        } else {
+          res.status(403).send({token: null, msg: "Invalid password"})
         }
       })
-  }).catch(function (_error) {
-    // error;
-    res.status(404).send('Sorry, no user found');
-  })
+    })
+    .catch(function (_error) {
+      // error;
+      res.status(403).send({token: null, msg: "User is not found"})
+    })
 })
 
 export default {
