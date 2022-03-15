@@ -1,19 +1,20 @@
 const express = require('express');
+const app = express();
+
+const jwt = require('jsonwebtoken');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
-const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const db = require('../api/connect');
 
-function generateAccessToken(user) {
+const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
-}
+};
 
 // Post Routes
 
@@ -25,13 +26,8 @@ app.post('/register', (req, res) => {
   const gender = req.body.gender;
 
   const sql = `INSERT INTO users
-            (
-              first_name, last_name, user_name, email, password, gender
-            )
-            VALUES
-            (
-                $1, $2, $3, $4, $5, $6
-            )`;
+            ( first_name, last_name, user_name, email, password, gender )
+            VALUES ( $1, $2, $3, $4, $5, $6 )`;
   bcrypt
     .hash(req.body.password, saltRounds)
     .then(function (password) {
@@ -65,31 +61,35 @@ app.post('/register', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const username = req.body.username;
-  console.log(req.body);
-  console.log(username);
 
-  db.one('SELECT * FROM users WHERE user_name = $1', username)
+  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
     .then(function (data) {
       bcrypt.compare(req.body.password, data.password, function (_err, result) {
-        if (result === true) {
-          const accessToken = generateAccessToken(data);
-
-          res.send({ token: accessToken, msg: 'Success' });
-        } else {
-          res.status(403).send('Invalid password');
-        }
+        if (result === true) 
+          res.send({ msg: 'Success', token: generateAccessToken(data) });
+        else
+          res.status(403).send({ msg: 'Invalid password' });
       });
     })
     .catch(function (_error) {
-      // error;
-      res.status(403).send('User is not found');
+      res.status(403).send({ msg: 'User is not found' });
     });
+
 });
+
+app.post('/recover', (req, res) => {
+  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username).then((data) => {
+    res.status(200).send({ msg: 'TODO' });
+  })
+  .catch(e => {
+    res.status(403).send({ msg: 'User is not found' });
+  });
+});
+
 app.post('/logout', (req, res) => {
-  const username = req.body.username;
-  res.send({ msg: 'Success' });
+  res.send({ msg: 'Successfully logged out' });
 });
+
 app.get('/user', (req, res) => {
   console.log(req.body);
 

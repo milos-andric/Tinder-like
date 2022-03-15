@@ -1,13 +1,11 @@
 <template>
   <div>
-    <p>Hello</p>
-    <nuxt-link to="/match/profile-view">Page 2</nuxt-link>
+    <p>Hello you have been successfully logged in</p>
   </div>
 </template>
 
 <script>
 export default {
   name: 'IndexPage',
-  middleware: 'auth',
 };
 </script>

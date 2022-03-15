@@ -41,7 +41,7 @@
             Remember me
           </label>
         </div>
-        <a href="#!" class="text-primary">Forgot password?</a>
+        <a href="/recover" class="text-primary">Forgot password?</a>
       </div>
 
       <div class="text-lg-start mt-4 pt-2">
@@ -84,9 +84,10 @@ export default {
             password: this.password,
           },
         });
-        this.$router.push('/match');
-      } catch (err) {
-        console.log(err);
+        this.$router.push('/');
+      } catch (e) {
+        this.alertStatus = true
+        this.errorMsg = e.response.data.msg
       }
     },
   },
