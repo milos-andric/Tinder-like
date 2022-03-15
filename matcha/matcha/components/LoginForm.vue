@@ -32,10 +32,10 @@
         <!-- Checkbox -->
         <div class="form-check mb-0">
           <input
+            id="form2Example3"
             class="form-check-input me-2"
             type="checkbox"
             value=""
-            id="form2Example3"
           />
           <label class="form-check-label" for="form2Example3">
             Remember me
@@ -60,7 +60,7 @@
     </form>
 
     <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
-      {{ this.errorMsg }}
+      {{ errorMsg }}
     </b-alert>
   </div>
 </template>
@@ -73,27 +73,22 @@ export default {
       password: '',
       alertStatus: false,
       errorMsg: '',
-    }
+    };
   },
-
   methods: {
     async login() {
-      await this.$axios
-        .post('login', {
-          username: this.username,
-          password: this.password,
-        })
-        .then((e) => {
-          localStorage.setItem('token', e.data.token)
-          localStorage.setItem('username', this.username)
-
-          this.$router.push('/match')
-        })
-        .catch((e) => {
-          this.alertStatus = true
-          this.errorMsg = e.response.data.msg
-        })
+      try {
+        await this.$auth.loginWith('local', {
+          data: {
+            username: this.username,
+            password: this.password,
+          },
+        });
+        this.$router.push('/match');
+      } catch (err) {
+        console.log(err);
+      }
     },
   },
-}
+};
 </script>

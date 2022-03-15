@@ -32,8 +32,8 @@ export default {
 
   fontawesome: {
     icons: {
-      solid: [ 'faBell', "faPowerOff" ],
-    }
+      solid: ['faBell', 'faPowerOff'],
+    },
   },
 
   // Modules: https://go.nuxtjs.dev/config-modules
@@ -42,6 +42,7 @@ export default {
     'bootstrap-vue/nuxt',
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
+    '@nuxtjs/auth-next',
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -49,13 +50,44 @@ export default {
     // Workaround to avoid enforcing hard-coded localhost:3000: https://github.com/nuxt-community/axios-module/issues/308
     baseURL: '/api/',
   },
-  
+  auth: {
+    cookie: {
+      options: {
+        sameSite: 'lax',
+      },
+    },
+    strategies: {
+      local: {
+        token: {
+          property: 'token',
+          global: true,
+          required: true,
+          type: 'Bearer',
+        },
+        user: {
+          property: 'user',
+          autoFetch: true,
+        },
+        endpoints: {
+          login: { url: '/login', method: 'post' },
+          logout: { url: '/logout', method: 'post' },
+          user: false,
+        },
+      },
+    },
+    redirect: {
+      login: '/login',
+      logout: '/login',
+      callback: '/login',
+      home: '/',
+    },
+  },
   server: {
     host: '0.0.0.0',
   },
 
   router: {
-    middleware: ["auth"],
+    middleware: ['auth'],
   },
 
   // Express middleware route
@@ -65,4 +97,4 @@ export default {
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {},
-}
+};

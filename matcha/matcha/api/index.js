@@ -1,28 +1,28 @@
-const express = require('express')
+const express = require('express');
 
-const bcrypt = require('bcrypt')
-const saltRounds = 10
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
-const jwt = require('jsonwebtoken')
-require('dotenv').config()
-const app = express()
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-const db = require('../api/connect')
+const db = require('../api/connect');
 
 function generateAccessToken(user) {
-  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' })
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 }
 
 // Post Routes
 
 app.post('/register', (req, res) => {
-  const firstName = req.body.first_name
-  const lastName = req.body.last_name
-  const userName = req.body.user_name
-  const email = req.body.email
-  const gender = req.body.gender
+  const firstName = req.body.first_name;
+  const lastName = req.body.last_name;
+  const userName = req.body.user_name;
+  const email = req.body.email;
+  const gender = req.body.gender;
 
   const sql = `INSERT INTO users
             (
@@ -31,7 +31,7 @@ app.post('/register', (req, res) => {
             VALUES
             (
                 $1, $2, $3, $4, $5, $6
-            )`
+            )`;
   bcrypt
     .hash(req.body.password, saltRounds)
     .then(function (password) {
@@ -41,51 +41,71 @@ app.post('/register', (req, res) => {
         function (err, data) {
           if (err) {
             // some error occured
-            res.sendStatus(500)
+            res.sendStatus(500);
           } else {
             // successfully inserted into db
             // todo login direct lol
-            res.sendStatus(200)
+            res.sendStatus(200);
           }
         }
       )
-      .then(() => {
-        // success;
-        res.sendStatus(200)
-      })
-      .catch((e) => {
-        res.sendStatus(500)
-        // error;
-      })
+        .then(() => {
+          // success;
+          res.sendStatus(200);
+        })
+        .catch(e => {
+          res.sendStatus(500);
+          // error;
+        });
     })
-    .catch((e) => {
-      res.sendStatus(500)
+    .catch(e => {
+      res.sendStatus(500);
       // error;
-    })
-})
+    });
+});
 
 app.post('/login', (req, res) => {
-  const username = req.body.username
+  const username = req.body.username;
+  console.log(req.body);
+  console.log(username);
 
   db.one('SELECT * FROM users WHERE user_name = $1', username)
     .then(function (data) {
       bcrypt.compare(req.body.password, data.password, function (_err, result) {
         if (result === true) {
-          const accessToken = generateAccessToken(data)
-          res.send({token: accessToken, msg: 'Success'})
+          const accessToken = generateAccessToken(data);
+
+          res.send({ token: accessToken, msg: 'Success' });
         } else {
-          res.status(403).send({token: null, msg: "Invalid password"})
+          res.status(403).send('Invalid password');
         }
-      })
+      });
     })
     .catch(function (_error) {
       // error;
-      res.status(403).send({token: null, msg: "User is not found"})
+      res.status(403).send('User is not found');
+    });
+});
+app.post('/logout', (req, res) => {
+  const username = req.body.username;
+  res.send({ msg: 'Success' });
+});
+app.get('/user', (req, res) => {
+  console.log(req.body);
+
+  const email = req.body.email;
+
+  db.one('SELECT * FROM users WHERE email = $1', email).then(
+    function (data) {
+      res.send(data);
+    }.catch(function (_error) {
+      // error;
+      res.status(403).send({ token: null, msg: 'User is not found' });
     })
-})
+  );
+});
 
 export default {
   path: '/api',
   handler: app,
-  middleware: 'auth',
-}
+};
