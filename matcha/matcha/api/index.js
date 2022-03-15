@@ -15,6 +15,16 @@ function generateAccessToken(user) {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' })
 }
 
+app.get('/me', (req, res) => {
+  // const sql = `SELECT * FROM users WHERE user_id=$1`
+
+  // db.one(sql, [1]).then((data) => {
+  //   res.sendStatus(data)
+  // }).catch((e) => {
+  //   res.sendStatus(e)
+  // })
+})
+
 // Post Routes
 
 app.post('/register', (req, res) => {

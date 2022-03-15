@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.0.0",
+    "@johmun/vue-tags-input": "^2.1.0",
     "@nuxtjs/axios": "^5.13.6",
     "@nuxtjs/fontawesome": "^1.1.2",
     "bcrypt": "^5.0.1",
