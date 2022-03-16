@@ -5,5 +5,6 @@
 <script>
 export default {
   name: 'RegisterPage',
-}
+  auth: 'guest',
+};
 </script>

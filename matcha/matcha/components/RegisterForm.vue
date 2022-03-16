@@ -61,7 +61,9 @@
       <div class="form-outline mb-3">
         <label class="form-label">Gender</label>
         <div class="d-flex">
-          <div class="d-flex flex-column align-items-center justify-content-center flex-fill">
+          <div
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
+          >
             <input
               id="man"
               v-model="gender"
@@ -72,10 +74,11 @@
               required
             />
             <label for="man">Man</label>
-
           </div>
 
-          <div class="d-flex flex-column align-items-center justify-content-center flex-fill">
+          <div
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
+          >
             <input
               id="woman"
               v-model="gender"
@@ -86,7 +89,6 @@
               required
             />
             <label for="woman">Woman</label>
-
           </div>
         </div>
       </div>
@@ -119,7 +121,7 @@ export default {
       password: '',
       gender: 0,
       error: null,
-    }
+    };
   },
 
   methods: {
@@ -132,13 +134,13 @@ export default {
           email: this.email,
           password: this.password,
           gender: this.gender,
-        })
+        });
 
-        this.$router.push('/')
+        this.$router.push('/');
       } catch (e) {
-        this.error = e.response.data.message
+        this.error = e.response.data.message;
       }
     },
   },
-}
+};
 </script>
