@@ -11,7 +11,8 @@ export default {
   methods: {
     async getUserInfo() {
       try {
-        await this.$axios.get('user');
+        const data = await this.$axios.get('user');
+        console.log(data);
       } catch (e) {
         this.errorMsg = e.response.data.msg;
         this.alertStatus = true;

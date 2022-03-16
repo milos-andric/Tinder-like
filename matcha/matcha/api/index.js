@@ -9,7 +9,7 @@ const saltRounds = 10;
 require('dotenv').config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
+const { lookup } = require('geoip-lite');
 const db = require('../api/connect');
 
 const generateAccessToken = user => {
@@ -105,6 +105,12 @@ app.post('/logout', (req, res) => {
 
 app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
+  console.log(req.ip);
+  console.log(req.socket.localAddress, req.socket.localPort);
+  console.log(lookup(req.socket.localAddress)); // location of the user
+  console.log(lookup('46.231.218.154')); // location of the user
+  console.log(lookup('46.231.218.157')); // location of the user
+  res.send(req.user);
 });
 
 export default {
