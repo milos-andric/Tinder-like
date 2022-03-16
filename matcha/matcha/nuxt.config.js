@@ -28,6 +28,7 @@ export default {
     // https://go.nuxtjs.dev/eslint
     '@nuxtjs/eslint-module',
     '@nuxtjs/fontawesome',
+    '@nuxtjs/composition-api/module',
   ],
 
   fontawesome: {

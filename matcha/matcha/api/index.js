@@ -61,29 +61,27 @@ app.post('/register', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-
   db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
     .then(function (data) {
       bcrypt.compare(req.body.password, data.password, function (_err, result) {
-        if (result === true) 
+        if (result === true)
           res.send({ msg: 'Success', token: generateAccessToken(data) });
-        else
-          res.status(403).send({ msg: 'Invalid password' });
+        else res.status(403).send({ msg: 'Invalid password' });
       });
     })
     .catch(function (_error) {
       res.status(403).send({ msg: 'User is not found' });
     });
-
 });
 
 app.post('/recover', (req, res) => {
-  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username).then((data) => {
-    res.status(200).send({ msg: 'TODO' });
-  })
-  .catch(e => {
-    res.status(403).send({ msg: 'User is not found' });
-  });
+  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
+    .then(data => {
+      res.status(200).send({ msg: 'TODO' });
+    })
+    .catch(e => {
+      res.status(403).send({ msg: 'User is not found' });
+    });
 });
 
 app.post('/logout', (req, res) => {
@@ -103,6 +101,68 @@ app.get('/user', (req, res) => {
       res.status(403).send({ token: null, msg: 'User is not found' });
     })
   );
+});
+
+app.post('/search', (req, res) => {
+  // console.log(req.body);
+  // sanitize all inputs.
+  // verify no additional data
+  // verify data type value
+  // search db
+
+  let sql = 'SELECT * FROM users';
+  const values = [];
+  if (Object.keys(req.body.searchObj).length > 0) {
+    let counter = 0;
+    sql += ' WHERE';
+    if (req.body.searchObj.last_name) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' last_name =' + ' $' + counter;
+      values.push(req.body.searchObj.last_name);
+    }
+    if (req.body.searchObj.first_name) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' first_name =' + ' $' + counter;
+      values.push(req.body.searchObj.first_name);
+    }
+    if (req.body.searchObj.age) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' age BETWEEN' + ' $' + counter;
+      counter++;
+      sql += ' AND' + ' $' + counter;
+      values.push(req.body.searchObj.age[0]);
+      values.push(req.body.searchObj.age[1]);
+    }
+    // if (req.body.searchObj.location) {
+    //   counter++;
+    //   if (counter > 1) {
+    //     sql += ' AND';
+    //   }
+    //   sql += '  =' + ' $' + counter;
+    // }
+    if (req.body.searchObj.fame) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' fame >=' + ' $' + counter;
+      values.push(req.body.searchObj.fame);
+    }
+    console.log(values, sql);
+    db.any(sql, values).then(function (data) {
+      res.send(data);
+      console.log(data);
+    });
+  }
 });
 
 export default {

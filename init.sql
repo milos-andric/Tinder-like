@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "last_name" VARCHAR ( 64 ) NOT NULL,
     "user_name" VARCHAR ( 16 ) UNIQUE NOT NULL,
     "email" VARCHAR ( 255 ) UNIQUE NOT NULL,
+    "age" INT,
     "password" VARCHAR ( 64 ) NOT NULL,
     "gender" INT NOT NULL,
     "bio" TEXT,
