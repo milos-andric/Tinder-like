@@ -1,4 +1,5 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const app = express();
 
 const jwt = require('jsonwebtoken');
@@ -99,12 +100,66 @@ app.post('/recover', (req, res) => {
     });
 });
 
+app.post(
+  '/updateUserInfo',
+  authenticateToken,
+  body('first_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('First name must be at between 3 and 16 chars long'),
+  body('last_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('Last name must be at between 3 and 16 chars long'),
+  body('user_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('Username must be at between 3 and 16 chars long'),
+  body('email').isEmail().normalizeEmail().withMessage('Invalid mail address'),
+  body('gender').isInt({ min: 0, max: 1 }),
+  body('orientation').isInt({ min: 0, max: 2 }),
+  body('bio')
+    .trim()
+    .isLength({ max: 255 })
+    .withMessage('Bio must be shorter than 255 chars long'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+
+    const sql = `UPDATE users SET 
+            ( first_name, last_name, user_name, email, gender, orientation, bio, tags )
+            = ( $1, $2, $3, $4, $5, $6, $7, $8 ) WHERE user_id=$9`;
+
+    db.none(sql, [
+      req.body.first_name,
+      req.body.last_name,
+      req.body.user_name,
+      req.body.email,
+      req.body.gender,
+      req.body.orientation,
+      req.body.bio,
+      req.body.tags,
+      req.user.user_id,
+    ])
+      .then(data => res.status(200).json(data))
+      .catch(() => res.status(400).json({ msg: 'Database error' }));
+  }
+);
+
 app.post('/logout', (req, res) => {
-  res.send({ msg: 'Successfully logged out' });
+  res.status(200).send({ msg: 'Successfully logged out' });
 });
 
 app.get('/user', authenticateToken, (req, res) => {
-  console.log(req.user);
+  db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
+    .then(function (data) {
+      delete data.password;
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(404).json({ msg: 'User is not found' });
+    });
 });
 
 export default {

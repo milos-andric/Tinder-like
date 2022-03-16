@@ -1,10 +1,12 @@
 <template>
-  <div>
-    <NavBar />
+  <div class="d-flex flex-column min-vh-100">
+    <LayoutHeader />
 
-    <div class="pt-5">
+    <div class="py-5">
         <Nuxt />
     </div>
+
+    <LayoutFooter />
   </div>
 </template>
 

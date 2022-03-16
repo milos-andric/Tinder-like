@@ -2,7 +2,7 @@
   <div class="mx-auto col-4 h-100">
     <h2>Personal informations</h2>
 
-    <form method="post" @submit.prevent="register">
+    <form method="post" @submit.prevent="updateInfo">
       <div class="form-outline mb-4">
         <label class="form-label">First name</label>
         <input
@@ -47,7 +47,7 @@
         />
       </div>
 
-      <div class="form-outline mb-4">
+      <!-- <div class="form-outline mb-4">
         <label class="form-label">Password</label>
         <input
           v-model="password"
@@ -56,7 +56,7 @@
           name="password"
           required
         />
-      </div>
+      </div> -->
 
       <div class="form-outline mb-4">
         <label class="form-label">Gender</label>
@@ -186,20 +186,27 @@
         ></b-form-textarea>
       </div>
 
+      <div class="form-outline mb-4">
+        <label for="tags-basic" class="form-label">
+          Type a new tag and press enter
+        </label>
+        <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
+      </div>
 
-      <vue-tags-input
-        v-model="tag"
-        class="mb-4"
-        :tags="tags"
-        @tags-changed="newTags => tags = newTags"
-      />
-
-      <b-form-file
+      <!-- <b-form-file
         v-model="uploadedImg"
         :state="Boolean(uploadedImg)"
         placeholder="Choose a file or drop it here..."
         drop-placeholder="Drop file here..."
-      ></b-form-file>
+      ></b-form-file> -->
+
+      <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
+        {{ errorMsg }}
+      </b-alert>
+
+      <b-alert v-model="successStatus" variant="success" dismissible class="mt-3">
+        Your informations have successfully been updated
+      </b-alert>
 
       <div class="text-lg-start mt-4 pt-2">
         <button
@@ -215,46 +222,62 @@
 </template>
 
 <script>
-import VueTagsInput from '@johmun/vue-tags-input';
-
 export default {
-  components: {
-    VueTagsInput,
-  },
   data() {
     return {
       first_name: '',
       last_name: '',
       user_name: '',
       email: '',
-      password: '',
       gender: 0,
       orientation: 2,
       bio: '',
-      tag: '',
       tags: [],
-      uploadedImg: null,
-      error: null,
-    }
+
+      alertStatus: false,
+      successStatus: false,
+      errorMsg: '',
+    };
   },
-
+  async mounted() {
+    await this.$axios
+      .get('/user')
+      .then(e => {
+        this.first_name = e.data.first_name;
+        this.last_name = e.data.last_name;
+        this.user_name = e.data.user_name;
+        this.email = e.data.email;
+        this.gender = e.data.gender;
+        this.orientation = e.data.orientation;
+        this.bio = e.data.bio;
+        this.tags = e.data.tags;
+      })
+      .catch(e => {
+        console.log(e);
+      });
+  },
   methods: {
-    async register() {
-      try {
-        await this.$axios.post('register', {
-          first_name: this.first_name,
-          last_name: this.last_name,
-          user_name: this.user_name,
-          email: this.email,
-          password: this.password,
-          gender: this.gender,
-        })
-
-        this.$router.push('/')
-      } catch (e) {
-        this.error = e.response.data.message
-      }
+    async updateInfo() {
+      await this.$axios.post('updateUserInfo', {
+        first_name: this.first_name,
+        last_name: this.last_name,
+        user_name: this.user_name,
+        email: this.email,
+        gender: this.gender,
+        orientation: this.orientation,
+        bio: this.bio,
+        tags: this.tags,
+      })
+      .then(() => {
+        this.successStatus = true
+        this.alertStatus = false
+      })
+      .catch((e) => {
+        this.errorMsg = e.response.data.errors[0].msg
+        this.successStatus = false
+        this.alertStatus = true
+      });
     },
   },
-}
+};
 </script>
