@@ -18,6 +18,21 @@ const generateAccessToken = user => {
 
 // Post Routes
 
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token == null) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+
+    req.user = user;
+
+    next();
+  });
+}
+
 app.post('/register', (req, res) => {
   const firstName = req.body.first_name;
   const lastName = req.body.last_name;
@@ -61,48 +76,35 @@ app.post('/register', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-
   db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
     .then(function (data) {
       bcrypt.compare(req.body.password, data.password, function (_err, result) {
-        if (result === true) 
+        if (result === true)
           res.send({ msg: 'Success', token: generateAccessToken(data) });
-        else
-          res.status(403).send({ msg: 'Invalid password' });
+        else res.status(403).send({ msg: 'Invalid password' });
       });
     })
     .catch(function (_error) {
       res.status(403).send({ msg: 'User is not found' });
     });
-
 });
 
 app.post('/recover', (req, res) => {
-  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username).then((data) => {
-    res.status(200).send({ msg: 'TODO' });
-  })
-  .catch(e => {
-    res.status(403).send({ msg: 'User is not found' });
-  });
+  db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
+    .then(data => {
+      res.status(200).send({ msg: 'TODO' });
+    })
+    .catch(e => {
+      res.status(403).send({ msg: 'User is not found' });
+    });
 });
 
 app.post('/logout', (req, res) => {
   res.send({ msg: 'Successfully logged out' });
 });
 
-app.get('/user', (req, res) => {
-  console.log(req.body);
-
-  const email = req.body.email;
-
-  db.one('SELECT * FROM users WHERE email = $1', email).then(
-    function (data) {
-      res.send(data);
-    }.catch(function (_error) {
-      // error;
-      res.status(403).send({ token: null, msg: 'User is not found' });
-    })
-  );
+app.get('/user', authenticateToken, (req, res) => {
+  console.log(req.user);
 });
 
 export default {
