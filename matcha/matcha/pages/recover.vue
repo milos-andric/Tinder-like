@@ -1,10 +1,10 @@
 <template>
-  <RegisterForm />
+  <RecoverForm />
 </template>
 
 <script>
 export default {
-  name: 'RegisterPage',
+  name: 'RecoverPage',
   auth: 'guest',
 };
 </script>

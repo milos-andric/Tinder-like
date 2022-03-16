@@ -31,6 +31,8 @@ services:
     networks:
       - postgres
     restart: unless-stopped
+    logging:
+      driver: none
 
   redis:
     image: "redis:5-alpine"
