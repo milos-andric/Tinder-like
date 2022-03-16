@@ -2,3 +2,4 @@ https://github.com/khezen/compose-postgres
 https://blowstack.com/blog/how-to-integrate-express_js-with-nuxt-app
 https://expressjs.com/en/guide/database-integration.html#postgresql
 https://auth.nuxtjs.org/api/auth
+https://www.digitalocean.com/community/tutorials/nodejs-jwt-expressjs
