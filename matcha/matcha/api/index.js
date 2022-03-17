@@ -1,13 +1,17 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const fileUpload = require('express-fileupload');
 const app = express();
 
 const jwt = require('jsonwebtoken');
 
+const uuid = require('uuid');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 require('dotenv').config();
+
+app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -34,47 +38,58 @@ function authenticateToken(req, res, next) {
   });
 }
 
-app.post('/register', (req, res) => {
-  const firstName = req.body.first_name;
-  const lastName = req.body.last_name;
-  const userName = req.body.user_name;
-  const email = req.body.email;
-  const gender = req.body.gender;
-
-  const sql = `INSERT INTO users
-            ( first_name, last_name, user_name, email, password, gender )
-            VALUES ( $1, $2, $3, $4, $5, $6 )`;
-  bcrypt
-    .hash(req.body.password, saltRounds)
-    .then(function (password) {
-      db.none(
-        sql,
-        [firstName, lastName, userName, email, password, gender],
-        function (err, data) {
-          if (err) {
-            // some error occured
-            res.sendStatus(500);
-          } else {
-            // successfully inserted into db
-            // todo login direct lol
-            res.sendStatus(200);
-          }
-        }
-      )
-        .then(() => {
-          // success;
-          res.sendStatus(200);
-        })
-        .catch(e => {
-          res.sendStatus(500);
-          // error;
-        });
+app.post(
+  '/register',
+  body('first_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('First name must be at between 3 and 16 chars long'),
+  body('last_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('Last name must be at between 3 and 16 chars long'),
+  body('user_name')
+    .trim()
+    .isLength({ min: 3, max: 16 })
+    .withMessage('Username must be at between 3 and 16 chars long'),
+  body('email').isEmail().normalizeEmail().withMessage('Invalid mail address'),
+  body('gender').isInt({ min: 0, max: 1 }),
+  body('password')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 0,
+      returnScore: false,
     })
-    .catch(e => {
-      res.sendStatus(500);
-      // error;
+    .withMessage(
+      'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
+    ),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+
+    const sql = `INSERT INTO users
+            ( first_name, last_name, user_name, email, password, gender, activation_code )
+            VALUES ( $1, $2, $3, $4, $5, $6, $7 )`;
+
+    bcrypt.hash(req.body.password, saltRounds).then(function (hash) {
+      db.none(sql, [
+        req.body.first_name,
+        req.body.last_name,
+        req.body.user_name,
+        req.body.email,
+        hash,
+        req.body.gender,
+        uuid.v1(),
+      ])
+        .then(() => res.sendStatus(200))
+        .catch(() => res.status(400).json({ msg: 'User already exists' }));
     });
-});
+  }
+);
 
 app.post('/login', (req, res) => {
   db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
@@ -146,6 +161,65 @@ app.post(
       .catch(() => res.status(400).json({ msg: 'Database error' }));
   }
 );
+
+app.post(
+  '/changePassword',
+  authenticateToken,
+  body('newPass')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 0,
+      returnScore: false,
+    })
+    .withMessage(
+      'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
+    ),
+  body('secPass').custom((value, { req }) => {
+    if (value !== req.body.newPass)
+      throw new Error('Password confirmation does not match password');
+    return true;
+  }),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+
+    // Get and check current user's pass
+    db.one(`SELECT * FROM users WHERE user_id=$1`, req.user.user_id)
+      .then(data => {
+        bcrypt.compare(
+          req.body.oldPass,
+          data.password,
+          function (_err, result) {
+            if (result === true) {
+              // Update user's pass
+              bcrypt.hash(req.body.newPass, saltRounds).then(hash => {
+                db.none(`UPDATE users SET password=$1 WHERE user_id=$2`, [
+                  hash,
+                  req.user.user_id,
+                ])
+                  .then(() => res.sendStatus(200))
+                  .catch(() =>
+                    res.status(400).json({ msg: 'Database error 2' })
+                  );
+              });
+            } else res.status(403).send({ msg: 'Invalid current password' });
+          }
+        );
+      })
+      .catch(() => res.status(400).json({ msg: 'Database error 1' }));
+  }
+);
+
+app.post('/uploadImg', authenticateToken, (req, res) => {
+  const image = req.files.image
+  image.mv('./uploads/' + image.name);
+  console.log(process.cwd());
+  res.status(200).send('eheheha');
+});
 
 app.post('/logout', (req, res) => {
   res.status(200).send({ msg: 'Successfully logged out' });

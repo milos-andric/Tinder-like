@@ -62,7 +62,13 @@
         <label class="form-label">Gender</label>
         <div class="d-flex">
           <div
-            class="d-flex flex-column align-items-center justify-content-center flex-fill"
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
           >
             <input
               id="man"
@@ -77,7 +83,13 @@
           </div>
 
           <div
-            class="d-flex flex-column align-items-center justify-content-center flex-fill"
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
           >
             <input
               id="woman"
@@ -92,6 +104,19 @@
           </div>
         </div>
       </div>
+
+      <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
+        {{ errorMsg }}
+      </b-alert>
+
+      <b-alert
+        v-model="successStatus"
+        variant="success"
+        dismissible
+        class="mt-3"
+      >
+        An email has been sent to confirm your new account
+      </b-alert>
 
       <div class="text-lg-start mt-4 pt-2">
         <button
@@ -120,7 +145,9 @@ export default {
       email: '',
       password: '',
       gender: 0,
-      error: null,
+      alertStatus: false,
+      successStatus: false,
+      errorMsg: '',
     };
   },
 
@@ -136,9 +163,12 @@ export default {
           gender: this.gender,
         });
 
-        this.$router.push('/');
+        this.successStatus = true
+        this.alertStatus = false
       } catch (e) {
-        this.error = e.response.data.message;
+        this.errorMsg = e.response.data.msg || e.response.data.errors[0].msg
+        this.successStatus = false
+        this.alertStatus = true
       }
     },
   },

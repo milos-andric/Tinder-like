@@ -193,12 +193,6 @@
         <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
       </div>
 
-      <!-- <b-form-file
-        v-model="uploadedImg"
-        :state="Boolean(uploadedImg)"
-        placeholder="Choose a file or drop it here..."
-        drop-placeholder="Drop file here..."
-      ></b-form-file> -->
 
       <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
         {{ errorMsg }}
@@ -252,9 +246,6 @@ export default {
         this.bio = e.data.bio;
         this.tags = e.data.tags;
       })
-      .catch(e => {
-        console.log(e);
-      });
   },
   methods: {
     async updateInfo() {
@@ -273,7 +264,7 @@ export default {
         this.alertStatus = false
       })
       .catch((e) => {
-        this.errorMsg = e.response.data.errors[0].msg
+        this.errorMsg = e.response.data.msg || e.response.data.errors[0].msg
         this.successStatus = false
         this.alertStatus = true
       });

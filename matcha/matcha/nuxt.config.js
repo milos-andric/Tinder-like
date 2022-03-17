@@ -32,7 +32,7 @@ export default {
 
   fontawesome: {
     icons: {
-      solid: ['faBell', 'faPowerOff', 'faUser'],
+      solid: ['faBell', 'faPowerOff', 'faUser', 'faStar'],
     },
   },
 

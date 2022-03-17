@@ -26,9 +26,15 @@
         </b-nav-item-dropdown>
 
         <!-- Account button -->
-        <b-nav-item to="/me" class="mx-1">
+        <b-nav-item-dropdown right class="mx-1">
+          <template #button-content>
             <font-awesome-icon color="white" icon="user" />
-        </b-nav-item>
+          </template>
+
+          <b-dropdown-item to="profile">Profile</b-dropdown-item>
+          <b-dropdown-item to="me">About me</b-dropdown-item>
+          <b-dropdown-item to="security">Change password</b-dropdown-item>
+        </b-nav-item-dropdown>
 
         <!-- Logout button -->
         <b-nav-item class="mx-1" @click="logout">
