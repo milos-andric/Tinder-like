@@ -30,6 +30,7 @@
     "factory-girl": "^5.0.4",
     "js-cookie": "^3.0.1",
     "jsonwebtoken": "^8.5.1",
+    "nodemailer": "^6.7.2",
     "nuxt": "^2.15.8",
     "pg-promise": "^10.11.1",
     "uuid": "^8.3.2",
