@@ -3,7 +3,7 @@
     <NavBar />
 
     <div class="pt-5">
-        <Nuxt />
+      <Nuxt />
     </div>
   </div>
 </template>
@@ -11,5 +11,5 @@
 <script>
 export default {
   name: 'DefaultLayout',
-}
+};
 </script>
