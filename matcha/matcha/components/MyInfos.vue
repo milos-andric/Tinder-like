@@ -264,7 +264,7 @@ export default {
         this.alertStatus = false
       })
       .catch((e) => {
-        this.errorMsg = e.response.data.msg || e.response.data.errors[0].msg
+        this.errorMsg = e.response.data.msg
         this.successStatus = false
         this.alertStatus = true
       });

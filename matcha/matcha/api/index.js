@@ -1,5 +1,4 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
 const fileUpload = require('express-fileupload');
 const app = express();
 
@@ -16,7 +15,9 @@ app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-const db = require('../api/connect');
+const db = require('./connect');
+
+// Functions
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
@@ -31,9 +32,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Post Routes
+// Routes middleware
 
-function authenticateToken(req, res, next) {
+const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -46,41 +47,91 @@ function authenticateToken(req, res, next) {
 
     next();
   });
-}
+};
+
+const validateInput = (data, msg) => {
+  return (req, res, next) => {
+    const input = req.body[data].trim();
+    if (!(input.length >= 3 && input.length <= 16))
+      return res.status(400).json({ msg });
+    if (
+      !input.match(
+        /^[a-zA-ZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽ∂ð ,.'-]+$/u
+      )
+    )
+      return res.status(400).json({ msg: 'Invalid username' });
+
+    next();
+  };
+};
+
+const validateEmail = data => {
+  return (req, res, next) => {
+    const input = req.body[data].trim();
+
+    if (
+      input.match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      )
+    )
+      next();
+    else return res.status(400).json({ msg: 'Invalid mail address' });
+  };
+};
+
+const validatePassword = (data, msg) => {
+  return (req, res, next) => {
+    const input = req.body[data];
+
+    if (
+      input.length >= 8 &&
+      input.match(/[A-Z]/) &&
+      input.match(/[a-z]/) &&
+      input.match(/[0-9]/)
+    )
+      next();
+    else return res.status(400).json({ msg });
+  };
+};
+
+const validateInt = (data, min, max) => {
+  return (req, res, next) => {
+    const input = req.body[data];
+
+    if (input >= min && input <= max) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+const validateText = (data, max, msg) => {
+  return (req, res, next) => {
+    const input = req.body[data].trim();
+
+    if (input <= max) next();
+    else return res.status(400).json({ msg });
+  };
+};
+
+// POST routes
 
 app.post(
   '/register',
-  body('first_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('First name must be at between 3 and 16 chars long'),
-  body('last_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('Last name must be at between 3 and 16 chars long'),
-  body('user_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('Username must be at between 3 and 16 chars long'),
-  body('email').isEmail().withMessage('Invalid mail address'),
-  body('gender').isInt({ min: 0, max: 1 }),
-  body('password')
-    .isStrongPassword({
-      minLength: 8,
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 0,
-      returnScore: false,
-    })
-    .withMessage(
-      'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
-    ),
+  validateInput(
+    'first_name',
+    'First name must be at between 3 and 16 chars long'
+  ),
+  validateInput(
+    'last_name',
+    'Last name must be at between 3 and 16 chars long'
+  ),
+  validateInput('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateEmail('email'),
+  validateInt('gender', 0, 1),
+  validatePassword(
+    'password',
+    'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
+  ),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
-
     const sql = `INSERT INTO users
             ( first_name, last_name, user_name, email, password, gender, activation_code )
             VALUES ( $1, $2, $3, $4, $5, $6, $7 ) RETURNING user_id`;
@@ -159,65 +210,55 @@ app.post('/login', (req, res) => {
     });
 });
 
-app.post(
-  '/recover',
-  body('email').isEmail().withMessage('Invalid mail address'),
-  (req, res) => {
-    const newPass = uuid.v4();
+app.post('/recover', validateEmail('email'), (req, res) => {
+  const newPass = uuid.v4();
 
-    bcrypt.hash(newPass, saltRounds).then(function (hash) {
-      db.one('UPDATE users SET password=$1 WHERE email=$2 RETURNING user_id', [
-        hash,
-        req.body.email,
-      ])
-        .then(data => {
-          if (data) {
-            const mailOptions = {
-              from: 'Matcha <camagru.tmarcon@gmail.com>',
-              to: req.body.email,
-              subject: 'Password recovery',
-              html:
-                '<p>Please use the following password to log into your account: ' +
-                newPass +
-                '</p>',
-            };
-            transporter.sendMail(mailOptions);
+  bcrypt.hash(newPass, saltRounds).then(function (hash) {
+    db.one('UPDATE users SET password=$1 WHERE email=$2 RETURNING user_id', [
+      hash,
+      req.body.email,
+    ])
+      .then(data => {
+        if (data) {
+          const mailOptions = {
+            from: 'Matcha <camagru.tmarcon@gmail.com>',
+            to: req.body.email,
+            subject: 'Password recovery',
+            html:
+              '<p>Please use the following password to log into your account: ' +
+              newPass +
+              '</p>',
+          };
+          transporter.sendMail(mailOptions);
 
-            res.status(200).send({ msg: 'TODO' });
-          } else res.status(403).send({ msg: 'User is not found' });
-        })
-        .catch(e => res.status(403).send({ msg: 'User is not found' }));
-    });
-  }
-);
+          res.status(200).send({ msg: 'Success' });
+        } else res.status(403).send({ msg: 'User is not found' });
+      })
+      .catch(e => res.status(403).send({ msg: 'User is not found' }));
+  });
+});
 
 app.post(
   '/updateUserInfo',
   authenticateToken,
-  body('first_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('First name must be at between 3 and 16 chars long'),
-  body('last_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('Last name must be at between 3 and 16 chars long'),
-  body('user_name')
-    .trim()
-    .isLength({ min: 3, max: 16 })
-    .withMessage('Username must be at between 3 and 16 chars long'),
-  body('email').isEmail().withMessage('Invalid mail address'),
-  body('gender').isInt({ min: 0, max: 1 }),
-  body('orientation').isInt({ min: 0, max: 2 }),
-  body('bio')
-    .trim()
-    .isLength({ max: 255 })
-    .withMessage('Bio must be shorter than 255 chars long'),
+  validateInput(
+    'first_name',
+    'First name must be at between 3 and 16 chars long'
+  ),
+  validateInput(
+    'last_name',
+    'Last name must be at between 3 and 16 chars long'
+  ),
+  validateInput('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateEmail('email'),
+  validateInt('gender', 0, 1),
+  validateInt('orientation', 0, 2),
+  validatePassword(
+    'password',
+    'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
+  ),
+  validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
-
     const sql = `UPDATE users SET 
             ( first_name, last_name, user_name, email, gender, orientation, bio, tags )
             = ( $1, $2, $3, $4, $5, $6, $7, $8 ) WHERE user_id=$9`;
@@ -241,27 +282,15 @@ app.post(
 app.post(
   '/changePassword',
   authenticateToken,
-  body('newPass')
-    .isStrongPassword({
-      minLength: 8,
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 0,
-      returnScore: false,
-    })
-    .withMessage(
-      'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
-    ),
-  body('secPass').custom((value, { req }) => {
-    if (value !== req.body.newPass)
-      throw new Error('Password confirmation does not match password');
-    return true;
-  }),
+  validatePassword(
+    'newPass',
+    'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
+  ),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
+    if (req.body.newPass !== req.body.secPass)
+      return res
+        .status(400)
+        .send({ msg: 'Password confirmation does not match password' });
 
     // Get and check current user's pass
     db.one(`SELECT * FROM users WHERE user_id=$1`, req.user.user_id)
@@ -301,9 +330,7 @@ app.post('/logout', (req, res) => {
   res.status(200).send({ msg: 'Successfully logged out' });
 });
 
-app.get('/mail', (req, res) => {
-  res.status(200).send('eheheha');
-});
+// GET routes
 
 app.get('/user', authenticateToken, (req, res) => {
   db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
