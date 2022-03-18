@@ -106,6 +106,7 @@ app.post('/logout', (req, res) => {
 app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
 });
+app.post('/notif', authenticateToken, (req, res) => {});
 
 export default {
   path: '/api',
