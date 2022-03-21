@@ -71,15 +71,30 @@
       />
     </div>
     <button id="button-search" @click="search">Search</button>
+
+    <div v-if="rowData" id="search-result">
+      <client-only>
+        <ag-grid-vue
+          style="width: 50vw; height: 500px; margin: auto"
+          class="ag-theme-alpine"
+          :columnDefs="columnDefs"
+          :rowData="rowData"
+        >
+        </ag-grid-vue>
+      </client-only>
+    </div>
   </div>
 </template>
 
 <script type="module">
 import Slider from '@vueform/slider/dist/slider.vue2';
+import { AgGridVue } from 'ag-grid-vue';
 
 export default {
-  components: { Slider },
+  components: { Slider, AgGridVue },
   data: () => ({
+    columnDefs: null,
+    rowData: null,
     ageSlider: {
       value: [20, 40],
       min: 18,
@@ -99,7 +114,15 @@ export default {
     lastChecked: false,
     firstValue: '',
     lastValue: '',
+    list: [],
   }),
+  beforeMount() {
+    this.columnDefs = [
+      { field: 'first_name', sortable: true, filter: true },
+      { field: 'last_name', sortable: true, filter: true },
+      { field: 'age', sortable: true, filter: true },
+    ];
+  },
   methods: {
     async search() {
       try {
@@ -112,11 +135,14 @@ export default {
         if (this.locationChecked === true)
           searchObj.location = this.locationSlider.value;
 
-        await this.$axios.post('search', {
-          searchObj,
-        });
-
-        this.$router.push('/');
+        await this.$axios
+          .post('search', {
+            searchObj,
+          })
+          .then(r => {
+            this.list = r.data;
+            this.rowData = r.data;
+          });
       } catch (e) {
         this.error = e.response.data.message;
       }
@@ -127,12 +153,17 @@ export default {
 
 <style>
 @import url('../assets/sliderstyle.css');
-
+@import url('../node_modules/ag-grid-community/dist/styles/ag-grid.css');
+@import url('../node_modules/ag-grid-community/dist/styles/ag-theme-alpine.css');
 #search-form {
   display: flex;
   flex-direction: column;
+  align-content: center;
   margin: auto;
   width: 20%;
+}
+#search-result {
+  margin: auto;
 }
 #button-search {
   margin-top: 1rem;

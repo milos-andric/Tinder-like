@@ -120,16 +120,18 @@ app.post('/search', (req, res) => {
       if (counter > 1) {
         sql += ' AND';
       }
-      sql += ' last_name =' + ' $' + counter;
-      values.push(req.body.searchObj.last_name);
+      sql += ' last_name LIKE $' + counter + '';
+      const lastName = '%' + req.body.searchObj.last_name + '%';
+      values.push(lastName);
     }
     if (req.body.searchObj.first_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
-      sql += ' first_name =' + ' $' + counter;
-      values.push(req.body.searchObj.first_name);
+      sql += ' first_name LIKE $' + counter + '';
+      const firstName = '%' + req.body.searchObj.first_name + '%';
+      values.push(firstName);
     }
     if (req.body.searchObj.age) {
       counter++;
