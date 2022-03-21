@@ -110,13 +110,7 @@ export default {
   },
 
   // Express middleware route
-  serverMiddleware: [
-    { path: '/api', handler: '~/api' },
-    {
-      path: '/server-middleware',
-      handler: '~/serverMiddleware/socket-io-server.js',
-    },
-  ],
+  serverMiddleware: [{ path: '/api', handler: '~/api' }],
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {},
 };

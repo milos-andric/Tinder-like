@@ -1,8 +1,8 @@
 <template>
   <div class="container">
     <div>
-      <h1 class="title">nuxt-socket-io-demo</h1>
-      Latest tick received from socket.io: {{ latestTickId }}
+      <button @click="send">send</button>
+      Latest notif: {{ latestTickId }}
     </div>
   </div>
 </template>
@@ -11,7 +11,7 @@
 export default {
   data() {
     return {
-      latestTickId: 0,
+      latestTickId: '',
     };
   },
   mounted() {
@@ -23,11 +23,16 @@ export default {
     vm.socket.on('tick', tickId => {
       vm.latestTickId = tickId;
     });
-    window.socket = this.$nuxtSocket({
-      path: '/socket.io',
-      transport: ['websocket'],
-    });
-    window.socket.open();
+  },
+  methods: {
+    async send() {
+      await this.$axios
+        .get('notifMe', {})
+        .then(data => {
+          this.latestTickId = data;
+        })
+        .catch(e => {});
+    },
   },
 };
 </script>

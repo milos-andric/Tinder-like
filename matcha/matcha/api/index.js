@@ -15,7 +15,11 @@ const db = require('../api/connect');
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 };
-
+const io = require('socket.io')(3001, {
+  cors: {
+    // No CORS at all
+  },
+});
 // Post Routes
 
 function authenticateToken(req, res, next) {
@@ -105,6 +109,10 @@ app.post('/logout', (req, res) => {
 
 app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
+});
+app.get('/notifMe', authenticateToken, (req, res) => {
+  console.log('notifMe');
+  io.emit('tick', 'notification');
 });
 
 export default {
