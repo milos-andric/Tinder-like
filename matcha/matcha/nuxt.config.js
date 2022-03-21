@@ -35,7 +35,6 @@ export default {
       solid: ['faBell', 'faPowerOff'],
     },
   },
-
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     // https://go.nuxtjs.dev/bootstrap
@@ -43,7 +42,24 @@ export default {
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
     '@nuxtjs/auth-next',
+    'nuxt-socket-io',
   ],
+  io: {
+    // we could have multiple sockets that we identify with names
+    // one of these sockets may have set "default" to true
+    server: {
+      cors: {
+        origin: '*',
+      },
+    },
+    sockets: [
+      {
+        default: true, // make this the default socket
+        name: 'main', // give it a name that we can later use to choose this socket in the .vue file
+        url: 'http://localhost:3001', // URL wherever your socket IO server runs
+      },
+    ],
+  },
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
   axios: {
@@ -84,6 +100,9 @@ export default {
   },
   server: {
     host: '0.0.0.0',
+    cors: {
+      origin: '*',
+    },
   },
 
   router: {
@@ -91,10 +110,13 @@ export default {
   },
 
   // Express middleware route
-  serverMiddleware: {
-    '/api': '~/api',
-  },
-
+  serverMiddleware: [
+    { path: '/api', handler: '~/api' },
+    {
+      path: '/server-middleware',
+      handler: '~/serverMiddleware/socket-io-server.js',
+    },
+  ],
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {},
 };

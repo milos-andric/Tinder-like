@@ -45,7 +45,8 @@ services:
       - "${PWD}/matcha/matcha:/usr/src/app/"
     command: sh -c "npm i && npm run dev -- --port 3000"
     ports:
-      - "8000:3000"
+      - "3000:3000"
+      - "3001:3001"
     depends_on:
       - postgres
       - redis
