@@ -107,6 +107,70 @@ app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
 });
 
+app.post('/search', (req, res) => {
+  // console.log(req.body);
+  // sanitize all inputs.
+  // verify no additional data
+  // verify data type value
+  // search db
+
+  let sql = 'SELECT * FROM users';
+  const values = [];
+  if (Object.keys(req.body.searchObj).length > 0) {
+    let counter = 0;
+    sql += ' WHERE';
+    if (req.body.searchObj.last_name) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' last_name LIKE $' + counter + '';
+      const lastName = '%' + req.body.searchObj.last_name + '%';
+      values.push(lastName);
+    }
+    if (req.body.searchObj.first_name) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' first_name LIKE $' + counter + '';
+      const firstName = '%' + req.body.searchObj.first_name + '%';
+      values.push(firstName);
+    }
+    if (req.body.searchObj.age) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' age BETWEEN' + ' $' + counter;
+      counter++;
+      sql += ' AND' + ' $' + counter;
+      values.push(req.body.searchObj.age[0]);
+      values.push(req.body.searchObj.age[1]);
+    }
+    // if (req.body.searchObj.location) {
+    //   counter++;
+    //   if (counter > 1) {
+    //     sql += ' AND';
+    //   }
+    //   sql += '  =' + ' $' + counter;
+    // }
+    if (req.body.searchObj.fame) {
+      counter++;
+      if (counter > 1) {
+        sql += ' AND';
+      }
+      sql += ' fame >=' + ' $' + counter;
+      values.push(req.body.searchObj.fame);
+    }
+    console.log(values, sql);
+    db.any(sql, values).then(function (data) {
+      res.send(data);
+      console.log(data);
+    });
+  }
+});
+
 export default {
   path: '/api',
   handler: app,
