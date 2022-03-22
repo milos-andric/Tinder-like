@@ -11,6 +11,7 @@ export default {
       await this.$axios.post('registerMany', number);
     },
   },
+  update() {},
 };
 </script>
 

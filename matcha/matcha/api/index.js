@@ -1,5 +1,4 @@
-import factory from 'factory-girl';
-import User from '../model/User.js';
+import buildFactory from '../model/factory';
 
 const express = require('express');
 const app = express();
@@ -13,8 +12,10 @@ require('dotenv').config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+const pgp = require('pg-promise')(/* options */);
 const db = require('../api/connect');
-const pgp = require('../api/connect');
+// const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
+// const pgp = require('./connect').pgp;
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
@@ -173,50 +174,29 @@ app.post('/search', (req, res) => {
   }
 });
 
-factory.define('User', User, {
-  first_name: factory.chance('first', { nationality: 'fr' }),
-  last_name: factory.chance('last', { nationality: 'fr' }),
-  age: factory.chance('age', { type: 'adult' }),
-  fame: factory.chance('integer', { min: 0, max: 100 }),
-  gender: factory.chance('integer', { min: 0, max: 1 }),
-  email: factory.seq('User.email', n => `user${n}@ymail.com`),
-  bio: factory.chance('paragraph', { sentences: 1 }),
-});
-
-app.post('/registerMany', (req, res) => {
-  try {
-    factory
-      .buildMany('User', 3)
-      .then(user => {
-        console.log(user);
-        console.log('==========');
-        console.log(typeof user[0]);
-        console.log('==========');
-        console.log(user.map(e => e.User));
-        console.log('==========');
-        console.log([...user]);
-        const sql = pgp.helpers.insert(
-          user,
-          [
-            'first_name',
-            'last_name',
-            'user_name',
-            'email',
-            'password',
-            'gender',
-          ],
-          'users'
-        );
-        db.query(sql).then(function (data) {
-          res.sendStatus(200);
-        });
-      })
-      .catch(error => {
-        console.log(error);
-      });
-  } catch (e) {
-    this.error = e.response.data.message;
-  }
+app.post('/registerMany', async (req, res) => {
+  const factory = buildFactory();
+  const sql = await factory.attrsMany('User', 200).then(user => {
+    const ret = pgp.helpers.insert(
+      user,
+      [
+        'first_name',
+        'last_name',
+        'user_name',
+        'email',
+        'password',
+        'gender',
+        'score',
+        'bio',
+        'age',
+      ],
+      'users'
+    );
+    return ret;
+  });
+  db.any(sql).then(function (data) {
+    res.sendStatus(200);
+  });
 });
 
 export default {
