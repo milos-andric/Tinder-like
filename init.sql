@@ -5,12 +5,14 @@ CREATE TABLE IF NOT EXISTS "users" (
     "user_name" VARCHAR ( 16 ) UNIQUE NOT NULL,
     "email" VARCHAR ( 255 ) UNIQUE NOT NULL,
     "age" INT,
-    "password" VARCHAR ( 64 ) NOT NULL,
+    "password" VARCHAR ( 512 ) NOT NULL,
     "gender" INT NOT NULL,
+    "orientation" INT DEFAULT 2,
     "bio" TEXT,
     "tags" VARCHAR(16)[],
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
+    "activation_code" VARCHAR ( 512 ) NOT NULL,
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 

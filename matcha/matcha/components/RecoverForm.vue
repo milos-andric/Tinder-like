@@ -4,13 +4,13 @@
 
     <form method="post" @submit.prevent="recover">
       <div class="form-outline mb-3">
-        <label for="usernameInput" class="form-label">Username</label>
+        <label for="emailInput" class="form-label">Email</label>
         <input
-          id="usernameInput"
-          v-model="username"
+          id="emailInput"
+          v-model="email"
           type="text"
           class="form-control form-control-lg"
-          name="username"
+          name="email"
           required
         />
       </div>
@@ -48,7 +48,7 @@
 export default {
   data() {
     return {
-      username: '',
+      email: '',
       alertStatus: false,
       successStatus: false,
       errorMsg: '',
@@ -58,7 +58,7 @@ export default {
     async recover() {
       try {
         await this.$axios.post('recover', {
-          username: this.username,
+          email: this.email,
         })
         this.successStatus = true
         this.alertStatus = false

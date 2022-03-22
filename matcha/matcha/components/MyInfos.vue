@@ -1,0 +1,274 @@
+<template>
+  <div class="mx-auto col-4 h-100">
+    <h2>Personal informations</h2>
+
+    <form method="post" @submit.prevent="updateInfo">
+      <div class="form-outline mb-4">
+        <label class="form-label">First name</label>
+        <input
+          v-model="first_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="first_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Last name</label>
+        <input
+          v-model="last_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="last_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Username</label>
+        <input
+          v-model="user_name"
+          type="text"
+          class="form-control form-control-lg"
+          name="user_name"
+          required
+        />
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Email</label>
+        <input
+          v-model="email"
+          type="email"
+          class="form-control form-control-lg"
+          name="email"
+          required
+        />
+      </div>
+
+      <!-- <div class="form-outline mb-4">
+        <label class="form-label">Password</label>
+        <input
+          v-model="password"
+          type="password"
+          class="form-control form-control-lg"
+          name="password"
+          required
+        />
+      </div> -->
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Gender</label>
+        <div class="d-flex">
+          <div
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
+          >
+            <input
+              id="man"
+              v-model="gender"
+              type="radio"
+              class="form-control form-control-lg mb-2"
+              name="gender"
+              value="0"
+              required
+            />
+            <label for="man">Man</label>
+          </div>
+
+          <div
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
+          >
+            <input
+              id="woman"
+              v-model="gender"
+              type="radio"
+              class="form-control form-control-lg mb-2"
+              name="gender"
+              value="1"
+              required
+            />
+            <label for="woman">Woman</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-outline mb-4">
+        <label class="form-label">Orientation</label>
+        <div class="d-flex">
+          <div
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
+          >
+            <input
+              id="man"
+              v-model="orientation"
+              type="radio"
+              class="form-control mb-2"
+              name="orientation"
+              value="0"
+              required
+            />
+            <label for="man">Man</label>
+          </div>
+
+          <div
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
+          >
+            <input
+              id="woman"
+              v-model="orientation"
+              type="radio"
+              class="form-control mb-2"
+              name="orientation"
+              value="1"
+              required
+            />
+            <label for="woman">Woman</label>
+          </div>
+
+          <div
+            class="
+              d-flex
+              flex-column
+              align-items-center
+              justify-content-center
+              flex-fill
+            "
+          >
+            <input
+              id="bi"
+              v-model="orientation"
+              type="radio"
+              class="form-control mb-2"
+              name="orientation"
+              value="2"
+              required
+            />
+            <label for="bi">Bi</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-outline mb-4">
+        <label for="bio" class="form-label">Biography</label>
+
+        <b-form-textarea
+          id="bio"
+          v-model="bio"
+          placeholder="Enter something..."
+          rows="3"
+          max-rows="6"
+          class="form-control form-control-lg"
+        ></b-form-textarea>
+      </div>
+
+      <div class="form-outline mb-4">
+        <label for="tags-basic" class="form-label">
+          Type a new tag and press enter
+        </label>
+        <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
+      </div>
+
+
+      <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
+        {{ errorMsg }}
+      </b-alert>
+
+      <b-alert v-model="successStatus" variant="success" dismissible class="mt-3">
+        Your informations have successfully been updated
+      </b-alert>
+
+      <div class="text-lg-start mt-4 pt-2">
+        <button
+          type="submit"
+          class="btn btn-primary btn-lg"
+          style="padding-left: 2.5rem; padding-right: 2.5rem"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      first_name: '',
+      last_name: '',
+      user_name: '',
+      email: '',
+      gender: 0,
+      orientation: 2,
+      bio: '',
+      tags: [],
+
+      alertStatus: false,
+      successStatus: false,
+      errorMsg: '',
+    };
+  },
+  async mounted() {
+    await this.$axios
+      .get('/user')
+      .then(e => {
+        this.first_name = e.data.first_name;
+        this.last_name = e.data.last_name;
+        this.user_name = e.data.user_name;
+        this.email = e.data.email;
+        this.gender = e.data.gender;
+        this.orientation = e.data.orientation;
+        this.bio = e.data.bio;
+        this.tags = e.data.tags;
+      })
+  },
+  methods: {
+    async updateInfo() {
+      await this.$axios.post('updateUserInfo', {
+        first_name: this.first_name,
+        last_name: this.last_name,
+        user_name: this.user_name,
+        email: this.email,
+        gender: this.gender,
+        orientation: this.orientation,
+        bio: this.bio,
+        tags: this.tags,
+      })
+      .then(() => {
+        this.successStatus = true
+        this.alertStatus = false
+      })
+      .catch((e) => {
+        this.errorMsg = e.response.data.msg
+        this.successStatus = false
+        this.alertStatus = true
+      });
+    },
+  },
+};
+</script>
