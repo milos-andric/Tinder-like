@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const app = express();
@@ -11,9 +13,9 @@ const saltRounds = 10;
 
 require('dotenv').config();
 
-app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(fileUpload({ createParentPath: true }));
 
 const db = require('./connect');
 
@@ -311,7 +313,7 @@ app.post(
                     res.status(400).json({ msg: 'Database error 2' })
                   );
               });
-            } else res.status(403).send({ msg: 'Invalid current password' });
+            } else res.status(403).json({ msg: 'Invalid current password' });
           }
         );
       })
@@ -319,15 +321,66 @@ app.post(
   }
 );
 
-app.post('/uploadImg', authenticateToken, (req, res) => {
+app.post('/upload-image', authenticateToken, (req, res) => {
+  if (!req.files)
+    return res.status(400).json({ msg: 'No files were uploaded.' });
+
   const image = req.files.image;
-  image.mv('./uploads/' + image.name);
-  console.log(process.cwd());
-  res.status(200).send('eheheha');
+  const imageExt = path.extname(image.name);
+  const imagePath = '/uploads/' + req.user.user_id + '/' + uuid.v1() + imageExt;
+  const allowedExt = ['.png', '.jpg', '.jpeg'];
+
+  if (!allowedExt.includes(imageExt))
+    return res.status(422).json({ msg: 'Invalid Image' });
+
+  image.mv('./static' + imagePath, e => {
+    if (e) return res.status(400).json({ msg: "Couldn't upload image" });
+
+    db.query(`SELECT * FROM images WHERE user_id=$1`, req.user.user_id)
+      .then(data => {
+        if (data && data.length < 5) {
+          db.none(`INSERT INTO images ( url, user_id ) VALUES ( $1, $2 )`, [
+            imagePath,
+            req.user.user_id,
+          ]);
+          return res.status(200).json({ msg: 'Success', path: imagePath });
+        } else
+          return res.status(400).json({ msg: "Can't have more than 5 images" });
+      })
+      .catch(e => {
+        return res.status(400).json({ msg: 'Database error' });
+      });
+  });
+});
+
+app.post('/delete-image', authenticateToken, (req, res) => {
+  db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
+    req.user.user_id,
+    req.body.id,
+  ])
+    .then(() => {
+      fs.unlink('static' + req.body.url, err => {
+        if (err) return res.status(400).json({ msg: 'Image not found' });
+      });
+      res.status(200).json({ msg: 'Success' });
+    })
+    .catch(() => res.status(400).json({ msg: 'Image not found' }));
+});
+
+app.post('/profile-image', authenticateToken, (req, res) => {
+  const image = req.body.image ? req.body.image.image_id : null;
+  db.none(`UPDATE users SET profile_pic=$1 WHERE user_id=$2`, [
+    image,
+    req.user.user_id,
+  ])
+    .then(() => {
+      res.status(200).json({ msg: 'Success' });
+    })
+    .catch(() => res.status(400).json({ msg: 'Failure' }));
 });
 
 app.post('/logout', (req, res) => {
-  res.status(200).send({ msg: 'Successfully logged out' });
+  res.status(200).json({ msg: 'Successfully logged out' });
 });
 
 // GET routes
@@ -335,11 +388,27 @@ app.post('/logout', (req, res) => {
 app.get('/user', authenticateToken, (req, res) => {
   db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
     .then(function (data) {
-      delete data.password;
-      res.status(200).json(data);
+      db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic).then((image) => {
+        delete data.password;
+        data.profile_pic = image;
+        return res.status(200).json(data);
+      }).catch(e => {
+        delete data.password;
+        return res.status(200).json(data);
+      }) 
     })
     .catch(function (_error) {
       res.status(404).json({ msg: 'User is not found' });
+    });
+});
+
+app.get('/user-images', authenticateToken, (req, res) => {
+  db.many('SELECT * FROM images WHERE user_id = $1', req.user.user_id)
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(200).json({ data: [] });
     });
 });
 
