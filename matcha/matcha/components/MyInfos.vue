@@ -47,17 +47,6 @@
         />
       </div>
 
-      <!-- <div class="form-outline mb-4">
-        <label class="form-label">Password</label>
-        <input
-          v-model="password"
-          type="password"
-          class="form-control form-control-lg"
-          name="password"
-          required
-        />
-      </div> -->
-
       <div class="form-outline mb-4">
         <label class="form-label">Gender</label>
         <div class="d-flex">

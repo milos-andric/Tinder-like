@@ -3,10 +3,10 @@
     <b-avatar
       v-if="imageInput"
       size="20vw"
-      to="avatar"
+      to="/avatar"
       :src="imageInput.url"
     ></b-avatar>
-    <b-avatar v-else size="20vw" to="avatar"></b-avatar>
+    <b-avatar v-else size="20vw" to="/avatar"></b-avatar>
     <h2 class="mt-3">Choose your profile picture</h2>
 
     <b-container class="mt-5 p-3">
