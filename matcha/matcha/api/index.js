@@ -1,5 +1,8 @@
+import buildFactory from '../model/factory';
+
 const path = require('path');
 const fs = require('fs');
+
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const app = express();
@@ -17,9 +20,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
+const pgp = require('pg-promise')(/* options */);
 const db = require('./connect');
 
 // Functions
+// const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
+// const pgp = require('./connect').pgp;
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
@@ -388,14 +394,16 @@ app.post('/logout', (req, res) => {
 app.get('/user', authenticateToken, (req, res) => {
   db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
     .then(function (data) {
-      db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic).then((image) => {
-        delete data.password;
-        data.profile_pic = image;
-        return res.status(200).json(data);
-      }).catch(e => {
-        delete data.password;
-        return res.status(200).json(data);
-      }) 
+      db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic)
+        .then(image => {
+          delete data.password;
+          data.profile_pic = image;
+          return res.status(200).json(data);
+        })
+        .catch(e => {
+          delete data.password;
+          return res.status(200).json(data);
+        });
     })
     .catch(function (_error) {
       res.status(404).json({ msg: 'User is not found' });
@@ -468,12 +476,36 @@ app.post('/search', (req, res) => {
       sql += ' fame >=' + ' $' + counter;
       values.push(req.body.searchObj.fame);
     }
-    console.log(values, sql);
     db.any(sql, values).then(function (data) {
       res.send(data);
-      console.log(data);
     });
   }
+});
+
+app.post('/registerMany', async (req, res) => {
+  const factory = buildFactory();
+  const sql = await factory.attrsMany('User', 200).then(user => {
+    const ret = pgp.helpers.insert(
+      user,
+      [
+        'first_name',
+        'last_name',
+        'user_name',
+        'email',
+        'password',
+        'gender',
+        'score',
+        'bio',
+        'age',
+        'activation_code',
+      ],
+      'users'
+    );
+    return ret;
+  });
+  db.any(sql).then(function (data) {
+    res.sendStatus(200);
+  });
 });
 
 export default {
