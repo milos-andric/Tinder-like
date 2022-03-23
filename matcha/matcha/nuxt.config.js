@@ -33,7 +33,16 @@ export default {
 
   fontawesome: {
     icons: {
-      solid: ['faBell', 'faPowerOff', 'faUser', 'faStar', 'faTrash', 'faImage'],
+      solid: [
+        'faBell',
+        'faPowerOff',
+        'faUser',
+        'faStar',
+        'faTrash',
+        'faImage',
+        'faCircleXmark',
+        'faFire',
+      ],
     },
   },
 

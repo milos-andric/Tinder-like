@@ -508,6 +508,16 @@ app.post('/registerMany', async (req, res) => {
   });
 });
 
+app.post('/like', (req, res) => {
+  console.log('like');
+  res.sendStatus(200);
+});
+
+app.post('/dislike', (req, res) => {
+  console.log('dislike');
+  res.sendStatus(200);
+});
+
 export default {
   path: '/api',
   handler: app,
