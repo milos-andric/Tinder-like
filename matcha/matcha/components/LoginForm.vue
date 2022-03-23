@@ -41,7 +41,7 @@
             Remember me
           </label>
         </div>
-        <a href="/recover" class="text-primary">Forgot password?</a>
+        <nuxt-link to="/recover" class="text-primary">Forgot password?</nuxt-link>
       </div>
 
       <div class="text-lg-start mt-4 pt-2">
@@ -59,6 +59,9 @@
       </div>
     </form>
 
+    <b-alert v-model="successStatus" variant="success" dismissible class="mt-3">
+      Your account has been successfully verified
+    </b-alert>
     <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
       {{ errorMsg }}
     </b-alert>
@@ -71,6 +74,8 @@ export default {
     return {
       username: '',
       password: '',
+
+      successStatus: Boolean(this.$route.query.activate),
       alertStatus: false,
       errorMsg: '',
     };
@@ -86,6 +91,7 @@ export default {
         });
         this.$router.push('/');
       } catch (e) {
+        this.successStatus = false
         this.alertStatus = true
         this.errorMsg = e.response.data.msg
       }

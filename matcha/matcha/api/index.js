@@ -385,8 +385,11 @@ app.post('/logout', (req, res) => {
 
 // GET routes
 
-app.get('/user', authenticateToken, (req, res) => {
-  db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
+app.get('/user/:user_id?', authenticateToken, (req, res) => {
+  let id = req.user.user_id
+  if (req.params && req.params.user_id)
+    id = req.params.user_id
+  db.one('SELECT * FROM users WHERE user_id = $1', id)
     .then(function (data) {
       db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic).then((image) => {
         delete data.password;
@@ -402,8 +405,11 @@ app.get('/user', authenticateToken, (req, res) => {
     });
 });
 
-app.get('/user-images', authenticateToken, (req, res) => {
-  db.many('SELECT * FROM images WHERE user_id = $1', req.user.user_id)
+app.get('/user-images/:user_id?', authenticateToken, (req, res) => {
+  let id = req.user.user_id
+  if (req.params && req.params.user_id)
+    id = req.params.user_id
+  db.many('SELECT * FROM images WHERE user_id = $1', id)
     .then(function (data) {
       res.status(200).json(data);
     })
