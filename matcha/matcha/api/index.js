@@ -1,5 +1,74 @@
+const { createServer } = require("http");
 const express = require('express');
 const app = express();
+
+const { Server } = require("socket.io");
+
+const httpServer = createServer(app);
+
+const users = [];
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*"
+  }
+});
+httpServer.listen(3001);
+
+function socketIdentification(socket) {
+  if (socket.handshake.auth.token) {
+    const token = socket.handshake.auth.token.split(' ')[1];
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+      if (err) {
+        console.log(`${socket.id} is disconnected because bad token !`)
+        socket.disconnect(true);
+      }
+      console.log(user); // print info
+      return user;
+    });
+  }
+  else {
+    console.log(`${socket.id} is disconnected because token given !`)
+    socket.disconnect(true);
+  }
+  return null;
+}
+
+function emitToUserId(userId){
+  for (let i = 0; i < users.length; i++) {
+    if (users[i].user_id === userId) {
+      console.log(`notif sent ${users[i].socket_id}`);
+      io.to(users[i].socket_id).emit('receiveNotification', 'You have receive a notif !');
+    }
+  }
+}
+
+// // NAMESPACES
+// const general = io.of('/');
+// const chat = io.of('/chat');
+
+// general.on('connection', function(socket) {
+//   console.log(`${socket.id} is connected to /general namespace !`)
+//   console.log(socket);
+// })
+
+// chat.on('connection', function(socket) {
+//   console.log(`${socket.id} is connected to /chat namespace !`)
+// })
+// //
+
+// ROOMS
+io.on('connection', function(socket) {
+  console.log(`${socket.id} is connected !`)
+  const user = socketIdentification(socket);
+  users.push({
+    user_id: user.user_id,
+    socket_id: socket.id,
+  })
+  socket.on("sendNotification", function(data) {
+    emitToUserId(data.receiverId);
+  })
+});
 
 const jwt = require('jsonwebtoken');
 
@@ -15,11 +84,6 @@ const db = require('../api/connect');
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 };
-const io = require('socket.io')(3001, {
-  cors: {
-    // No CORS at all
-  },
-});
 // Post Routes
 
 function authenticateToken(req, res, next) {
@@ -114,6 +178,10 @@ app.get('/notifMe', authenticateToken, (req, res) => {
   console.log('notifMe');
   io.emit('tick', 'notification');
 });
+
+app.get('/profile/:id', function (req, res) {
+  // check if user exist
+})
 
 export default {
   path: '/api',

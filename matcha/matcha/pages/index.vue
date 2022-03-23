@@ -8,6 +8,15 @@
 <script>
 export default {
   name: 'IndexPage',
+  mounted() {
+    this.socket = this.$nuxtSocket({
+      name: 'main',
+      // channel: '/', // NAMESPACE
+      // auth: {
+      //   token: 'user', // TEST NOT WORKS
+      // },
+    });
+  },
   methods: {
     async getUserInfo() {
       try {

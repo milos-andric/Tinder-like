@@ -40,10 +40,12 @@ services:
   matcha:
     build: ./matcha
     container_name: matcha
+    # restart: always
+    restart: on-failure
     env_file: .env
     volumes:
       - "${PWD}/matcha/matcha:/usr/src/app/"
-    command: sh -c "npm i && npm run dev -- --port 3000"
+    command: sh -c "npm i --legacy-peer-deps && npm run dev -- --port 3000"
     ports:
       - "3000:3000"
       - "3001:3001"
