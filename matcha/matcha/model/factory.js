@@ -8,7 +8,7 @@ function buildFactory() {
       first_name: factory.chance('first', { nationality: 'fr' }),
       last_name: factory.chance('last', { nationality: 'fr' }),
       user_name: factory.seq('User.email', n => `${n}`),
-      password: factory.chance('last', { nationality: 'fr' }),
+      password: '$2b$10$R/y6E88GOfMiSOQzt1xPzeaElXUT3llz7gz/MH5um2Y30DfkpVxDO', // 1234
       age: factory.chance('age', { type: 'adult' }),
       score: factory.chance('integer', { min: 0, max: 100 }),
       email: factory.seq('User.email', n => `user${n}@ymail.com`),
