@@ -53,7 +53,7 @@ const authenticateToken = (req, res, next) => {
 
 const validateInput = (data, msg) => {
   return (req, res, next) => {
-    const input = req.body[data].trim();
+    const input = (req.body[data] || "").trim();
     if (!(input.length >= 3 && input.length <= 16))
       return res.status(400).json({ msg });
     if (
@@ -107,9 +107,9 @@ const validateInt = (data, min, max) => {
 
 const validateText = (data, max, msg) => {
   return (req, res, next) => {
-    const input = req.body[data].trim();
+    const input = (req.body[data] || "").trim();
 
-    if (input <= max) next();
+    if (input.length <= max) next();
     else return res.status(400).json({ msg });
   };
 };
@@ -255,10 +255,6 @@ app.post(
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
-  validatePassword(
-    'password',
-    'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
-  ),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
     const sql = `UPDATE users SET 

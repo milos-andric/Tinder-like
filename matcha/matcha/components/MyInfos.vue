@@ -60,7 +60,7 @@
             "
           >
             <input
-              id="man"
+              id="male"
               v-model="gender"
               type="radio"
               class="form-control form-control-lg mb-2"
@@ -68,7 +68,7 @@
               value="0"
               required
             />
-            <label for="man">Man</label>
+            <label for="male">Male</label>
           </div>
 
           <div
@@ -81,7 +81,7 @@
             "
           >
             <input
-              id="woman"
+              id="female"
               v-model="gender"
               type="radio"
               class="form-control form-control-lg mb-2"
@@ -89,7 +89,7 @@
               value="1"
               required
             />
-            <label for="woman">Woman</label>
+            <label for="female">Female</label>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@
             "
           >
             <input
-              id="man"
+              id="male"
               v-model="orientation"
               type="radio"
               class="form-control mb-2"
@@ -115,7 +115,7 @@
               value="0"
               required
             />
-            <label for="man">Man</label>
+            <label for="male">Male</label>
           </div>
 
           <div
@@ -128,7 +128,7 @@
             "
           >
             <input
-              id="woman"
+              id="female"
               v-model="orientation"
               type="radio"
               class="form-control mb-2"
@@ -136,7 +136,7 @@
               value="1"
               required
             />
-            <label for="woman">Woman</label>
+            <label for="female">Female</label>
           </div>
 
           <div
@@ -149,7 +149,7 @@
             "
           >
             <input
-              id="bi"
+              id="both"
               v-model="orientation"
               type="radio"
               class="form-control mb-2"
@@ -157,7 +157,7 @@
               value="2"
               required
             />
-            <label for="bi">Bi</label>
+            <label for="both">Both</label>
           </div>
         </div>
       </div>

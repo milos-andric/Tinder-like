@@ -1,7 +1,7 @@
 <template>
   <b-navbar toggleable="lg" type="dark" variant="primary">
     <!-- Brand -->
-    <b-navbar-brand class="text-bold" to="/">MATCHA</b-navbar-brand>
+    <b-navbar-brand class="font-weight-bold" to="/">MATCHA</b-navbar-brand>
 
     <!-- Responsive -->
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
