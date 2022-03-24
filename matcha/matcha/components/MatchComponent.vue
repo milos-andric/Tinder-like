@@ -2,21 +2,17 @@
   <div id="wrapper-match">
     <div id="match-photo">
       <div id="name-age-match">
-        {{ nameAndAge }}
+        {{ name + ', ' + age }}
       </div>
       <ShowProfilePic />
     </div>
     <div id="match-buttons">
-      <!-- <div id="reject-button"> -->
       <font-awesome-icon
         id="icon-match-dislike"
         icon="circle-xmark"
         @click="dislike()"
       />
-      <!-- </div> -->
-      <!-- <div id="like-button"> -->
       <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
-      <!-- </div> -->
     </div>
   </div>
 </template>
@@ -27,23 +23,36 @@ export default {
   components: { ShowProfilePic },
   data() {
     return {
-      nameAndAge: 'Angèle, 20',
+      name: '',
+      age: 0,
+      targetId: 0,
     };
+  },
+  async beforeMount() {
+    await this.loadMatch();
   },
   methods: {
     async like() {
-      await this.$axios.post('like', {}).then(r => {
-        console.log('yes');
+      await this.$axios.post('like', {
+        data: {
+          targetId: this.targetId,
+        },
       });
+      await this.loadMatch();
     },
     async dislike() {
-      await this.$axios.post('dislike', {}).then(r => {
-        console.log('nope');
+      await this.$axios.post('view', {
+        data: {
+          targetId: this.targetId,
+        },
       });
+      await this.loadMatch();
     },
     async loadMatch() {
-      await this.$axios.post('user/' + 16, {}).then(r => {
-        console.log(r);
+      await this.$axios.post('getRecommandation', {}).then(r => {
+        this.name = r.data.first_name;
+        this.age = r.data.age;
+        this.targetId = r.data.user_id;
       });
     },
   },

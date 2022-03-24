@@ -391,32 +391,31 @@ app.post('/logout', (req, res) => {
 
 // GET routes
 
-app.get('/user/:user_id?', authenticateToken, (req, res) => {
-  let id = req.user.user_id
-  if (req.params && req.params.user_id)
-    id = req.params.user_id
-  db.one('SELECT * FROM users WHERE user_id = $1', id)
-    .then(function (data) {
-      db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic)
-        .then(image => {
-          delete data.password;
-          data.profile_pic = image;
-          return res.status(200).json(data);
-        })
-        .catch(e => {
-          delete data.password;
-          return res.status(200).json(data);
-        });
-    })
-    .catch(function (_error) {
-      res.status(404).json({ msg: 'User is not found' });
-    });
+const getUserInfos = async id => {
+  try {
+    const data = await db.one('SELECT * FROM users WHERE user_id = ' + id);
+    delete data.password;
+    return data;
+  } catch (e) {
+    throw new Error('User is not found');
+  }
+};
+
+app.get('/user/:user_id?', authenticateToken, async (req, res) => {
+  let id = req.user.user_id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
+
+  try {
+    const user = await getUserInfos(id);
+    return res.status(200).json(user);
+  } catch (e) {
+    return res.status(404).json({ msg: e });
+  }
 });
 
 app.get('/user-images/:user_id?', authenticateToken, (req, res) => {
-  let id = req.user.user_id
-  if (req.params && req.params.user_id)
-    id = req.params.user_id
+  let id = req.user.user_id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
   db.many('SELECT * FROM images WHERE user_id = $1', id)
     .then(function (data) {
       res.status(200).json(data);
@@ -514,14 +513,71 @@ app.post('/registerMany', async (req, res) => {
   });
 });
 
-app.post('/like', (req, res) => {
-  console.log('like');
+app.post('/like', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot like yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already liked' });
+
+  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
   res.sendStatus(200);
 });
 
-app.post('/dislike', (req, res) => {
-  console.log('dislike');
+app.post('/view', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot react to yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already scored' });
+
+  const sql = `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
   res.sendStatus(200);
+});
+
+const findPartner = async user => {
+  let sql = `SELECT * FROM users WHERE`;
+  if (user.orientation !== 2) {
+    sql += ` gender = ${user.orientation} AND`;
+  }
+  sql += ` user_id NOT IN (SELECT target_id FROM likes WHERE liker_id = ${user.user_id})`;
+  sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
+  // let listIdAlreadyLiked = await db.any(
+  //   `SELECT target_id FROM likes WHERE liker_id = ${user.user_id}`
+  // );
+  // listIdAlreadyLiked = listIdAlreadyLiked.map(e => e.target_id);
+
+  // listIdAlreadyLiked = pgp.helpers.values(listIdAlreadyLiked, ['target_id']);
+  sql += ` ORDER BY score DESC`;
+  const res = await db.many(sql);
+  if (res.length !== 0) {
+    delete res[0].password;
+    return res[0];
+  }
+};
+
+app.post('/getRecommandation', authenticateToken, async (req, res) => {
+  const user = await getUserInfos(req.user.user_id);
+  const partener = await findPartner(user);
+  res.send(partener);
 });
 
 export default {
