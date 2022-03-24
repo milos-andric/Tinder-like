@@ -33,4 +33,24 @@ CREATE TABLE IF NOT EXISTS "likes" (
     CONSTRAINT "fk_user" FOREIGN KEY("user_id") REFERENCES "users"("user_id")
 );
 
+CREATE TABLE IF NOT EXISTS "blocks" (
+    "block_id" serial PRIMARY KEY,
+    "sender_id" INT NOT NULL,
+    "blocked_id" INT NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
+
+    CONSTRAINT "fk_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_blocked_id" FOREIGN KEY("blocked_id") REFERENCES "users"("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "reports" (
+    "report_id" serial PRIMARY KEY,
+    "sender_id" INT NOT NULL,
+    "reported_id" INT NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
+
+    CONSTRAINT "fk_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_reported_id" FOREIGN KEY("reported_id") REFERENCES "users"("user_id")
+);
+
 -- INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "created_on") VALUES ("thais", "marcon", "diams", "mthais.web@gmail.com", "diams", 0, NOW())

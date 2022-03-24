@@ -102,14 +102,18 @@
       </b-button>
     </b-container>
 
-    <b-modal id="report" title="Report as robot" @ok="confirmReport">
+    <b-modal
+      id="report"
+      title="Report as robot"
+      @ok="userAction('/user-report')"
+    >
       <p class="text-center my-4">
         <font-awesome-icon icon="robot" style="font-size: 2em" />
       </p>
       <p class="text-center my-4">Report this user as a robot ?</p>
     </b-modal>
 
-    <b-modal id="block" title="Report as robot" @ok="confirmBlock">
+    <b-modal id="block" title="Report as robot" @ok="userAction('/user-block')">
       <p class="text-center my-4">
         <font-awesome-icon icon="ban" style="font-size: 2em" />
       </p>
@@ -119,8 +123,13 @@
       </p>
     </b-modal>
 
-    <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
-      {{ errorMsg }}
+    <b-alert
+      v-model="alertStatus"
+      :variant="alertVariant"
+      dismissible
+      class="mt-3"
+    >
+      {{ alertMsg }}
     </b-alert>
   </div>
 </template>
@@ -129,7 +138,7 @@
 export default {
   data() {
     return {
-      id: this.$route.params.id,
+      id: Number(this.$route.params.id),
       first_name: '',
       last_name: '',
       user_name: '',
@@ -143,11 +152,11 @@ export default {
       images: [],
 
       alertStatus: false,
-      successStatus: false,
-      errorMsg: '',
+      alertVariant: 'error',
+      alertMsg: '',
     };
   },
-  async mounted() {
+  async beforeMount() {
     await this.$axios.get('/user/' + this.id).then(e => {
       this.first_name = e.data.first_name;
       this.last_name = e.data.last_name;
@@ -175,13 +184,19 @@ export default {
       else if (this.orientation === this.gender) return 'Gay';
       else return 'Straight';
     },
-    confirmReport(e) {
-      e.preventDefault();
-      console.log(this.id);
-    },
-    confirmBlock(e) {
-      e.preventDefault();
-      console.log(this.id);
+    async userAction(route) {
+      try {
+        const res = await this.$axios.post(route, {
+          receiver: this.id,
+        });
+        this.alertMsg = res.data.msg;
+        this.alertVariant = 'success';
+        this.alertStatus = true;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
     },
     like() {
       console.log(this.id);

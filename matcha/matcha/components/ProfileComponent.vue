@@ -83,7 +83,7 @@
     ></b-form-file>
 
     <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
-      {{ errorMsg }}
+      {{ alertMsg }}
     </b-alert>
   </div>
 </template>
@@ -106,27 +106,30 @@ export default {
       imageInput: null,
 
       alertStatus: false,
-      errorMsg: '',
+      alertMsg: '',
     };
   },
-  async mounted() {
-    await this.$axios.get('/user').then(e => {
-      this.first_name = e.data.first_name;
-      this.last_name = e.data.last_name;
-      this.user_name = e.data.user_name;
-      this.gender = e.data.gender;
-      this.orientation = e.data.orientation;
-      this.bio = e.data.bio;
-      this.tags = e.data.tags;
-
-      this.profile_pic = e.data.profile_pic;
-    });
-
-    await this.$axios.get('/user-images').then(e => {
-      this.images = e.data;
-    });
+  beforeMount() {
+    this.getUserData();
   },
   methods: {
+    async getUserData() {
+      await this.$axios.get('/user').then(e => {
+        this.first_name = e.data.first_name;
+        this.last_name = e.data.last_name;
+        this.user_name = e.data.user_name;
+        this.gender = e.data.gender;
+        this.orientation = e.data.orientation;
+        this.bio = e.data.bio;
+        this.tags = e.data.tags;
+
+        this.profile_pic = e.data.profile_pic;
+      });
+
+      await this.$axios.get('/user-images').then(e => {
+        this.images = e.data;
+      });
+    },
     getOrientationIcon() {
       if (this.orientation === 0) return 'mars';
       else if (this.orientation === 2) return 'venus-mars';
@@ -149,14 +152,12 @@ export default {
     async deleteImage(id, url) {
       await this.$axios
         .post('/delete-image', { id, url })
-        .then(e => {
-          this.$axios.get('/user-images').then(e => {
-            this.images = e.data;
-            this.alertStatus = false;
-          });
+        .then(() => {
+          this.alertStatus = false;
+          this.getUserData();
         })
         .catch(e => {
-          this.errorMsg = e.response.data.msg;
+          this.alertMsg = e.response.data.msg;
           this.alertStatus = true;
         });
     },
@@ -172,12 +173,10 @@ export default {
         })
         .then(() => {
           this.alertStatus = false;
-          this.$axios.get('/user-images').then(e => {
-            this.images = e.data;
-          });
+          this.getUserData();
         })
         .catch(e => {
-          this.errorMsg = e.response.data.msg;
+          this.alertMsg = e.response.data.msg;
           this.alertStatus = true;
         });
     },

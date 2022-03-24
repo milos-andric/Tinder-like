@@ -222,7 +222,7 @@ export default {
       errorMsg: '',
     };
   },
-  async mounted() {
+  async beforeMount() {
     await this.$axios
       .get('/user')
       .then(e => {

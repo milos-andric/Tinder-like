@@ -41,7 +41,9 @@
             Remember me
           </label>
         </div>
-        <nuxt-link to="/recover" class="text-primary">Forgot password?</nuxt-link>
+        <nuxt-link to="/recover" class="text-primary"
+          >Forgot password?</nuxt-link
+        >
       </div>
 
       <div class="text-lg-start mt-4 pt-2">
@@ -89,11 +91,10 @@ export default {
             password: this.password,
           },
         });
-        this.$router.push('/');
       } catch (e) {
-        this.successStatus = false
-        this.alertStatus = true
-        this.errorMsg = e.response.data.msg
+        this.successStatus = false;
+        this.alertStatus = true;
+        this.errorMsg = e.response.data.msg;
       }
     },
   },
