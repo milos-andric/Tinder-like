@@ -1,11 +1,16 @@
+import { Console } from "console";
+
 const { createServer } = require("http");
 const express = require('express');
 const app = express();
 
-const { Server } = require("socket.io");
+// require('../api/notification.js');
+// require('../api/socket.js');
 
 const httpServer = createServer(app);
 
+// SOCKET
+const { Server } = require("socket.io");
 const users = [];
 
 const io = new Server(httpServer, {
@@ -16,22 +21,14 @@ const io = new Server(httpServer, {
 httpServer.listen(3001);
 
 function socketIdentification(socket) {
-  if (socket.handshake.auth.token) {
-    const token = socket.handshake.auth.token.split(' ')[1];
-    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-      if (err) {
-        console.log(`${socket.id} is disconnected because bad token !`)
-        socket.disconnect(true);
-      }
-      console.log(user); // print info
-      return user;
-    });
-  }
-  else {
-    console.log(`${socket.id} is disconnected because token given !`)
-    socket.disconnect(true);
-  }
-  return null;
+  const token = socket.handshake.auth.token.split(' ')[1];
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      console.log(`${socket.id} is disconnected because bad token !`)
+      socket.disconnect(true);
+    }
+    return user;
+  });
 }
 
 function emitToUserId(userId){
@@ -43,32 +40,46 @@ function emitToUserId(userId){
   }
 }
 
-// // NAMESPACES
-// const general = io.of('/');
-// const chat = io.of('/chat');
+// NAMESPACES
+const general = io.of('/');
+const chat = io.of('/chat');
 
-// general.on('connection', function(socket) {
-//   console.log(`${socket.id} is connected to /general namespace !`)
-//   console.log(socket);
+// use() middleware
+// https://socket.io/docs/v4/middlewares/
+// general.use((socket, next) => {
 // })
+general.on('connection', (socket) => {
+  console.log(`${socket.id} is connected to /general namespace !`)
+  if (socket.handshake.auth.token) {
+    const user = socketIdentification(socket);
+    users.push({
+      user_id: user.user_id,
+      socket_id: socket.id,
+    })
+  } else {
+    socket.disconnect(true);
+  }
 
-// chat.on('connection', function(socket) {
-//   console.log(`${socket.id} is connected to /chat namespace !`)
-// })
-// //
-
-// ROOMS
-io.on('connection', function(socket) {
-  console.log(`${socket.id} is connected !`)
-  const user = socketIdentification(socket);
-  users.push({
-    user_id: user.user_id,
-    socket_id: socket.id,
-  })
-  socket.on("sendNotification", function(data) {
+  // for (let i = 0; i < users.length; i++)
+  //   console.log(users[i]);
+  
+  socket.on('notification', (data) => {
     emitToUserId(data.receiverId);
-  })
-});
+  });
+  socket.on("disconnect", (_reason) => {
+    // for (let i = 0; i < users.length; i++)
+      // console.log("IN: ", i, users[i]);
+
+    users.splice(users.findIndex(obj => obj.socket_id === socket.id), 1)
+
+    // for (let i = 0; i < users.length; i++)
+      // console.log("OUT: ", i, users[i]);
+  });
+})
+
+chat.on('connection', (socket) => {
+  console.log(`${socket.id} is connected to /chat namespace !`)
+})
 
 const jwt = require('jsonwebtoken');
 
@@ -174,14 +185,32 @@ app.post('/logout', (req, res) => {
 app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
 });
-app.get('/notifMe', authenticateToken, (req, res) => {
-  console.log('notifMe');
-  io.emit('tick', 'notification');
-});
 
-app.get('/profile/:id', function (req, res) {
-  // check if user exist
-})
+// app.post('/visit', authenticateToken, (req, res) => {
+//   db.none(`INSERT INTO notifications ( user_id_send, user_id_receiver, content, type, watched)
+//   VALUES ( $1, $2, $3, $4, $5 )`, [req.user.user_id, 2, 'You have a visit', 'visit', false])
+//     .then(function (data) {
+//       req.user.
+//         res.sendStatus(200);;
+//     })
+//     .catch(function (_error) {
+//         res.sendStatus(500);
+//     });
+// });
+
+app.get('/notifications', authenticateToken, (req, res) => {
+  db.any(`SELECT * FROM notifications WHERE user_id_receiver = $1`, req.user.user_id)
+  .then(function (data) {
+    if (data?.length > 0)
+      res.status(200).json(data);
+    else {
+      res.status(200).json([{ notification_id: 0, content: "You have 0 notification."}]);
+    }
+  })
+  .catch(function (_error) {
+    res.status(403).send({ msg: 'User is not found' });
+  });
+});
 
 export default {
   path: '/api',

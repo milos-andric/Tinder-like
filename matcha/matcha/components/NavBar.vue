@@ -17,11 +17,12 @@
           <template #button-content>
             <font-awesome-icon color="white" icon="bell" />
           </template>
-          <b-dropdown-item href="#">Incredible notification</b-dropdown-item>
-          <b-dropdown-item href="#"
-            >Robin sent you a death threat</b-dropdown-item
+          <b-dropdown-item
+            v-for="x in notifications"
+            :key="x.notification_id"
+            href="#"
+            >{{ x.content }}</b-dropdown-item
           >
-          <b-dropdown-item href="#">You are cringe</b-dropdown-item>
         </b-nav-item-dropdown>
 
         <b-nav-item @click="logout"
@@ -33,6 +34,20 @@
 </template>
 <script>
 export default {
+  data() {
+    return {
+      notifications: [],
+    };
+  },
+  async beforeMount() {
+    try {
+      const res = await this.$axios.get('notifications');
+      this.notifications = res.data;
+      console.log(this.notifications);
+    } catch (e) {
+      console.log(e);
+    }
+  },
   methods: {
     logout() {
       this.$auth.logout();

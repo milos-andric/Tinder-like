@@ -1,6 +1,8 @@
 <template>
   <div class="container">
     <button @click="send">emit</button>
+    <button @click="post">POST</button>
+    <button @click="get">GET</button>
     <p>{{ message }}</p>
   </div>
 </template>
@@ -28,6 +30,24 @@ export default {
   methods: {
     send() {
       this.socket.emit('sendNotification', { receiverId: 1 });
+    },
+    async post() {
+      try {
+        await this.$axios.post('insertNotif', {
+          username: this.username,
+        });
+      } catch (e) {
+        console.log('OOPS');
+      }
+    },
+    async get() {
+      try {
+        await this.$axios.get('notifications', {
+          username: this.username,
+        });
+      } catch (e) {
+        console.log('OOPS');
+      }
     },
   },
 };

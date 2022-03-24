@@ -11,10 +11,10 @@ export default {
   mounted() {
     this.socket = this.$nuxtSocket({
       name: 'main',
-      // channel: '/', // NAMESPACE
-      // auth: {
-      //   token: 'user', // TEST NOT WORKS
-      // },
+      channel: '/', // NAMESPACE
+      auth: {
+        token: localStorage.getItem('auth._token.local'),
+      },
     });
   },
   methods: {
