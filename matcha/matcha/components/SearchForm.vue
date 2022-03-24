@@ -1,89 +1,93 @@
 <template>
-  <div id="search-form">
-    <div>
-      <input v-model="lastChecked" type="checkbox" />
-      <label for="last-name-search">Last name search:</label>
-      <input
-        v-if="lastChecked"
-        id="last-name-search"
-        v-model="lastValue"
-        type="search"
-        name="last-name-search"
-      />
+  <main>
+    <div id="search-form" class="col-6">
+      <div>
+        <b-form-checkbox v-model="lastChecked"
+          >Last name search</b-form-checkbox
+        >
+        <b-form-input
+          v-if="lastChecked"
+          id="last-name-search"
+          v-model="lastValue"
+          class="my-2"
+          name="last-name-search"
+        />
+      </div>
+
+      <div>
+        <b-form-checkbox v-model="firstChecked"
+          >First name search</b-form-checkbox
+        >
+        <b-form-input
+          v-if="firstChecked"
+          id="first_name-search"
+          v-model="firstValue"
+          class="my-2"
+          name="first-name-search"
+        />
+      </div>
+
+      <div>
+        <b-form-checkbox v-model="ageChecked">Age search</b-form-checkbox>
+        <Slider
+          v-if="ageChecked"
+          id="slider-age"
+          v-model="ageSlider.value"
+          class="slider"
+          v-bind="ageSlider"
+        />
+      </div>
+
+      <div>
+        <b-form-checkbox v-model="locationChecked"
+          >Location search (km)</b-form-checkbox
+        >
+        <Slider
+          v-if="locationChecked"
+          id="slider-location"
+          v-model="locationSlider.value"
+          class="slider"
+          v-bind="locationSlider"
+        />
+      </div>
+
+      <div>
+        <b-form-checkbox v-model="fameChecked">Fame search</b-form-checkbox>
+        <Slider
+          v-if="fameChecked"
+          id="slider-fame"
+          v-model="fameSlider.value"
+          class="slider"
+          v-bind="fameSlider"
+        />
+      </div>
+
+      <div>
+        <b-form-checkbox v-model="tagsChecked">Tags search</b-form-checkbox>
+        <b-form-input
+          v-if="tagsChecked"
+          id="tags-search"
+          name="tags-search"
+          class="my-2"
+        />
+      </div>
+      <button id="button-search" class="btn btn-primary" @click="search">
+        Search
+      </button>
     </div>
 
-    <div>
-      <input v-model="firstChecked" type="checkbox" />
-      <label for="first_name-search">First name search:</label>
-      <input
-        v-if="firstChecked"
-        id="first_name-search"
-        v-model="firstValue"
-        type="search"
-        name="first-name-search"
-      />
-    </div>
-
-    <div>
-      <input v-model="ageChecked" type="checkbox" />
-      <label for="age-search">Age search:</label>
-      <Slider
-        v-if="ageChecked"
-        id="slider-age"
-        v-model="ageSlider.value"
-        class="slider"
-        v-bind="ageSlider"
-      />
-    </div>
-
-    <div>
-      <input v-model="locationChecked" type="checkbox" />
-      <label for="location-search">Location search (km) :</label>
-      <Slider
-        v-if="locationChecked"
-        id="slider-location"
-        v-model="locationSlider.value"
-        class="slider"
-        v-bind="locationSlider"
-      />
-    </div>
-
-    <div>
-      <input v-model="fameChecked" type="checkbox" />
-      <label for="fame-search">Fame search :</label>
-      <Slider
-        v-if="fameChecked"
-        id="slider-fame"
-        v-model="fameSlider.value"
-        class="slider"
-        v-bind="fameSlider"
-      />
-    </div>
-
-    <div>
-      <input v-model="tagsChecked" type="checkbox" />
-      <label for="tags-search">Tags search:</label>
-      <input
-        v-if="tagsChecked"
-        id="tags-search"
-        type="search"
-        name="tags-search"
-      />
-    </div>
-    <button id="button-search" @click="search">Search</button>
-
-    <div v-if="rowData" id="search-result">
+    <div v-if="rowData" id="search-result" class="mt-5 col-10">
       <client-only>
         <ag-grid-vue
-          style="width: 50vw; height: 500px; margin: auto"
-          class="ag-theme-alpine"
+          style="height: 500px; margin: auto"
+          class="ag-theme-material"
           :columnDefs="columnDefs"
           :rowData="rowData"
         >
         </ag-grid-vue>
       </client-only>
     </div>
-  </div>
+  </main>
 </template>
 
 <script type="module">
@@ -118,7 +122,12 @@ export default {
   }),
   beforeMount() {
     this.columnDefs = [
-      { field: 'first_name', sortable: true, filter: true },
+      {
+        field: 'first_name',
+        sortable: true,
+        filter: true,
+        onCellClicked: e => this.$router.push('/user/' + e.data.user_id),
+      },
       { field: 'last_name', sortable: true, filter: true },
       { field: 'age', sortable: true, filter: true },
     ];
@@ -154,27 +163,21 @@ export default {
 <style>
 @import url('../assets/sliderstyle.css');
 @import url('../node_modules/ag-grid-community/dist/styles/ag-grid.css');
-@import url('../node_modules/ag-grid-community/dist/styles/ag-theme-alpine.css');
+@import url('../node_modules/ag-grid-community/dist/styles/ag-theme-material.css');
 #search-form {
   display: flex;
   flex-direction: column;
   align-content: center;
   margin: auto;
-  width: 20%;
 }
 #search-result {
   margin: auto;
 }
 #button-search {
-  margin-top: 1rem;
+  margin-top: 3rem;
 }
 .slider {
-  margin-top: 2rem;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
 }
 </style>
-// // 'field': 'age', // // 'operation': 'BETWEEN', // // 'val1': '24', // //
-'val2': '26' // // }, { // // 'field': 'gender', // // 'operation': 'EQUAL', //
-// 'val': '1', // // }, { // // 'field': 'location', // // 'operation': 'RANGE',
-// // 'longitude': '2', // // 'lattitude': '48', // // 'distance': '100km', //
-j'ai envie de baiser // // }, { // // 'field': 'tags', // // 'operation':
-'LIST', // // 'tags': ['volleyball', 'levrette', 'reglisse'] // // }]

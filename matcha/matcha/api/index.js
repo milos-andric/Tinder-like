@@ -1,31 +1,37 @@
+// File managment
+import * as path from 'path';
+import * as fs from 'fs';
+import fileUpload from 'express-fileupload';
+
+// Credentials
+import * as jwt from 'jsonwebtoken';
+import * as uuid from 'uuid';
+import * as bcrypt from 'bcrypt';
+
+// Core
+import * as nodemailer from 'nodemailer';
+import dotenv from 'dotenv'
+import express from 'express';
+import pgPromise from 'pg-promise';
 import buildFactory from '../model/factory';
 
-const path = require('path');
-const fs = require('fs');
+import { validateInput, validateUsername, validateEmail, validateInt, validatePassword, validateText } from "./validator"
+import { getUserInfos, getUserImages } from "./getters"
 
-const express = require('express');
-const fileUpload = require('express-fileupload');
+
+const pgp = pgPromise();
+const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db')
+
 const app = express();
-
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-
-const uuid = require('uuid');
-const bcrypt = require('bcrypt');
 const saltRounds = 10;
-
-require('dotenv').config();
+dotenv.config()
+global.db = db
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
-const pgp = require('pg-promise')(/* options */);
-const db = require('./connect');
-
 // Functions
-// const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
-// const pgp = require('./connect').pgp;
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
@@ -57,69 +63,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-const validateInput = (data, msg) => {
-  return (req, res, next) => {
-    const input = req.body[data].trim();
-    if (!(input.length >= 3 && input.length <= 16))
-      return res.status(400).json({ msg });
-    if (
-      !input.match(
-        /^[a-zA-ZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽ∂ð ,.'-]+$/u
-      )
-    )
-      return res.status(400).json({ msg: 'Invalid username' });
-
-    next();
-  };
-};
-
-const validateEmail = data => {
-  return (req, res, next) => {
-    const input = req.body[data].trim();
-
-    if (
-      input.match(
-        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-      )
-    )
-      next();
-    else return res.status(400).json({ msg: 'Invalid mail address' });
-  };
-};
-
-const validatePassword = (data, msg) => {
-  return (req, res, next) => {
-    const input = req.body[data];
-
-    if (
-      input.length >= 8 &&
-      input.match(/[A-Z]/) &&
-      input.match(/[a-z]/) &&
-      input.match(/[0-9]/)
-    )
-      next();
-    else return res.status(400).json({ msg });
-  };
-};
-
-const validateInt = (data, min, max) => {
-  return (req, res, next) => {
-    const input = req.body[data];
-
-    if (input >= min && input <= max) next();
-    else return res.status(400).json({ msg: 'Invalid input' });
-  };
-};
-
-const validateText = (data, max, msg) => {
-  return (req, res, next) => {
-    const input = req.body[data].trim();
-
-    if (input <= max) next();
-    else return res.status(400).json({ msg });
-  };
-};
-
 // POST routes
 
 app.post(
@@ -132,7 +75,7 @@ app.post(
     'last_name',
     'Last name must be at between 3 and 16 chars long'
   ),
-  validateInput('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateUsername('user_name', 'Username must be at between 3 and 16 chars long'),
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validatePassword(
@@ -146,7 +89,7 @@ app.post(
 
     const activationCode = uuid.v1();
 
-    bcrypt.hash(req.body.password, saltRounds).then(function (hash) {
+    bcrypt.hash(req.body.password, saltRounds).then((hash) => {
       db.one(sql, [
         req.body.first_name,
         req.body.last_name,
@@ -200,12 +143,12 @@ app.post('/activate', (req, res) => {
 
 app.post('/login', (req, res) => {
   db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
-    .then(function (data) {
+    .then((data) => {
       if (data.activation_code === 'activated') {
         bcrypt.compare(
           req.body.password,
           data.password,
-          function (_err, result) {
+          (_err, result) => {
             if (result === true)
               res.send({ msg: 'Success', token: generateAccessToken(data) });
             else res.status(403).send({ msg: 'Invalid password' });
@@ -213,7 +156,7 @@ app.post('/login', (req, res) => {
         );
       } else res.status(403).send({ msg: "Account isn't activated" });
     })
-    .catch(function (_error) {
+    .catch((_error) => {
       res.status(403).send({ msg: 'User is not found' });
     });
 });
@@ -221,7 +164,7 @@ app.post('/login', (req, res) => {
 app.post('/recover', validateEmail('email'), (req, res) => {
   const newPass = uuid.v4();
 
-  bcrypt.hash(newPass, saltRounds).then(function (hash) {
+  bcrypt.hash(newPass, saltRounds).then((hash) => {
     db.one('UPDATE users SET password=$1 WHERE email=$2 RETURNING user_id', [
       hash,
       req.body.email,
@@ -257,14 +200,10 @@ app.post(
     'last_name',
     'Last name must be at between 3 and 16 chars long'
   ),
-  validateInput('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateUsername('user_name', 'Username must be at between 3 and 16 chars long'),
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
-  validatePassword(
-    'password',
-    'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
-  ),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
     const sql = `UPDATE users SET 
@@ -306,7 +245,7 @@ app.post(
         bcrypt.compare(
           req.body.oldPass,
           data.password,
-          function (_err, result) {
+          (_err, result) => {
             if (result === true) {
               // Update user's pass
               bcrypt.hash(req.body.newPass, saltRounds).then(hash => {
@@ -360,64 +299,100 @@ app.post('/upload-image', authenticateToken, (req, res) => {
 });
 
 app.post('/delete-image', authenticateToken, (req, res) => {
-  db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
-    req.user.user_id,
-    req.body.id,
-  ])
-    .then(() => {
-      fs.unlink('static' + req.body.url, err => {
-        if (err) return res.status(400).json({ msg: 'Image not found' });
-      });
-      res.status(200).json({ msg: 'Success' });
-    })
-    .catch(() => res.status(400).json({ msg: 'Image not found' }));
+  try {
+    db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
+      req.user.user_id,
+      req.body.id,
+    ])
+    db.any('UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2', [
+      req.user.user_id,
+      req.body.id,
+    ])
+    fs.unlink('static' + req.body.url, () => { });
+    res.status(200).json({ msg: 'Success' });
+  } catch (e) {
+    res.status(400).json({ msg: 'Image not found' })
+  }
 });
 
-app.post('/profile-image', authenticateToken, (req, res) => {
-  const image = req.body.image ? req.body.image.image_id : null;
-  db.none(`UPDATE users SET profile_pic=$1 WHERE user_id=$2`, [
-    image,
-    req.user.user_id,
-  ])
-    .then(() => {
-      res.status(200).json({ msg: 'Success' });
-    })
-    .catch(() => res.status(400).json({ msg: 'Failure' }));
+app.post('/profile-image', authenticateToken, async (req, res) => {
+  try {
+    await db.none(`UPDATE users SET profile_pic=$1 WHERE user_id=$2`, [
+      req.body.image ? req.body.image.image_id : null,
+      req.user.user_id,
+    ])
+    res.status(200).json({ msg: 'Success' });
+  } catch (e) {
+    res.status(400).json({ msg: 'Failure' })
+  }
 });
 
-app.post('/logout', (req, res) => {
+app.post('/logout', (_req, res) => {
   res.status(200).json({ msg: 'Successfully logged out' });
+});
+
+// User actions
+
+app.post('/user-block', authenticateToken, async (req, res) => {
+  const sender = req.user.user_id
+  const receiver = req.body.receiver
+
+  if (sender === receiver)
+    return res.status(400).json({ msg: "You cannot block yourself" });
+
+  try {
+    const data = await db.any('SELECT * FROM blocks WHERE sender_id = $1 AND blocked_id = $2', [sender, receiver])
+    if (data.length !== 0)
+      return res.status(400).json({ msg: "User already blocked" });
+    await db.none('INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )', [sender, receiver])
+    res.status(200).json({ msg: "Successfully blocked user" });
+  } catch (e) {
+    res.status(400).json({ msg: "Couldn't block user" });
+  }
+});
+
+app.post('/user-report', authenticateToken, async (req, res) => {
+  const sender = req.user.user_id
+  const receiver = req.body.receiver
+
+  if (sender === receiver)
+    return res.status(400).json({ msg: "You cannot report yourself" });
+
+  try {
+    const data = await db.any('SELECT * FROM reports WHERE sender_id = $1 AND reported_id = $2', [sender, receiver])
+    if (data.length !== 0)
+      return res.status(400).json({ msg: "User already reported" });
+    await db.none('INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )', [sender, receiver])
+    res.status(200).json({ msg: "Successfully reported user" });
+  } catch (e) {
+    res.status(400).json({ msg: "Couldn't report user" });
+  }
 });
 
 // GET routes
 
-app.get('/user', authenticateToken, (req, res) => {
-  db.one('SELECT * FROM users WHERE user_id = $1', req.user.user_id)
-    .then(function (data) {
-      db.one('SELECT * FROM images WHERE image_id=$1', data.profile_pic)
-        .then(image => {
-          delete data.password;
-          data.profile_pic = image;
-          return res.status(200).json(data);
-        })
-        .catch(e => {
-          delete data.password;
-          return res.status(200).json(data);
-        });
-    })
-    .catch(function (_error) {
-      res.status(404).json({ msg: 'User is not found' });
-    });
+app.get('/user/:user_id?', authenticateToken, async (req, res) => {
+  let id = req.user.user_id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
+
+  try {
+    const user = await getUserInfos(id);
+    res.status(200).json(user);
+  } catch (e) {
+    res.status(404).json({ msg: e });
+  }
 });
 
-app.get('/user-images', authenticateToken, (req, res) => {
-  db.many('SELECT * FROM images WHERE user_id = $1', req.user.user_id)
-    .then(function (data) {
-      res.status(200).json(data);
-    })
-    .catch(function (_error) {
-      res.status(200).json({ data: [] });
-    });
+app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
+  let id = req.user.user_id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
+
+  try {
+    const images = await getUserImages(id)
+    res.status(200).json(images);
+  } catch (e) {
+    res.status(404).json({ msg: e });
+  }
 });
 
 app.post('/search', (req, res) => {
@@ -476,7 +451,7 @@ app.post('/search', (req, res) => {
       sql += ' fame >=' + ' $' + counter;
       values.push(req.body.searchObj.fame);
     }
-    db.any(sql, values).then(function (data) {
+    db.any(sql, values).then((data) => {
       res.send(data);
     });
   }
