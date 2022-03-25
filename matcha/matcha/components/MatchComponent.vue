@@ -1,20 +1,23 @@
 <template>
-  <div id="wrapper-match">
-    <div id="match-photo">
-      <div id="name-age-match">
-        {{ name + ', ' + age }}
+  <div v-if="this.name !== undefined">
+    <div id="wrapper-match">
+      <div id="match-photo">
+        <ShowProfilePic />
+        <h2 id="name-age-match">
+          {{ name + ', ' + age }}
+        </h2>
       </div>
-      <ShowProfilePic />
-    </div>
-    <div id="match-buttons">
-      <font-awesome-icon
-        id="icon-match-dislike"
-        icon="circle-xmark"
-        @click="dislike()"
-      />
-      <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
+      <div id="match-buttons">
+        <font-awesome-icon
+          id="icon-match-dislike"
+          icon="circle-xmark"
+          @click="dislike()"
+        />
+        <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
+      </div>
     </div>
   </div>
+  <div v-else>No more matches, go get some pussies elsewhere</div>
 </template>
 
 <script>
@@ -53,6 +56,7 @@ export default {
         this.name = r.data.first_name;
         this.age = r.data.age;
         this.targetId = r.data.user_id;
+        console.log(r);
       });
     },
   },
@@ -67,14 +71,13 @@ export default {
   flex-direction: column;
   min-width: 420px;
   height: 80vh;
-  background-color: pink;
 }
 #match-photo {
+  position: relative;
   width: 80%;
   min-width: 420px;
   max-width: 1000px;
   height: 60%;
-  background-color: aquamarine;
 }
 #match-buttons {
   display: flex;
@@ -84,7 +87,6 @@ export default {
   min-width: 420px;
   max-width: 750px;
   height: 10%;
-  background-color: rosybrown;
 }
 #icon-match-like {
   width: 25%;
@@ -95,5 +97,10 @@ export default {
   width: 25%;
   height: 80%;
   color: rgb(255, 85, 47);
+}
+#name-age-match {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
 }
 </style>

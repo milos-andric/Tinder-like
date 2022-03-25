@@ -1,3 +1,4 @@
+import { resetAutoDestroyState } from '@vue/test-utils';
 import buildFactory from '../model/factory';
 
 const path = require('path');
@@ -560,24 +561,30 @@ const findPartner = async user => {
   }
   sql += ` user_id NOT IN (SELECT target_id FROM likes WHERE liker_id = ${user.user_id})`;
   sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
-  // let listIdAlreadyLiked = await db.any(
-  //   `SELECT target_id FROM likes WHERE liker_id = ${user.user_id}`
-  // );
-  // listIdAlreadyLiked = listIdAlreadyLiked.map(e => e.target_id);
-
-  // listIdAlreadyLiked = pgp.helpers.values(listIdAlreadyLiked, ['target_id']);
+  sql += ` AND user_id != ${user.user_id}`;
   sql += ` ORDER BY score DESC`;
-  const res = await db.many(sql);
-  if (res.length !== 0) {
+  const res = await db.many(sql).catch(r => {
+    return null;
+  });
+  if (res) {
     delete res[0].password;
     return res[0];
+  } else {
+    return null;
   }
 };
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   const user = await getUserInfos(req.user.user_id);
-  const partener = await findPartner(user);
-  res.send(partener);
+  const partner = await findPartner(user);
+  if (partner) {
+    res.send(partner);
+  } else {
+    console.log(
+      '=============================================================='
+    );
+    res.send(null);
+  }
 });
 
 export default {
