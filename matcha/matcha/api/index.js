@@ -13,6 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
 import express from 'express';
 import pgPromise from 'pg-promise';
+import { Server } from 'socket.io'; // sockets
 import buildFactory from '../model/factory';
 
 import { validateInput, validateUsername, validateEmail, validateInt, validatePassword, validateText } from "./validator"
@@ -30,6 +31,63 @@ global.db = db
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
+
+// SOCKETS
+const users = [];
+const http = require('http');
+const server = http.createServer();
+const io = new Server(server, {
+  cors: {
+    origin: "*"
+  }
+});
+
+function socketIdentification(socket) {
+  const token = socket.handshake.auth.token.split(' ')[1];
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      console.log(`${socket.id} is disconnected because bad token !`)
+      socket.disconnect(true);
+    }
+    return user;
+  });
+}
+
+function emitToUserId(userId){
+  for (let i = 0; i < users.length; i++) {
+    if (users[i].user_id === userId) {
+      console.log(`notif sent ${users[i].socket_id}`);
+      io.to(users[i].socket_id).emit('receiveNotification', 'You have receive a notif !');
+    }
+  }
+}
+
+io.on("connection", (socket) => {
+  console.log(`${socket.id} is connected to / by io !`)
+  if (socket.handshake.auth.token) {
+    const user = socketIdentification(socket);
+    users.push({
+      user_id: user.user_id,
+      socket_id: socket.id,
+    })
+  } else {
+    socket.disconnect(true);
+  }
+
+  socket.on('sendNotification', (data) => {
+    console.log(data);
+    emitToUserId(data.receiverId);
+  });
+  
+  socket.on("disconnect", (_reason) => {
+    users.splice(users.findIndex(obj => obj.socket_id === socket.id), 1)
+    socket.disconnect(true);
+  });
+
+  // socket.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
+});
+server.listen(3001);
+//
 
 // Functions
 
@@ -377,6 +435,7 @@ app.get('/user/:user_id?', authenticateToken, async (req, res) => {
 
   try {
     const user = await getUserInfos(id);
+    io.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -482,6 +541,18 @@ app.post('/registerMany', async (req, res) => {
     res.sendStatus(200);
   });
 });
+
+
+app.get('/notifications', authenticateToken, (req, res) => {
+  db.any(`SELECT * FROM notifications WHERE user_id_receiver = $1`, req.user.user_id)
+  .then(function (data) {
+      res.status(200).json(data);
+  })
+  .catch(function (_error) {
+    res.status(403).send({ msg: 'User is not found' });
+  });
+});
+
 
 export default {
   path: '/api',

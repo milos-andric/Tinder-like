@@ -57,6 +57,7 @@ export default {
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
     '@nuxtjs/auth-next',
+    'nuxt-socket-io',
   ],
   ssr: false,
 
@@ -99,6 +100,21 @@ export default {
   },
   server: {
     host: '0.0.0.0',
+  },
+
+  io: {
+    server: {
+      cors: {
+        origin: '*',
+      },
+    },
+    sockets: [
+      {
+        default: true,
+        name: 'main',
+        url: 'http://localhost:3001',
+      },
+    ],
   },
 
   router: {
