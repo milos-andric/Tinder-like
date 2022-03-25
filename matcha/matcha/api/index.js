@@ -1,4 +1,4 @@
-import { resetAutoDestroyState } from '@vue/test-utils';
+// import { resetAutoDestroyState } from '@vue/test-utils';
 import buildFactory from '../model/factory';
 
 const path = require('path');
@@ -580,9 +580,6 @@ app.post('/getRecommandation', authenticateToken, async (req, res) => {
   if (partner) {
     res.send(partner);
   } else {
-    console.log(
-      '=============================================================='
-    );
     res.send(null);
   }
 });
