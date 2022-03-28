@@ -1,5 +1,5 @@
 <template>
-  <div v-if="this.name !== undefined">
+  <div v-if="name !== undefined && name !== ''">
     <div id="wrapper-match">
       <div id="match-photo">
         <ShowProfilePic />
@@ -10,14 +10,22 @@
       <div id="match-buttons">
         <font-awesome-icon
           id="icon-match-dislike"
+          class="btn-match"
           icon="circle-xmark"
           @click="dislike()"
         />
-        <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
+        <font-awesome-icon
+          id="icon-match-like"
+          class="btn-match"
+          icon="fire"
+          @click="like()"
+        />
       </div>
     </div>
   </div>
-  <div v-else>No more matches, go get some pussies elsewhere</div>
+  <div v-else-if="name !== ''">
+    No more matches, go get some pussies elsewhere
+  </div>
 </template>
 
 <script>
@@ -56,7 +64,6 @@ export default {
         this.name = r.data.first_name;
         this.age = r.data.age;
         this.targetId = r.data.user_id;
-        console.log(r);
       });
     },
   },
@@ -102,5 +109,8 @@ export default {
   position: absolute;
   bottom: 10px;
   right: 10px;
+}
+.btn-match {
+  cursor: grab;
 }
 </style>
