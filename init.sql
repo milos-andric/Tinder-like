@@ -27,10 +27,22 @@ CREATE TABLE IF NOT EXISTS "images" (
 
 CREATE TABLE IF NOT EXISTS "likes" (
     "like_id" serial PRIMARY KEY,
-    "user_id" INT NOT NULL,
+    "liker_id" INT NOT NULL,
+    "target_id" INT NOT NULL,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),
 
-    CONSTRAINT "fk_user" FOREIGN KEY("user_id") REFERENCES "users"("user_id")
+    CONSTRAINT "fk_liker_id" FOREIGN KEY("liker_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_target_id" FOREIGN KEY("target_id") REFERENCES "users"("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "views" (
+    "view_id" serial PRIMARY KEY,
+    "viewer_id" INT NOT NULL,
+    "target_id" INT NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
+
+    CONSTRAINT "fk_viewer_id" FOREIGN KEY("viewer_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_target_id" FOREIGN KEY("target_id") REFERENCES "users"("user_id")
 );
 
 CREATE TABLE IF NOT EXISTS "blocks" (
