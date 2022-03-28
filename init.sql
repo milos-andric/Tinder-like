@@ -65,4 +65,24 @@ CREATE TABLE IF NOT EXISTS "reports" (
     CONSTRAINT "fk_reported_id" FOREIGN KEY("reported_id") REFERENCES "users"("user_id")
 );
 
+CREATE TABLE IF NOT EXISTS "chats" (
+    "chat_id" serial PRIMARY KEY,
+    "first_id" INT NOT NULL,
+    "second_id" INT NOT NULL,
+    "name" VARCHAR ( 16 ) UNIQUE NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
+
+    CONSTRAINT "fk_first_id" FOREIGN KEY("first_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_second_id" FOREIGN KEY("second_id") REFERENCES "users"("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "messages" (
+    "msg_id" serial PRIMARY KEY,
+    "chat_id" INT NOT NULL,
+    "message" TEXT,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
+
+    CONSTRAINT "fk_chat_id" FOREIGN KEY("chat_id") REFERENCES "chats"("chat_id")
+);
+
 -- INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "created_on") VALUES ("thais", "marcon", "diams", "mthais.web@gmail.com", "diams", 0, NOW())

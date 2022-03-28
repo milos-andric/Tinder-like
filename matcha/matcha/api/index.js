@@ -23,7 +23,6 @@ import {
   validatePassword,
   validateText,
 } from './validator';
-import { getUserInfos, getUserImages } from './getters';
 
 const pgp = pgPromise();
 const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
@@ -41,6 +40,33 @@ app.use(fileUpload({ createParentPath: true }));
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
+};
+
+const getUserInfos = async id => {
+  try {
+    const data = await global.db.one(
+      'SELECT * FROM users WHERE user_id = $1',
+      id
+    );
+    delete data.password;
+
+    if (data.profile_pic)
+      data.profile_pic = await global.db.oneOrNone(
+        'SELECT * FROM images WHERE image_id = $1',
+        data.profile_pic
+      );
+    return data;
+  } catch (e) {
+    throw new Error('User is not found');
+  }
+};
+
+const getUserImages = async id => {
+  try {
+    return await global.db.any('SELECT * FROM images WHERE user_id = $1', id);
+  } catch (e) {
+    throw new Error('Database error');
+  }
 };
 
 const transporter = nodemailer.createTransport({
@@ -508,12 +534,40 @@ app.post('/registerMany', async (req, res) => {
   });
 });
 
+// const newRoom = (roomName, id1, id2) => {};
+
+const chatName = (id1, id2) => {
+  let chatName = '';
+  if (id1 !== id2) {
+    chatName += Math.min(id1, id2);
+    chatName += '-';
+    chatName += Math.max(id1, id2);
+    return chatName;
+  }
+  throw new Error('no private room (id1 == id2)');
+};
+
+const matchDetector = async (myId, targetId) => {
+  const like = await db.oneOrNone(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [targetId, myId]
+  );
+  if (like) {
+    // Envoyer notif aux deux personne
+    await db.oneOrNone(
+      'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+      [myId, targetId, chatName(myId, targetId)]
+    );
+    return true;
+  }
+  return false;
+};
+
 app.post('/like', authenticateToken, async (req, res) => {
   const targetId = req.body.data.targetId;
   const user = await getUserInfos(req.user.user_id);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot like yourself' });
-
   const data = await db.any(
     'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
     [user.user_id, targetId]
@@ -525,6 +579,7 @@ app.post('/like', authenticateToken, async (req, res) => {
   await db.any(sql, [user.user_id, targetId]).catch(err => {
     res.status(500).json(err);
   });
+  matchDetector(user.user_id, targetId);
   res.sendStatus(200);
 });
 
