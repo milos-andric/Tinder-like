@@ -9,7 +9,11 @@
     <!-- Content -->
     <b-collapse id="nav-collapse" is-nav>
       <!-- Left aligned nav items -->
-      <b-navbar-nav> </b-navbar-nav>
+      <b-navbar-nav>
+        <b-nav-item class="mx-1" to="/match">Match</b-nav-item>
+        <b-nav-item class="mx-1" to="/search">Search</b-nav-item>
+        <b-nav-item class="mx-1" to="/generate">GeneratePerson</b-nav-item>
+      </b-navbar-nav>
 
       <!-- Right aligned nav items -->
       <b-navbar-nav v-if="$auth.$state.loggedIn" class="ml-auto">
@@ -24,9 +28,10 @@
           <template #button-content>
             <font-awesome-icon color="white" icon="bell" />
           </template>
-          
           <b-dropdown-item href="#">Incredible notification</b-dropdown-item>
-          <b-dropdown-item href="#">Robin sent you a death threat</b-dropdown-item>
+          <b-dropdown-item href="#"
+            >Robin sent you a death threat</b-dropdown-item
+          >
           <b-dropdown-item href="#">You are cringe</b-dropdown-item>
         </b-nav-item-dropdown>
 
@@ -52,7 +57,6 @@
           <font-awesome-icon color="white" icon="user" />
         </b-nav-item>
       </b-navbar-nav>
-
     </b-collapse>
   </b-navbar>
 </template>

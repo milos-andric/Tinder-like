@@ -214,7 +214,7 @@ app.post(
   validateInt('orientation', 0, 2),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
-    const sql = `UPDATE users SET 
+    const sql = `UPDATE users SET
             ( first_name, last_name, user_name, email, gender, orientation, bio, tags )
             = ( $1, $2, $3, $4, $5, $6, $7, $8 ) WHERE user_id=$9`;
 
@@ -384,7 +384,6 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 });
 
 // GET routes
-
 app.get('/user/:user_id?', authenticateToken, async (req, res) => {
   let id = req.user.user_id;
   if (req.params && req.params.user_id) id = req.params.user_id;
@@ -500,6 +499,76 @@ app.post('/registerMany', async (req, res) => {
   db.any(sql).then(function (data) {
     res.sendStatus(200);
   });
+});
+
+app.post('/like', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot like yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already liked' });
+
+  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
+  res.sendStatus(200);
+});
+
+app.post('/view', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot react to yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already scored' });
+
+  const sql = `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
+  res.sendStatus(200);
+});
+
+const findPartnerFor = async user => {
+  let sql = `SELECT * FROM users WHERE`;
+  if (user.orientation !== 2) {
+    sql += ` gender = ${user.orientation} AND`;
+  }
+  sql += ` user_id NOT IN (SELECT target_id FROM likes WHERE liker_id = ${user.user_id})`;
+  sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
+  sql += ` AND user_id != ${user.user_id}`;
+  sql += ` ORDER BY score DESC`;
+
+  try {
+    const res = await db.many(sql)
+    delete res[0].password;
+    return res[0];
+
+  } catch (e) {
+    return null;
+  }
+};
+
+app.post('/getRecommandation', authenticateToken, async (req, res) => {
+  const user = await getUserInfos(req.user.user_id);
+  const partner = await findPartnerFor(user);
+  if (partner) {
+    res.send(partner);
+  } else {
+    res.send(null);
+  }
 });
 
 export default {

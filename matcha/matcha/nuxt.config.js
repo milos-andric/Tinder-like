@@ -48,6 +48,8 @@ export default {
         'faRobot',
         'faMagnifyingGlass',
         'faPenToSquare',
+        'faCircleXmark',
+        'faFire',
       ],
     },
   },
