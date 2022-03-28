@@ -10,22 +10,28 @@ import * as bcrypt from 'bcrypt';
 
 // Core
 import * as nodemailer from 'nodemailer';
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
 import buildFactory from '../model/factory';
 
-import { validateInput, validateUsername, validateEmail, validateInt, validatePassword, validateText } from "./validator"
-import { getUserInfos, getUserImages } from "./getters"
-
+import {
+  validateInput,
+  validateUsername,
+  validateEmail,
+  validateInt,
+  validatePassword,
+  validateText,
+} from './validator';
+import { getUserInfos, getUserImages } from './getters';
 
 const pgp = pgPromise();
-const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db')
+const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
 
 const app = express();
 const saltRounds = 10;
-dotenv.config()
-global.db = db
+dotenv.config();
+global.db = db;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -75,7 +81,10 @@ app.post(
     'last_name',
     'Last name must be at between 3 and 16 chars long'
   ),
-  validateUsername('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateUsername(
+    'user_name',
+    'Username must be at between 3 and 16 chars long'
+  ),
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validatePassword(
@@ -89,7 +98,7 @@ app.post(
 
     const activationCode = uuid.v1();
 
-    bcrypt.hash(req.body.password, saltRounds).then((hash) => {
+    bcrypt.hash(req.body.password, saltRounds).then(hash => {
       db.one(sql, [
         req.body.first_name,
         req.body.last_name,
@@ -143,20 +152,16 @@ app.post('/activate', (req, res) => {
 
 app.post('/login', (req, res) => {
   db.one('SELECT * FROM users WHERE user_name = $1', req.body.username)
-    .then((data) => {
+    .then(data => {
       if (data.activation_code === 'activated') {
-        bcrypt.compare(
-          req.body.password,
-          data.password,
-          (_err, result) => {
-            if (result === true)
-              res.send({ msg: 'Success', token: generateAccessToken(data) });
-            else res.status(403).send({ msg: 'Invalid password' });
-          }
-        );
+        bcrypt.compare(req.body.password, data.password, (_err, result) => {
+          if (result === true)
+            res.send({ msg: 'Success', token: generateAccessToken(data) });
+          else res.status(403).send({ msg: 'Invalid password' });
+        });
       } else res.status(403).send({ msg: "Account isn't activated" });
     })
-    .catch((_error) => {
+    .catch(_error => {
       res.status(403).send({ msg: 'User is not found' });
     });
 });
@@ -164,7 +169,7 @@ app.post('/login', (req, res) => {
 app.post('/recover', validateEmail('email'), (req, res) => {
   const newPass = uuid.v4();
 
-  bcrypt.hash(newPass, saltRounds).then((hash) => {
+  bcrypt.hash(newPass, saltRounds).then(hash => {
     db.one('UPDATE users SET password=$1 WHERE email=$2 RETURNING user_id', [
       hash,
       req.body.email,
@@ -200,7 +205,10 @@ app.post(
     'last_name',
     'Last name must be at between 3 and 16 chars long'
   ),
-  validateUsername('user_name', 'Username must be at between 3 and 16 chars long'),
+  validateUsername(
+    'user_name',
+    'Username must be at between 3 and 16 chars long'
+  ),
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
@@ -242,25 +250,19 @@ app.post(
     // Get and check current user's pass
     db.one(`SELECT * FROM users WHERE user_id=$1`, req.user.user_id)
       .then(data => {
-        bcrypt.compare(
-          req.body.oldPass,
-          data.password,
-          (_err, result) => {
-            if (result === true) {
-              // Update user's pass
-              bcrypt.hash(req.body.newPass, saltRounds).then(hash => {
-                db.none(`UPDATE users SET password=$1 WHERE user_id=$2`, [
-                  hash,
-                  req.user.user_id,
-                ])
-                  .then(() => res.sendStatus(200))
-                  .catch(() =>
-                    res.status(400).json({ msg: 'Database error 2' })
-                  );
-              });
-            } else res.status(403).json({ msg: 'Invalid current password' });
-          }
-        );
+        bcrypt.compare(req.body.oldPass, data.password, (_err, result) => {
+          if (result === true) {
+            // Update user's pass
+            bcrypt.hash(req.body.newPass, saltRounds).then(hash => {
+              db.none(`UPDATE users SET password=$1 WHERE user_id=$2`, [
+                hash,
+                req.user.user_id,
+              ])
+                .then(() => res.sendStatus(200))
+                .catch(() => res.status(400).json({ msg: 'Database error 2' }));
+            });
+          } else res.status(403).json({ msg: 'Invalid current password' });
+        });
       })
       .catch(() => res.status(400).json({ msg: 'Database error 1' }));
   }
@@ -303,15 +305,15 @@ app.post('/delete-image', authenticateToken, (req, res) => {
     db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
       req.user.user_id,
       req.body.id,
-    ])
-    db.any('UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2', [
-      req.user.user_id,
-      req.body.id,
-    ])
-    fs.unlink('static' + req.body.url, () => { });
+    ]);
+    db.any(
+      'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
+      [req.user.user_id, req.body.id]
+    );
+    fs.unlink('static' + req.body.url, () => {});
     res.status(200).json({ msg: 'Success' });
   } catch (e) {
-    res.status(400).json({ msg: 'Image not found' })
+    res.status(400).json({ msg: 'Image not found' });
   }
 });
 
@@ -320,10 +322,10 @@ app.post('/profile-image', authenticateToken, async (req, res) => {
     await db.none(`UPDATE users SET profile_pic=$1 WHERE user_id=$2`, [
       req.body.image ? req.body.image.image_id : null,
       req.user.user_id,
-    ])
+    ]);
     res.status(200).json({ msg: 'Success' });
   } catch (e) {
-    res.status(400).json({ msg: 'Failure' })
+    res.status(400).json({ msg: 'Failure' });
   }
 });
 
@@ -334,36 +336,48 @@ app.post('/logout', (_req, res) => {
 // User actions
 
 app.post('/user-block', authenticateToken, async (req, res) => {
-  const sender = req.user.user_id
-  const receiver = req.body.receiver
+  const sender = req.user.user_id;
+  const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: "You cannot block yourself" });
+    return res.status(400).json({ msg: 'You cannot block yourself' });
 
   try {
-    const data = await db.any('SELECT * FROM blocks WHERE sender_id = $1 AND blocked_id = $2', [sender, receiver])
+    const data = await db.any(
+      'SELECT * FROM blocks WHERE sender_id = $1 AND blocked_id = $2',
+      [sender, receiver]
+    );
     if (data.length !== 0)
-      return res.status(400).json({ msg: "User already blocked" });
-    await db.none('INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )', [sender, receiver])
-    res.status(200).json({ msg: "Successfully blocked user" });
+      return res.status(400).json({ msg: 'User already blocked' });
+    await db.none(
+      'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
+      [sender, receiver]
+    );
+    res.status(200).json({ msg: 'Successfully blocked user' });
   } catch (e) {
     res.status(400).json({ msg: "Couldn't block user" });
   }
 });
 
 app.post('/user-report', authenticateToken, async (req, res) => {
-  const sender = req.user.user_id
-  const receiver = req.body.receiver
+  const sender = req.user.user_id;
+  const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: "You cannot report yourself" });
+    return res.status(400).json({ msg: 'You cannot report yourself' });
 
   try {
-    const data = await db.any('SELECT * FROM reports WHERE sender_id = $1 AND reported_id = $2', [sender, receiver])
+    const data = await db.any(
+      'SELECT * FROM reports WHERE sender_id = $1 AND reported_id = $2',
+      [sender, receiver]
+    );
     if (data.length !== 0)
-      return res.status(400).json({ msg: "User already reported" });
-    await db.none('INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )', [sender, receiver])
-    res.status(200).json({ msg: "Successfully reported user" });
+      return res.status(400).json({ msg: 'User already reported' });
+    await db.none(
+      'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
+      [sender, receiver]
+    );
+    res.status(200).json({ msg: 'Successfully reported user' });
   } catch (e) {
     res.status(400).json({ msg: "Couldn't report user" });
   }
@@ -388,44 +402,49 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   if (req.params && req.params.user_id) id = req.params.user_id;
 
   try {
-    const images = await getUserImages(id)
+    const images = await getUserImages(id);
     res.status(200).json(images);
   } catch (e) {
     res.status(404).json({ msg: e });
   }
 });
 
-app.post('/search', (req, res) => {
+app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
+  console.log(req.body.search);
+
+  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+
+  console.log(req.body.search);
 
   let sql = 'SELECT * FROM users';
   const values = [];
-  if (Object.keys(req.body.searchObj).length > 0) {
+  if (Object.keys(req.body.search).length > 0) {
     let counter = 0;
     sql += ' WHERE';
-    if (req.body.searchObj.last_name) {
+    if (req.body.search.last_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' last_name LIKE $' + counter + '';
-      const lastName = '%' + req.body.searchObj.last_name + '%';
+      const lastName = '%' + req.body.search.last_name + '%';
       values.push(lastName);
     }
-    if (req.body.searchObj.first_name) {
+    if (req.body.search.first_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' first_name LIKE $' + counter + '';
-      const firstName = '%' + req.body.searchObj.first_name + '%';
+      const firstName = '%' + req.body.search.first_name + '%';
       values.push(firstName);
     }
-    if (req.body.searchObj.age) {
+    if (req.body.search.age) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
@@ -433,26 +452,26 @@ app.post('/search', (req, res) => {
       sql += ' age BETWEEN' + ' $' + counter;
       counter++;
       sql += ' AND' + ' $' + counter;
-      values.push(req.body.searchObj.age[0]);
-      values.push(req.body.searchObj.age[1]);
+      values.push(req.body.search.age[0]);
+      values.push(req.body.search.age[1]);
     }
-    // if (req.body.searchObj.location) {
+    // if (req.body.search.location) {
     //   counter++;
     //   if (counter > 1) {
     //     sql += ' AND';
     //   }
     //   sql += '  =' + ' $' + counter;
     // }
-    if (req.body.searchObj.fame) {
+    if (req.body.search.fame) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
-      sql += ' fame >=' + ' $' + counter;
-      values.push(req.body.searchObj.fame);
+      sql += ' score >=' + ' $' + counter;
+      values.push(req.body.search.fame);
     }
-    db.any(sql, values).then((data) => {
-      res.send(data);
+    db.any(sql, values).then(data => {
+      res.status(200).send(data);
     });
   }
 });
