@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS "messages" (
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),
 
     CONSTRAINT "fk_chat_id" FOREIGN KEY("chat_id") REFERENCES "chats"("chat_id")
+);
+
 CREATE TABLE IF NOT EXISTS "notifications" (
     "notification_id" serial PRIMARY KEY,
     "user_id_send" INT NOT NULL,

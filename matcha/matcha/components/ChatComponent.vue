@@ -8,7 +8,7 @@
       </ul>
     </div>
     <div id="chat-submit">
-      <input type="text" v-model="input" />
+      <input v-model="input" type="text" />
       <button type="submit" @click="sendMessage()">submit</button>
     </div>
   </div>
