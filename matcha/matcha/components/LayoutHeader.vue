@@ -9,10 +9,19 @@
     <!-- Content -->
     <b-collapse id="nav-collapse" is-nav>
       <!-- Left aligned nav items -->
-      <b-navbar-nav> </b-navbar-nav>
+      <b-navbar-nav>
+        <b-nav-item class="mx-1" to="/match">Match</b-nav-item>
+        <b-nav-item class="mx-1" to="/search">Search</b-nav-item>
+        <b-nav-item class="mx-1" to="/generate">GeneratePerson</b-nav-item>
+      </b-navbar-nav>
 
       <!-- Right aligned nav items -->
       <b-navbar-nav v-if="$auth.$state.loggedIn" class="ml-auto">
+        <!-- Search bar -->
+        <b-nav-item class="mr-2" to="/search">
+          <font-awesome-icon color="white" icon="magnifying-glass" />
+        </b-nav-item>
+
         <!-- Notification dropdown -->
         <b-nav-item-dropdown right class="mx-1">
           <template #button-content>
@@ -38,7 +47,7 @@
             <font-awesome-icon color="white" icon="user" />
           </template>
 
-          <b-dropdown-item to="/profile">Profile</b-dropdown-item>
+          <b-dropdown-item to="/user">Profile</b-dropdown-item>
           <b-dropdown-item to="/me">About me</b-dropdown-item>
           <b-dropdown-item to="/security">Change password</b-dropdown-item>
         </b-nav-item-dropdown>

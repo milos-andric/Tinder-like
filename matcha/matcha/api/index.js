@@ -507,49 +507,42 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/user-images/:user_id?', authenticateToken, (req, res) => {
-  let id = req.user.user_id;
-  if (req.params && req.params.user_id) id = req.params.user_id;
-  db.many('SELECT * FROM images WHERE user_id = $1', id)
-    .then(function (data) {
-      res.status(200).json(data);
-    })
-    .catch(function (_error) {
-      res.status(200).json({ data: [] });
-    });
-});
-
-app.post('/search', (req, res) => {
+app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
+  console.log(req.body.search);
+
+  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+
+  console.log(req.body.search);
 
   let sql = 'SELECT * FROM users';
   const values = [];
-  if (Object.keys(req.body.searchObj).length > 0) {
+  if (Object.keys(req.body.search).length > 0) {
     let counter = 0;
     sql += ' WHERE';
-    if (req.body.searchObj.last_name) {
+    if (req.body.search.last_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' last_name LIKE $' + counter + '';
-      const lastName = '%' + req.body.searchObj.last_name + '%';
+      const lastName = '%' + req.body.search.last_name + '%';
       values.push(lastName);
     }
-    if (req.body.searchObj.first_name) {
+    if (req.body.search.first_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' first_name LIKE $' + counter + '';
-      const firstName = '%' + req.body.searchObj.first_name + '%';
+      const firstName = '%' + req.body.search.first_name + '%';
       values.push(firstName);
     }
-    if (req.body.searchObj.age) {
+    if (req.body.search.age) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
@@ -557,26 +550,26 @@ app.post('/search', (req, res) => {
       sql += ' age BETWEEN' + ' $' + counter;
       counter++;
       sql += ' AND' + ' $' + counter;
-      values.push(req.body.searchObj.age[0]);
-      values.push(req.body.searchObj.age[1]);
+      values.push(req.body.search.age[0]);
+      values.push(req.body.search.age[1]);
     }
-    // if (req.body.searchObj.location) {
+    // if (req.body.search.location) {
     //   counter++;
     //   if (counter > 1) {
     //     sql += ' AND';
     //   }
     //   sql += '  =' + ' $' + counter;
     // }
-    if (req.body.searchObj.fame) {
+    if (req.body.search.fame) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
-      sql += ' fame >=' + ' $' + counter;
-      values.push(req.body.searchObj.fame);
+      sql += ' score >=' + ' $' + counter;
+      values.push(req.body.search.fame);
     }
     db.any(sql, values).then(data => {
-      res.send(data);
+      res.status(200).send(data);
     });
   }
 });
@@ -676,7 +669,7 @@ app.post('/view', authenticateToken, async (req, res) => {
   res.sendStatus(200);
 });
 
-const findPartner = async user => {
+const findPartnerFor = async user => {
   let sql = `SELECT * FROM users WHERE`;
   if (user.orientation !== 2) {
     sql += ` gender = ${user.orientation} AND`;
@@ -685,20 +678,20 @@ const findPartner = async user => {
   sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
   sql += ` AND user_id != ${user.user_id}`;
   sql += ` ORDER BY score DESC`;
-  const res = await db.many(sql).catch(r => {
-    return null;
-  });
-  if (res) {
+
+  try {
+    const res = await db.many(sql)
     delete res[0].password;
     return res[0];
-  } else {
+
+  } catch (e) {
     return null;
   }
 };
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartner(user);
+  const partner = await findPartnerFor(user);
   if (partner) {
     res.send(partner);
   } else {

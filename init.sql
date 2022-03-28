@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS "users" (
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+
+
 CREATE TABLE IF NOT EXISTS "images" (
     "image_id" serial PRIMARY KEY,
     "url" VARCHAR(255) NOT NULL,
@@ -99,3 +101,33 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 );
 
 -- INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "created_on") VALUES ("thais", "marcon", "diams", "mthais.web@gmail.com", "diams", 0, NOW())
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
+    VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', NOW());
+
+    -- code Toto123456789
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
+    VALUES ('titi', 'titi', 'titi', 'titi@titi.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', NOW());
+--     -- code Toto123456789
+    -- code Toto123456789
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
+    VALUES ('blocker', 'blocker', 'blocker', 'blocker@blocker.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', NOW());
+--     -- code Toto123456789
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
+    VALUES ('viewer', 'viewer', 'viewer', 'viewer@viewer.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', NOW());
+--     -- code Toto123456789
+
+INSERT into "likes"
+    ("liker_id", "target_id", "created_on")
+    VALUES (1, 2, NOW());
+INSERT into "likes"
+    ("liker_id", "target_id", "created_on")
+    VALUES (2, 1, NOW());
+INSERT into "blocks"
+    ("sender_id", "blocked_id", "created_on")
+    VALUES (1, 3, NOW());
+INSERT into "views"
+    ("viewer_id", "target_id", "created_on")
+    VALUES (1, 4, NOW());
+-- INSERT into "chats"
+--     ("liker_id", "target_id", "created_on")
+--     VALUES (2, 1, NOW());

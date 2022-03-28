@@ -1,13 +1,13 @@
 <template>
   <div class="bg-primary text-white text-center text-lg-start mt-auto">
-
     <div class="container p-4">
       <p>Brought by</p>
 
       <div class="d-flex justify-content-around">
-          <h5 class="text-uppercase w-100">MILOS</h5>
-          <h5 class="text-uppercase w-100">RMAZARS</h5>
-          <h5 class="text-uppercase w-100">TMARCON</h5>
+        <h5 class="text-uppercase w-100">MANDRIC</h5>
+        <h5 class="text-uppercase w-100">RMAZARS</h5>
+        <h5 class="text-uppercase w-100">TMARCON</h5>
+        <h5 class="text-uppercase w-100">JOBENASS</h5>
       </div>
     </div>
 
@@ -15,7 +15,5 @@
       © 2022 Copyright:
       <a class="text-white" href="#">42 MATCHA</a>
     </div>
-
   </div>
 </template>
-
