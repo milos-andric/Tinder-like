@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column min-vh-100">
+  <div class="d-flex flex-column min-vh-100 overflow-hidden">
     <LayoutHeader />
 
     <div class="py-5">

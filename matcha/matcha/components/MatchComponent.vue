@@ -1,116 +1,159 @@
 <template>
-  <div v-if="name !== undefined && name !== ''">
-    <div id="wrapper-match">
-      <div id="match-photo">
-        <ShowProfilePic />
-        <h2 id="name-age-match">
-          {{ name + ', ' + age }}
-        </h2>
+  <div class="col-10 m-auto">
+    <div class="swiper">
+      <div class="swiper-wrapper">
+        <div
+          v-for="user in users"
+          :key="user.user_id"
+          class="profile position-relative overflow-hidden mb-5 swiper-slide"
+        >
+          <div id="profile-image" class="position-absolute"></div>
+
+          <div
+            id="profile-info"
+            class="
+              position-absolute
+              d-flex
+              justify-content-between
+              align-items-center
+            "
+          >
+            <h2>
+              {{ user.first_name + ', ' + user.age }}
+            </h2>
+            <b-link :to="'/user/' + user.user_id">
+              <font-awesome-icon icon="circle-info" color="white" />
+            </b-link>
+          </div>
+
+          <b-img
+            :src="
+              user.profile_pic ||
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg/260px-Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg'
+            "
+            fluid-grow
+            alt="Responsive image"
+          ></b-img>
+        </div>
       </div>
-      <div id="match-buttons">
-        <font-awesome-icon
-          id="icon-match-dislike"
-          class="btn-match"
-          icon="circle-xmark"
-          @click="dislike()"
-        />
-        <font-awesome-icon
-          id="icon-match-like"
-          class="btn-match"
-          icon="fire"
-          @click="like()"
-        />
-      </div>
+
+      <div class="swiper-button-next"></div>
     </div>
-  </div>
-  <div v-else-if="name !== ''">
-    No more matches, go get some pussies elsewhere
+
+    <div class="d-flex justify-content-around align-items-center">
+      <font-awesome-icon
+        id="icon-match-dislike"
+        icon="xmark"
+        @click="dislike()"
+      />
+      <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
+    </div>
   </div>
 </template>
 
 <script>
-import ShowProfilePic from './ShowProfilePic.vue';
+import { Swiper, Navigation, EffectCards } from 'swiper';
+import 'swiper/swiper-bundle.min.css';
+
 export default {
-  components: { ShowProfilePic },
   data() {
     return {
-      name: '',
-      age: 0,
-      targetId: 0,
+      users: [],
+      selected: 0,
+
+      swiper: null,
     };
   },
+  mounted() {
+    Swiper.use([Navigation, EffectCards]);
+
+    this.swiper = new Swiper('.swiper', {
+      effect: 'cards',
+
+      lazy: true,
+      grabCursor: true,
+      direction: 'horizontal',
+      allowSlidePrev: false,
+
+      navigation: {
+        nextEl: '.swiper-button-next',
+      },
+    });
+
+    this.swiper.on('slideChange', async e => {
+      await this.$axios.post('view', {
+        data: {
+          targetId: this.users[this.selected].user_id,
+        },
+      });
+      console.log(e.activeIndex);
+      if (e.activeIndex + 1 === this.users.length) {
+        try {
+          const res = await this.$axios
+          .post('getRecommandation', {
+            offset: this.users.length,
+          })
+          this.users = [...this.users, ...res.data];
+          this.swiper.init();
+        } catch (e) {
+          this.swiper.init();
+        }
+      }
+      this.selected = e.activeIndex;
+    });
+  },
   async beforeMount() {
-    await this.loadMatch();
+    await this.$axios
+      .post('getRecommandation', {
+        offset: this.users.length,
+      })
+      .then(r => {
+        this.users = r.data;
+      });
   },
   methods: {
     async like() {
       await this.$axios.post('like', {
         data: {
-          targetId: this.targetId,
+          targetId: this.users[this.selected].user_id,
         },
       });
-      await this.loadMatch();
+      this.swiper.slideNext();
     },
-    async dislike() {
-      await this.$axios.post('view', {
-        data: {
-          targetId: this.targetId,
-        },
-      });
-      await this.loadMatch();
-    },
-    async loadMatch() {
-      await this.$axios.post('getRecommandation', {}).then(r => {
-        this.name = r.data.first_name;
-        this.age = r.data.age;
-        this.targetId = r.data.user_id;
-      });
+    dislike() {
+      this.swiper.init();
+      this.swiper.slideNext();
     },
   },
 };
 </script>
 
 <style>
-#wrapper-match {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  min-width: 420px;
-  height: 80vh;
+.profile {
+  border-radius: 20px;
 }
-#match-photo {
-  position: relative;
-  width: 80%;
-  min-width: 420px;
-  max-width: 1000px;
-  height: 60%;
+#profile-info {
+  width: 100%;
+  font-size: 5vw;
+  bottom: 0;
+  color: white;
+  padding: 4%;
 }
-#match-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  width: 60%;
-  min-width: 420px;
-  max-width: 750px;
-  height: 10%;
+#profile-image {
+  box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
+  height: 100%;
+  width: 120%;
+  margin-left: -10%;
+  margin-right: -10%;
 }
 #icon-match-like {
-  width: 25%;
-  height: 80%;
+  width: 10%;
+  height: 100%;
   color: greenyellow;
 }
 #icon-match-dislike {
-  width: 25%;
-  height: 80%;
+  width: 10%;
+  height: 100%;
   color: rgb(255, 85, 47);
-}
-#name-age-match {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-}
-.btn-match {
-  cursor: grab;
 }
 </style>

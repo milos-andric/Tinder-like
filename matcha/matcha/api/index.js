@@ -541,21 +541,20 @@ app.post('/view', authenticateToken, async (req, res) => {
   res.sendStatus(200);
 });
 
-const findPartnerFor = async user => {
+const findPartnerFor = async (user, offset) => {
   let sql = `SELECT * FROM users WHERE`;
-  if (user.orientation !== 2) {
-    sql += ` gender = ${user.orientation} AND`;
-  }
-  sql += ` user_id NOT IN (SELECT target_id FROM likes WHERE liker_id = ${user.user_id})`;
-  sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
-  sql += ` AND user_id != ${user.user_id}`;
-  sql += ` ORDER BY score DESC`;
+  sql += ` users.user_id != $2`;
+  sql += ` AND users.user_id NOT IN (SELECT likes.target_id FROM likes WHERE likes.liker_id = $2)`;
+  sql += ` AND users.user_id NOT IN (SELECT views.target_id FROM views WHERE views.viewer_id = $2)`;
+  if (user.orientation !== 2) sql += ` AND gender = $1`;
+  sql += ` ORDER BY score DESC LIMIT 10`;
 
   try {
-    const res = await db.many(sql)
-    delete res[0].password;
-    return res[0];
+    const res = await db.many(sql, [user.orientation, user.user_id]);
 
+    res.forEach(user => delete user.password);
+
+    return res;
   } catch (e) {
     return null;
   }
@@ -563,7 +562,7 @@ const findPartnerFor = async user => {
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartnerFor(user);
+  const partner = await findPartnerFor(user, req.body.offset);
   if (partner) {
     res.send(partner);
   } else {
