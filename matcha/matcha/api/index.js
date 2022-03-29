@@ -94,7 +94,9 @@ io.on('connection', socket => {
     );
     socket.disconnect(true);
   });
-
+  socket.on('test', data => {
+    console.log(data);
+  });
   // socket.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
 });
 server.listen(3001);
@@ -484,7 +486,7 @@ app.get('/user/:user_id?', authenticateToken, async (req, res) => {
       notification_id: 3,
       user_id_send: 1,
       user_id_receiver: 2,
-      content: 'Your profile has benn visited !',
+      content: 'Your profile has been visited !',
       type: 'visit',
       watched: false,
       created_on: new Date(),
@@ -507,18 +509,39 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   }
 });
 
+const idToUsername = async id => {
+  const user = await getUserInfos(id);
+  return user.user_name;
+};
+
+app.get('/getRoomMessages', authenticateToken, async (req, res) => {
+  const sql =
+    "SELECT * FROM messages WHERE chat_id = 'general' ORDER BY created_on";
+  const messages = await db.many(sql);
+  for (let i = 0; i < messages.length; i++) {
+    messages[i].sender_id = await idToUsername(messages[i].sender_id);
+  }
+  res.send(messages);
+});
+
+app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
+  const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES (${req.user.user_id}, '${req.body.room}', '${req.body.message}', NOW())`;
+  await db.any(sql);
+  const data = {
+    sender_id: (await getUserInfos(req.user.user_id)).user_name,
+    chat_id: req.body.room,
+    message: req.body.message,
+  };
+  res.send(data);
+});
+
 app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
-  console.log(req.body.search);
-
   if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-
-  console.log(req.body.search);
-
   let sql = 'SELECT * FROM users';
   const values = [];
   if (Object.keys(req.body.search).length > 0) {
@@ -680,10 +703,9 @@ const findPartnerFor = async user => {
   sql += ` ORDER BY score DESC`;
 
   try {
-    const res = await db.many(sql)
+    const res = await db.many(sql);
     delete res[0].password;
     return res[0];
-
   } catch (e) {
     return null;
   }

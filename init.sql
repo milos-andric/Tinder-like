@@ -82,11 +82,12 @@ CREATE TABLE IF NOT EXISTS "chats" (
 
 CREATE TABLE IF NOT EXISTS "messages" (
     "msg_id" serial PRIMARY KEY,
-    "chat_id" INT NOT NULL,
+    "sender_id" INT NOT NULL,
+    "chat_id" VARCHAR(16) NOT NULL,
     "message" TEXT,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),
 
-    CONSTRAINT "fk_chat_id" FOREIGN KEY("chat_id") REFERENCES "chats"("chat_id")
+    CONSTRAINT "fk_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id")
 );
 
 CREATE TABLE IF NOT EXISTS "notifications" (
@@ -133,3 +134,15 @@ INSERT into "views"
 -- INSERT into "chats"
 --     ("liker_id", "target_id", "created_on")
 --     VALUES (2, 1, NOW());
+
+INSERT into "messages"
+    ( "sender_id", "chat_id", "message", "created_on")
+    VALUES (1, 'general', 'hello', NOW());
+
+INSERT into "messages"
+    ( "sender_id", "chat_id", "message", "created_on")
+    VALUES (1, 'general', 'from', NOW());
+
+INSERT into "messages"
+    ( "sender_id", "chat_id", "message", "created_on")
+    VALUES (1, 'general', 'db', NOW());
