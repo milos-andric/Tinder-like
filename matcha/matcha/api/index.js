@@ -554,7 +554,12 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
+const sendMessage = (id, data) => {
+  io.to(getSocketById(id)).emit('receiveChatMessage', data);
+};
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
+  const names = req.body.room.split('-');
+  const receiverId = names[0] === req.user.user_id ? names[0] : names[1];
   if (await isIdInRoom(req.user.user_id, req.body.room)) {
     const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
     await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
@@ -563,6 +568,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
       chat_id: req.body.room,
       message: req.body.message,
     };
+    sendMessage(receiverId, data);
     res.send(data);
   } else {
     res.sendStatus(403);

@@ -34,6 +34,22 @@ export default {
   async beforeMount() {
     await this.getMessage(this.room);
   },
+  mounted() {
+    this.socket = this.$nuxtSocket({
+      name: 'chat',
+      channel: '/',
+      auth: {
+        token: localStorage.getItem('auth._token.local'),
+      },
+      reconnection: false,
+    });
+    this.socket.on('receiveChatMessage', data => {
+      console.log(data.chat_id, this.room);
+      if (data.chat_id === this.room) {
+        this.messages.push(data);
+      }
+    });
+  },
   methods: {
     async getMessage(room) {
       const resp = await this.$axios.post('getRoomMessages', {
@@ -42,11 +58,11 @@ export default {
       this.messages = resp.data;
     },
     async sendMessage() {
-      const resp = await this.$axios.post('sendRoomMessages', {
+      await this.$axios.post('sendRoomMessages', {
         room: this.room,
         message: this.input,
       });
-      this.messages.push(resp.data);
+      // this.messages.push(resp.data);
       this.input = '';
     },
     async onChangeActiveRoom(newRoom) {
