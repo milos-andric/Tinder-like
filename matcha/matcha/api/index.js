@@ -13,7 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
-import { Server } from 'socket.io'; // sockets
+import { Server } from 'socket.io';
 import buildFactory from '../model/factory';
 
 import {
@@ -38,7 +38,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
-// SOCKETS
 const users = [];
 const http = require('http');
 const server = http.createServer();
@@ -61,31 +60,14 @@ function socketIdentification(socket) {
   });
 }
 
-// function emitToUserId(userId) {
-//   for (let i = 0; i < users.length; i++) {
-//     if (String(users[i].user_id) === userId) {
-//       console.log(`notif sent ${users[i].socket_id}`);
-//       io.to(users[i].socket_id).emit('receiveNotification', 'You have receive a notif !');
-//     }
-//   }
-// }
-
-function emitNotifications(socketIds, type) {
+function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
     console.log('emit', element);
-    io.to(element).emit('receiveNotification', type);
+    io.to(element).emit('receiveNotification', notif);
   });
-  // push in DB
 }
 
 function getSocketById(userId) {
-  // eslint-disable-next-line array-callback-return
-  // const socketList = users.map(e => {
-  //   console.log(e);
-  //   console.log(typeof (e.user_id), typeof (userId));
-  //   if (e.user_id === userId)
-  //     return e.socket_id;
-  // });
   const socketList = users
     .filter(e => e.user_id === userId)
     .map(e => e.socket_id);
@@ -94,7 +76,7 @@ function getSocketById(userId) {
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
-  // console.log(socket.handshake.auth.token); // parfois undefined ?
+  // console.log(socket.handshake.auth.token); // parfois undefined TODO
   if (socket.handshake.auth.token) {
     const user = socketIdentification(socket);
     if (user) {
@@ -118,7 +100,6 @@ io.on('connection', socket => {
   });
 });
 server.listen(3001);
-//
 
 // Functions
 
@@ -393,7 +374,7 @@ app.post('/delete-image', authenticateToken, (req, res) => {
       'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
       [req.user.user_id, req.body.id]
     );
-    fs.unlink('static' + req.body.url, () => {});
+    fs.unlink('static' + req.body.url, () => { });
     res.status(200).json({ msg: 'Success' });
   } catch (e) {
     res.status(400).json({ msg: 'Image not found' });
@@ -485,16 +466,17 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
   const idInt = Number(id);
   try {
     const user = await getUserInfos(id);
-    const socketList = getSocketById(idInt);
-    if (idInt !== myid) {
-      const elem = await postNotification(
-        req.user.user_id,
-        req.params.user_id,
-        'view'
-      );
-      console.log('RET:', elem);
-      // emitNotifications(socketList, { type: 'view', user: req.user.user_name, id: req.user.user_id });
-      emitNotifications(socketList, elem);
+    const alreadyNotified = await db.oneOrNone('SELECT * FROM notifications WHERE user_id_send=$1 AND user_id_receiver=$2', [myid, id])
+    if (!alreadyNotified) {
+      const socketList = getSocketById(idInt);
+      if (idInt !== myid) {
+        const elem = await postNotification(
+          req.user.user_id,
+          req.params.user_id,
+          'view'
+        );
+        emitNotifications(socketList, elem);
+      }
     }
     res.status(200).json(user);
   } catch (e) {
@@ -608,12 +590,14 @@ app.post('/registerMany', async (req, res) => {
 });
 
 async function postNotification(sender, receiver, type) {
+
   try {
-    const data = await db.any(
+    const data = await db.one(
       'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
       [sender, Number(receiver), type]
     );
-    return data;
+    const join = await db.any('SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1', data.notification_id);
+    return join;
   } catch (error) {
     console.log(error);
   }
@@ -621,9 +605,7 @@ async function postNotification(sender, receiver, type) {
 
 app.post('/read-notifications', authenticateToken, (req, res) => {
   db.any(
-    `UPDATE notifications SET watched=${false} WHERE user_id=${
-      req.user.user_id
-    }`
+    `UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`, [true, req.user.user_id]
   )
     .then(function (data) {
       res.status(200).json(data);
@@ -633,9 +615,21 @@ app.post('/read-notifications', authenticateToken, (req, res) => {
     });
 });
 
+app.post('/read-notification', authenticateToken, (req, res) => {
+  db.any(
+    `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`, [true, req.body.id, req.user.user_id]
+  )
+    .then(function (data) {
+      res.sendStatus(200);
+    })
+    .catch(function (error) {
+      res.status(403).send(error);
+    });
+});
+
 app.get('/get-notifications', authenticateToken, (req, res) => {
   db.any(
-    `SELECT * FROM notifications WHERE user_id_receiver=${req.user.user_id}`
+    `SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`, req.user.user_id
   )
     .then(function (data) {
       res.status(200).json(data);

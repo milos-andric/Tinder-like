@@ -35,9 +35,6 @@ services:
       - postgres
     restart: unless-stopped
 
-  redis:
-    image: "redis:5-alpine"
-
   matcha:
     build: ./matcha
     stdin_open: true
@@ -53,7 +50,6 @@ services:
       - "3001:3001"
     depends_on:
       - postgres
-      - redis
     networks:
       - postgres
 networks:

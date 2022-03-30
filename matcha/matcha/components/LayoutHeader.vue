@@ -34,12 +34,15 @@
           </b-dropdown-item>
 
           <b-dropdown-item
-            v-for="(x, index) in notifications.view"
-            :key="index"
-            :href="x.link"
+            v-for="x in notifications.view"
+            :key="x.notification_id"
+            @click="readNotification(x)"
           >
-            {{ x.sender }} {{ x.type }}
+            {{ x.message }}
           </b-dropdown-item>
+
+          <button type="button" class="btn btn-primary" @click="readNotifications" >All as read</button>
+
         </b-nav-item-dropdown>
 
         <!-- Account button -->
@@ -92,34 +95,62 @@ export default {
       reconnection: false,
     });
     this.socket.on('receiveNotification', data => {
-      this.manageNotification(data);
+      this.manageNotifications(data);
       // this.notifications = data;
     });
   },
+
   async beforeMount() {
     try {
       const res = await this.$axios.get('get-notifications');
-      this.notifications.view = res.data;
+      this.manageNotifications(res.data);
     } catch (e) {
       console.log(e);
     }
   },
   methods: {
-    manageNotification(data) {
-      // manage User, url
-      console.log('FRONT:', data);
-      if (data) {
-        const message = typesNotifications[data.type];
+
+    manageNotifications(data) {
+      data.forEach(e => this.manageNotification(e));
+    },
+
+    manageNotification(notif) {
+      console.log('FRONT:', notif.type);
+      if (notif) {
+        const message = typesNotifications[notif.type];
         if (message) {
-          // this.notifications.view.push({ msg: message + ' ' + data.user, user: data.user, link: '/user/' + data.id});
-          this.notifications.view.push(data);
+          notif.message = message + " by " + notif.user_name;
+          notif.link = '/user/' + notif.user_id_send;
+          this.notifications[notif.type].push( notif );
         }
       }
     },
+    
+    async readNotification(notification) {
+      const id = notification.notification_id;
+      try {
+        await this.$axios.post('read-notification', { id });
+        this.notifications[notification.type].splice(this.notifications[notification.type].findIndex(obj => obj.notification_id === id), 1);
+        this.$router.push(notification.link);
+      } catch (e) {
+        console.log(e);
+      }
+    },
+
+    async readNotifications() {
+      try {
+        await this.$axios.post('read-notifications');
+        this.notifications = [];
+      } catch (e) {
+        console.log(e);
+      }
+    },
+
     logout() {
       this.$auth.logout();
       // Code will also be required to invalidate the JWT Cookie on external API
     },
   },
+
 };
 </script>
