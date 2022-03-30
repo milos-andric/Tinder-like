@@ -13,7 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
-import { Server } from 'socket.io'; // sockets
+import { Server } from 'socket.io';
 import buildFactory from '../model/factory';
 
 import {
@@ -37,7 +37,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
-// SOCKETS
 const users = [];
 const http = require('http');
 const server = http.createServer();
@@ -53,39 +52,43 @@ function socketIdentification(socket) {
     if (err) {
       console.log(`${socket.id} is disconnected because bad token !`);
       socket.disconnect(true);
+    } else {
+      console.log(`${socket.id} is identified ! as ` + user.user_name);
+      return user;
     }
-    return user;
   });
 }
 
-function emitToUserId(userId) {
-  for (let i = 0; i < users.length; i++) {
-    if (users[i].user_id === userId) {
-      console.log(`notif sent ${users[i].socket_id}`);
-      io.to(users[i].socket_id).emit(
-        'receiveNotification',
-        'You have receive a notif !'
-      );
-    }
-  }
+function emitNotifications(socketIds, notif) {
+  socketIds.forEach(element => {
+    console.log('emit', element);
+    io.to(element).emit('receiveNotification', notif);
+  });
+}
+
+function getSocketById(userId) {
+  const socketList = users
+    .filter(e => e.user_id === userId)
+    .map(e => e.socket_id);
+  return socketList;
 }
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
+  // console.log(socket.handshake.auth.token); // parfois undefined TODO
   if (socket.handshake.auth.token) {
     const user = socketIdentification(socket);
-    users.push({
-      user_id: user.user_id,
-      socket_id: socket.id,
-    });
+    if (user) {
+      users.push({
+        user_id: user.user_id,
+        socket_id: socket.id,
+      });
+    } else {
+      socket.disconnect(true);
+    }
   } else {
     socket.disconnect(true);
   }
-
-  socket.on('sendNotification', data => {
-    console.log(data);
-    emitToUserId(data.receiverId);
-  });
 
   socket.on('disconnect', _reason => {
     users.splice(
@@ -94,13 +97,8 @@ io.on('connection', socket => {
     );
     socket.disconnect(true);
   });
-  socket.on('test', data => {
-    console.log(data);
-  });
-  // socket.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
 });
 server.listen(3001);
-//
 
 // Functions
 
@@ -476,21 +474,39 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 });
 
 // GET routes
-app.get('/user/:user_id?', authenticateToken, async (req, res) => {
-  let id = req.user.user_id;
-  if (req.params && req.params.user_id) id = req.params.user_id;
 
+app.get('/me', authenticateToken, async (req, res) => {
+  const id = req.user.user_id;
   try {
     const user = await getUserInfos(id);
-    io.emit('notifications', {
-      notification_id: 3,
-      user_id_send: 1,
-      user_id_receiver: 2,
-      content: 'Your profile has been visited !',
-      type: 'visit',
-      watched: false,
-      created_on: new Date(),
-    });
+    res.status(200).json(user);
+  } catch (e) {
+    res.status(404).json({ msg: e });
+  }
+});
+
+app.get('/user/:user_id', authenticateToken, async (req, res) => {
+  const myid = req.user.user_id;
+  let id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
+  const idInt = Number(id);
+  try {
+    const user = await getUserInfos(id);
+    const alreadyNotified = await db.oneOrNone(
+      'SELECT * FROM notifications WHERE user_id_send=$1 AND user_id_receiver=$2',
+      [myid, id]
+    );
+    if (!alreadyNotified) {
+      const socketList = getSocketById(idInt);
+      if (idInt !== myid) {
+        const elem = await postNotification(
+          req.user.user_id,
+          req.params.user_id,
+          'view'
+        );
+        emitNotifications(socketList, elem);
+      }
+    }
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -680,6 +696,60 @@ const matchDetector = async (myId, targetId) => {
   }
   return false;
 };
+async function postNotification(sender, receiver, type) {
+  try {
+    const data = await db.one(
+      'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
+      [sender, Number(receiver), type]
+    );
+    const join = await db.any(
+      'SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
+      data.notification_id
+    );
+    return join;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+app.post('/read-notifications', authenticateToken, (req, res) => {
+  db.any(`UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`, [
+    true,
+    req.user.user_id,
+  ])
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
+});
+
+app.post('/read-notification', authenticateToken, (req, res) => {
+  db.any(
+    `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
+    [true, req.body.id, req.user.user_id]
+  )
+    .then(function (data) {
+      res.sendStatus(200);
+    })
+    .catch(function (error) {
+      res.status(403).send(error);
+    });
+});
+
+app.get('/get-notifications', authenticateToken, (req, res) => {
+  db.any(
+    `SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
+    req.user.user_id
+  )
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
+});
 
 app.post('/like', authenticateToken, async (req, res) => {
   const targetId = req.body.data.targetId;
@@ -748,19 +818,6 @@ app.post('/getRecommandation', authenticateToken, async (req, res) => {
   } else {
     res.send(null);
   }
-});
-
-app.get('/notifications', authenticateToken, (req, res) => {
-  db.any(
-    `SELECT * FROM notifications WHERE user_id_receiver = $1`,
-    req.user.user_id
-  )
-    .then(function (data) {
-      res.status(200).json(data);
-    })
-    .catch(function (_error) {
-      res.status(403).send({ msg: 'User is not found' });
-    });
 });
 
 export default {

@@ -1,4 +1,4 @@
-CREATE TYPE enum_types_notifs AS ENUM ('visit', 'like', 'unlike', 'match', 'message');
+CREATE TYPE enum_types_notifs AS ENUM ('view', 'like', 'unlike', 'match', 'message');
 
 CREATE TABLE IF NOT EXISTS "users" (
     "user_id" serial PRIMARY KEY,
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS "notifications" (
     "notification_id" serial PRIMARY KEY,
     "user_id_send" INT NOT NULL,
     "user_id_receiver" INT NOT NULL,
-    "content" VARCHAR ( 255 ) NOT NULL,
+    "content" VARCHAR ( 255 ),
     "type" enum_types_notifs NOT NULL,
     "watched" BOOLEAN NOT NULL DEFAULT false,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),
@@ -103,7 +103,6 @@ CREATE TABLE IF NOT EXISTS "notifications" (
     CONSTRAINT "fk_user_receiver" FOREIGN KEY("user_id_receiver") REFERENCES "users"("user_id")
 );
 
--- INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "created_on") VALUES ("thais", "marcon", "diams", "mthais.web@gmail.com", "diams", 0, NOW())
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
     VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', NOW());
 

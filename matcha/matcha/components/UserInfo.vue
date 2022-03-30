@@ -85,7 +85,7 @@
 
       <!-- Like button -->
       <b-button
-        v-if="images.length !== 0" 
+        v-if="images.length !== 0"
         v-b-tooltip.hover.top="'Like user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -240,7 +240,7 @@ export default {
       console.log(this.id);
     },
     goToProfile() {
-      this.$router.push("/user");
+      this.$router.push('/user');
     },
   },
 };

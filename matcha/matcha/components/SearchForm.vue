@@ -219,7 +219,7 @@ export default {
         if (this.fameChecked === true) search.fame = this.fameSlider.value;
         // if (this.tagsChecked === true) search.tags = this.tagsValue;
 
-        const res = await this.$axios.post('search', { search })
+        const res = await this.$axios.post('search', { search });
         this.list = res.data;
         this.rowData = res.data;
       } catch (e) {

@@ -224,7 +224,7 @@ export default {
   },
   async beforeMount() {
     await this.$axios
-      .get('/user')
+      .get('/me')
       .then(e => {
         this.first_name = e.data.first_name;
         this.last_name = e.data.last_name;
