@@ -1,7 +1,6 @@
 <template>
   <div>
     <p>Hello you have been successfully logged in</p>
-    <button @click="getUserInfo">getUserInfo</button>
   </div>
 </template>
 

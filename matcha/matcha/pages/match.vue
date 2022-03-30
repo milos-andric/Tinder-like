@@ -1,12 +1,10 @@
 <template>
-  <div id="wrapper">
-    <GenerateUsers />
-  </div>
+  <MatchComponent />
 </template>
 
 <script>
 export default {
-  name: 'GeneratePage',
+  name: 'MatchPage',
 };
 </script>
 

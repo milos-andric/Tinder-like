@@ -36,6 +36,13 @@
       </b-badge>
     </h4>
 
+    <!-- User links -->
+    <div>
+      <b-link class="mr-3" to="/me">Edit personal info</b-link>
+      |
+      <b-link class="ml-3" to="/security">Change password</b-link>
+    </div>
+
     <b-container class="mt-5 p-3">
       <div v-if="images.length" class="d-flex flex-wrap justify-content-center">
         <div

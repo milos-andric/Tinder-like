@@ -79,7 +79,7 @@ export default {
         })
         .then(() => {
           this.alertStatus = false;
-          this.$router.push('/profile');
+          this.$router.push('/user');
         })
         .catch(e => {
           this.errorMsg = e.response.data.msg;

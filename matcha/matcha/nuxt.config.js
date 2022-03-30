@@ -46,6 +46,10 @@ export default {
         'faHeart',
         'faBan',
         'faRobot',
+        'faMagnifyingGlass',
+        'faPenToSquare',
+        'faCircleXmark',
+        'faFire',
       ],
     },
   },
@@ -109,29 +113,30 @@ export default {
         origin: '*',
       },
     },
-    sockets: [{
-      default: true,
-      name: 'main',
-      url: 'http://localhost:3001',
-      // vuex: {
-      //   mutations: [],
-      //   actions: [],
-      //   emitBacks: [],
-      // },
-      // namespaces: {
-      //   '/': {
-      //     emitBacks: [],
-      //     // function + content(optional) --> component variable
-      //     emitters: ['getNotifications --> notifications'],
-      //     listeners: [],
-      //   },
-      //   '/chat': {
-      //     emitBacks: [],
-      //     emitters: [],
-      //     listeners: [],
-      //   },
-      // },
-    },
+    sockets: [
+      {
+        default: true,
+        name: 'main',
+        url: 'http://localhost:3001',
+        // vuex: {
+        //   mutations: [],
+        //   actions: [],
+        //   emitBacks: [],
+        // },
+        // namespaces: {
+        //   '/': {
+        //     emitBacks: [],
+        //     // function + content(optional) --> component variable
+        //     emitters: ['getNotifications --> notifications'],
+        //     listeners: [],
+        //   },
+        //   '/chat': {
+        //     emitBacks: [],
+        //     emitters: [],
+        //     listeners: [],
+        //   },
+        // },
+      },
     ],
   },
 

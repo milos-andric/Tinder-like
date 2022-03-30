@@ -31,6 +31,13 @@
       </b-badge>
     </h4>
 
+    <!-- User links -->
+    <div v-if="id === self_id">
+      <b-link class="mr-3" to="/me">Edit personal info</b-link>
+      |
+      <b-link class="ml-3" to="/security">Change password</b-link>
+    </div>
+
     <!-- Gallery -->
     <b-container class="my-5 p-3">
       <div v-if="images.length" class="d-flex flex-wrap justify-content-center">
@@ -60,11 +67,12 @@
     </b-container>
 
     <!-- Actions -->
-    <b-container fluid>
+    <b-container v-if="id !== self_id" fluid>
+      <!-- Report button -->
       <b-button
         v-b-modal.report
         v-b-tooltip.hover.top="'Report user as bot'"
-        class="shadow-lg"
+        class="shadow-lg mx-1"
         variant="light"
         style="border-radius: 3em; width: 5em; height: 5em"
       >
@@ -74,9 +82,12 @@
           style="font-size: 2em"
         />
       </b-button>
+
+      <!-- Like button -->
       <b-button
+        v-if="images.length !== 0"
         v-b-tooltip.hover.top="'Like user'"
-        class="shadow-lg btn-lg mx-3"
+        class="shadow-lg btn-lg mx-1"
         variant="light"
         style="border-radius: 3em; width: 5em; height: 5em"
         @click="like"
@@ -87,10 +98,12 @@
           style="font-size: 3em"
         />
       </b-button>
+
+      <!-- Block button -->
       <b-button
         v-b-modal.block
         v-b-tooltip.hover.top="'Block user'"
-        class="shadow-lg"
+        class="shadow-lg mx-1"
         variant="light"
         style="border-radius: 3em; width: 5em; height: 5em"
       >
@@ -102,6 +115,24 @@
       </b-button>
     </b-container>
 
+    <!-- Actions if self -->
+    <b-container v-else fluid>
+      <b-button
+        v-b-tooltip.hover.top="'Edit profile'"
+        class="shadow-lg btn-lg mx-3"
+        variant="light"
+        style="border-radius: 3em; width: 5em; height: 5em"
+        @click="goToProfile"
+      >
+        <font-awesome-icon
+          class="text-dark"
+          icon="pen-to-square"
+          style="font-size: 2.5em"
+        />
+      </b-button>
+    </b-container>
+
+    <!-- Report modals -->
     <b-modal
       id="report"
       title="Report as robot"
@@ -113,6 +144,7 @@
       <p class="text-center my-4">Report this user as a robot ?</p>
     </b-modal>
 
+    <!-- Block modals -->
     <b-modal id="block" title="Report as robot" @ok="userAction('/user-block')">
       <p class="text-center my-4">
         <font-awesome-icon icon="ban" style="font-size: 2em" />
@@ -138,6 +170,8 @@
 export default {
   data() {
     return {
+      self_id: 0,
+
       id: Number(this.$route.params.id),
       first_name: '',
       last_name: '',
@@ -157,6 +191,10 @@ export default {
     };
   },
   async beforeMount() {
+    await this.$axios.get('/user').then(e => {
+      this.self_id = e.data.user_id;
+    });
+
     await this.$axios.get('/user/' + this.id).then(e => {
       this.first_name = e.data.first_name;
       this.last_name = e.data.last_name;
@@ -200,6 +238,9 @@ export default {
     },
     like() {
       console.log(this.id);
+    },
+    goToProfile() {
+      this.$router.push('/user');
     },
   },
 };

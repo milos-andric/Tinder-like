@@ -1,34 +1,62 @@
 <template>
   <main>
-    <div id="search-form" class="col-6">
-      <div>
-        <b-form-checkbox v-model="lastChecked"
-          >Last name search</b-form-checkbox
-        >
+    <div id="search-form" class="col-4">
+      <h3 class="text-center mb-4">Search by:</h3>
+
+      <!-- Last name -->
+      <b-button
+        v-b-toggle.last-name-accordion
+        class="mb-2"
+        block
+        variant="secondary"
+      >
+        Last name
+      </b-button>
+      <b-collapse
+        id="last-name-accordion"
+        v-model="lastChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
         <b-form-input
-          v-if="lastChecked"
           id="last-name-search"
           v-model="lastValue"
-          class="my-2"
           name="last-name-search"
         />
-      </div>
+      </b-collapse>
 
-      <div>
-        <b-form-checkbox v-model="firstChecked"
-          >First name search</b-form-checkbox
-        >
+      <!-- First name -->
+      <b-button
+        v-b-toggle.first-name-accordion
+        class="mb-2"
+        block
+        variant="secondary"
+      >
+        First name
+      </b-button>
+      <b-collapse
+        id="first-name-accordion"
+        v-model="firstChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
         <b-form-input
-          v-if="firstChecked"
-          id="first_name-search"
+          id="first-name-search"
           v-model="firstValue"
-          class="my-2"
           name="first-name-search"
         />
-      </div>
+      </b-collapse>
 
-      <div>
-        <b-form-checkbox v-model="ageChecked">Age search</b-form-checkbox>
+      <!-- Age -->
+      <b-button v-b-toggle.age-accordion class="mb-2" block variant="secondary">
+        Age
+      </b-button>
+      <b-collapse
+        id="age-accordion"
+        v-model="ageChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
         <Slider
           v-if="ageChecked"
           id="slider-age"
@@ -36,12 +64,23 @@
           class="slider"
           v-bind="ageSlider"
         />
-      </div>
+      </b-collapse>
 
-      <div>
-        <b-form-checkbox v-model="locationChecked"
-          >Location search (km)</b-form-checkbox
-        >
+      <!-- Location -->
+      <b-button
+        v-b-toggle.location-accordion
+        class="mb-2"
+        block
+        variant="secondary"
+      >
+        Location (km)
+      </b-button>
+      <b-collapse
+        id="location-accordion"
+        v-model="locationChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
         <Slider
           v-if="locationChecked"
           id="slider-location"
@@ -49,10 +88,23 @@
           class="slider"
           v-bind="locationSlider"
         />
-      </div>
+      </b-collapse>
 
-      <div>
-        <b-form-checkbox v-model="fameChecked">Fame search</b-form-checkbox>
+      <!-- Fame -->
+      <b-button
+        v-b-toggle.fame-accordion
+        class="mb-2"
+        block
+        variant="secondary"
+      >
+        Fame
+      </b-button>
+      <b-collapse
+        id="fame-accordion"
+        v-model="fameChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
         <Slider
           v-if="fameChecked"
           id="slider-fame"
@@ -60,22 +112,38 @@
           class="slider"
           v-bind="fameSlider"
         />
-      </div>
+      </b-collapse>
 
-      <div>
-        <b-form-checkbox v-model="tagsChecked">Tags search</b-form-checkbox>
-        <b-form-input
-          v-if="tagsChecked"
-          id="tags-search"
-          name="tags-search"
-          class="my-2"
-        />
-      </div>
+      <!-- Tags -->
+      <b-button
+        v-b-toggle.tags-accordion
+        class="mb-2"
+        block
+        variant="secondary"
+      >
+        Tags
+      </b-button>
+      <b-collapse
+        id="tags-accordion"
+        v-model="tagsChecked"
+        class="mb-2"
+        role="tabpanel"
+      >
+        <b-form-tags v-model="tagsValue" input-id="tags-basic"></b-form-tags>
+      </b-collapse>
+
+      <!-- Submit button -->
       <button id="button-search" class="btn btn-primary" @click="search">
         Search
       </button>
+
+      <!-- Alert -->
+      <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
+        {{ alertMsg }}
+      </b-alert>
     </div>
 
+    <!-- Dataset -->
     <div v-if="rowData" id="search-result" class="mt-5 col-10">
       <client-only>
         <ag-grid-vue
@@ -99,6 +167,17 @@ export default {
   data: () => ({
     columnDefs: null,
     rowData: null,
+    list: [],
+
+    lastChecked: false,
+    firstChecked: false,
+    ageChecked: false,
+    locationChecked: false,
+    fameChecked: false,
+    tagsChecked: false,
+
+    lastValue: '',
+    firstValue: '',
     ageSlider: {
       value: [20, 40],
       min: 18,
@@ -110,15 +189,10 @@ export default {
     fameSlider: {
       value: 20,
     },
-    ageChecked: false,
-    locationChecked: false,
-    fameChecked: false,
-    tagsChecked: false,
-    firstChecked: false,
-    lastChecked: false,
-    firstValue: '',
-    lastValue: '',
-    list: [],
+    tagsValue: [],
+
+    alertMsg: '',
+    alertStatus: false,
   }),
   beforeMount() {
     this.columnDefs = [
@@ -130,30 +204,27 @@ export default {
       },
       { field: 'last_name', sortable: true, filter: true },
       { field: 'age', sortable: true, filter: true },
+      { field: 'score', sortable: true, filter: true },
     ];
   },
   methods: {
     async search() {
       try {
-        const searchObj = {};
-        if (this.firstChecked === true) searchObj.first_name = this.firstValue;
-        if (this.lastChecked === true) searchObj.last_name = this.lastValue;
-        if (this.tagsChecked === true) searchObj.tags = this.tagsValue;
-        if (this.ageChecked === true) searchObj.age = this.ageSlider.value;
-        if (this.fameChecked === true) searchObj.fame = this.fameSlider.value;
-        if (this.locationChecked === true)
-          searchObj.location = this.locationSlider.value;
+        const search = {};
+        if (this.lastChecked === true) search.last_name = this.lastValue;
+        if (this.firstChecked === true) search.first_name = this.firstValue;
+        if (this.ageChecked === true) search.age = this.ageSlider.value;
+        // if (this.locationChecked === true)
+        //   search.location = this.locationSlider.value;
+        if (this.fameChecked === true) search.fame = this.fameSlider.value;
+        // if (this.tagsChecked === true) search.tags = this.tagsValue;
 
-        await this.$axios
-          .post('search', {
-            searchObj,
-          })
-          .then(r => {
-            this.list = r.data;
-            this.rowData = r.data;
-          });
+        const res = await this.$axios.post('search', { search });
+        this.list = res.data;
+        this.rowData = res.data;
       } catch (e) {
-        this.error = e.response.data.message;
+        this.alertMsg = e.response.data.msg;
+        this.alertStatus = true;
       }
     },
   },

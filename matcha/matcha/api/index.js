@@ -513,37 +513,42 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/search', (req, res) => {
+app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
+  console.log(req.body.search);
+
+  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+
+  console.log(req.body.search);
 
   let sql = 'SELECT * FROM users';
   const values = [];
-  if (Object.keys(req.body.searchObj).length > 0) {
+  if (Object.keys(req.body.search).length > 0) {
     let counter = 0;
     sql += ' WHERE';
-    if (req.body.searchObj.last_name) {
+    if (req.body.search.last_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' last_name LIKE $' + counter + '';
-      const lastName = '%' + req.body.searchObj.last_name + '%';
+      const lastName = '%' + req.body.search.last_name + '%';
       values.push(lastName);
     }
-    if (req.body.searchObj.first_name) {
+    if (req.body.search.first_name) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
       sql += ' first_name LIKE $' + counter + '';
-      const firstName = '%' + req.body.searchObj.first_name + '%';
+      const firstName = '%' + req.body.search.first_name + '%';
       values.push(firstName);
     }
-    if (req.body.searchObj.age) {
+    if (req.body.search.age) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
@@ -551,26 +556,26 @@ app.post('/search', (req, res) => {
       sql += ' age BETWEEN' + ' $' + counter;
       counter++;
       sql += ' AND' + ' $' + counter;
-      values.push(req.body.searchObj.age[0]);
-      values.push(req.body.searchObj.age[1]);
+      values.push(req.body.search.age[0]);
+      values.push(req.body.search.age[1]);
     }
-    // if (req.body.searchObj.location) {
+    // if (req.body.search.location) {
     //   counter++;
     //   if (counter > 1) {
     //     sql += ' AND';
     //   }
     //   sql += '  =' + ' $' + counter;
     // }
-    if (req.body.searchObj.fame) {
+    if (req.body.search.fame) {
       counter++;
       if (counter > 1) {
         sql += ' AND';
       }
-      sql += ' fame >=' + ' $' + counter;
-      values.push(req.body.searchObj.fame);
+      sql += ' score >=' + ' $' + counter;
+      values.push(req.body.search.fame);
     }
     db.any(sql, values).then(data => {
-      res.send(data);
+      res.status(200).send(data);
     });
   }
 });
@@ -637,6 +642,75 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
     .catch(function (_error) {
       res.status(403).send({ msg: 'User is not found' });
     });
+});
+
+app.post('/like', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot like yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already liked' });
+
+  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
+  res.sendStatus(200);
+});
+
+app.post('/view', authenticateToken, async (req, res) => {
+  const targetId = req.body.data.targetId;
+  const user = await getUserInfos(req.user.user_id);
+  if (user.user_id === targetId)
+    return res.status(400).json({ msg: 'You cannot react to yourself' });
+
+  const data = await db.any(
+    'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
+    [user.user_id, targetId]
+  );
+  if (data.length !== 0)
+    return res.status(400).json({ msg: 'User already scored' });
+
+  const sql = `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`;
+  await db.any(sql, [user.user_id, targetId]).catch(err => {
+    res.status(500).json(err);
+  });
+  res.sendStatus(200);
+});
+
+const findPartnerFor = async user => {
+  let sql = `SELECT * FROM users WHERE`;
+  if (user.orientation !== 2) {
+    sql += ` gender = ${user.orientation} AND`;
+  }
+  sql += ` user_id NOT IN (SELECT target_id FROM likes WHERE liker_id = ${user.user_id})`;
+  sql += ` AND user_id NOT IN (SELECT target_id FROM views WHERE viewer_id = ${user.user_id})`;
+  sql += ` AND user_id != ${user.user_id}`;
+  sql += ` ORDER BY score DESC`;
+
+  try {
+    const res = await db.many(sql);
+    delete res[0].password;
+    return res[0];
+  } catch (e) {
+    return null;
+  }
+};
+
+app.post('/getRecommandation', authenticateToken, async (req, res) => {
+  const user = await getUserInfos(req.user.user_id);
+  const partner = await findPartnerFor(user);
+  if (partner) {
+    res.send(partner);
+  } else {
+    res.send(null);
+  }
 });
 
 export default {
