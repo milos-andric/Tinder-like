@@ -1,46 +1,47 @@
 <template>
-  <div class="col-10 m-auto">
-    <div class="swiper">
-      <div class="swiper-wrapper">
-        <div
-          v-for="user in users"
-          :key="user.user_id"
-          class="profile position-relative overflow-hidden mb-5 swiper-slide"
-        >
-          <div id="profile-image" class="position-absolute"></div>
-
+  <div id="matchContainer" class="col-10 m-auto d-flex flex-column">
+    <div class="w-100 match100">
+      <div class="swiper h-100">
+        <div class="swiper-wrapper">
           <div
-            id="profile-info"
-            class="
-              position-absolute
-              d-flex
-              justify-content-between
-              align-items-center
-            "
+            v-for="user in users"
+            :key="user.user_id"
+            class="profile position-relative overflow-hidden mb-5 swiper-slide"
           >
-            <h2>
-              {{ user.first_name + ', ' + user.age }}
-            </h2>
-            <b-link :to="'/user/' + user.user_id">
-              <font-awesome-icon icon="circle-info" color="white" />
-            </b-link>
+            <div id="profile-image" class="position-absolute"></div>
+
+            <div
+              id="profile-info"
+              class="position-absolute d-flex justify-content-between align-items-end"
+            >
+              <h2>
+                {{ user.first_name + ', ' + user.age }}
+              </h2>
+              <b-link :to="'/user/' + user.user_id">
+                <font-awesome-icon icon="circle-info" color="white" />
+              </b-link>
+            </div>
+
+            <img
+              :src="
+                user.profile_pic ||
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg/260px-Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg'
+              "
+              class="swiper-lazy h-100 w-100"
+              style="object-fit: cover"
+              alt="Responsive image"
+            />
           </div>
-
-          <b-img
-            :src="
-              user.profile_pic ||
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg/260px-Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg'
-            "
-            fluid-grow
-            alt="Responsive image"
-          ></b-img>
         </div>
-      </div>
 
-      <div class="swiper-button-next"></div>
+        <div class="swiper-button-next"></div>
+      </div>
     </div>
 
-    <div class="d-flex justify-content-around align-items-center">
+    <div
+      v-if="users.length"
+      class="d-flex justify-content-around align-items-end mt-4"
+    >
       <font-awesome-icon
         id="icon-match-dislike"
         icon="xmark"
@@ -48,11 +49,14 @@
       />
       <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
     </div>
+    <div v-else class="col-10 m-auto text-center">
+      <h1>No users to show you yet</h1>
+    </div>
   </div>
 </template>
 
 <script>
-import { Swiper, Navigation, EffectCards } from 'swiper';
+import { Swiper, Navigation, EffectCards, Lazy } from 'swiper';
 import 'swiper/swiper-bundle.min.css';
 
 export default {
@@ -65,12 +69,14 @@ export default {
     };
   },
   mounted() {
-    Swiper.use([Navigation, EffectCards]);
+    Swiper.use([Navigation, EffectCards, Lazy]);
 
     this.swiper = new Swiper('.swiper', {
       effect: 'cards',
 
+      preloadImages: false,
       lazy: true,
+
       grabCursor: true,
       direction: 'horizontal',
       allowSlidePrev: false,
@@ -81,47 +87,44 @@ export default {
     });
 
     this.swiper.on('slideChange', async e => {
-      await this.$axios.post('view', {
-        data: {
-          targetId: this.users[this.selected].user_id,
-        },
-      });
-      console.log(e.activeIndex);
-      if (e.activeIndex + 1 === this.users.length) {
-        try {
-          const res = await this.$axios
-          .post('getRecommandation', {
-            offset: this.users.length,
-          })
-          this.users = [...this.users, ...res.data];
-          this.swiper.init();
-        } catch (e) {
-          this.swiper.init();
-        }
-      }
       this.selected = e.activeIndex;
+
+      // Set new users as viewed
+      await this.view();
+
+      // Generate new recommandation when no left
+      if (e.activeIndex + 1 === this.users.length) this.generateNewMatches();
     });
   },
   async beforeMount() {
-    await this.$axios
-      .post('getRecommandation', {
-        offset: this.users.length,
-      })
-      .then(r => {
-        this.users = r.data;
-      });
+    const res = await this.$axios.post('getRecommandation', {
+      order: null,
+    });
+    this.users = res.data;
+
+    if (this.users.length !== 0) await this.view();
   },
   methods: {
     async like() {
       await this.$axios.post('like', {
-        data: {
-          targetId: this.users[this.selected].user_id,
-        },
+        targetId: this.users[this.selected].user_id,
       });
-      this.swiper.slideNext();
+      await this.swiper.slideNext();
+    },
+    async view() {
+      await this.$axios.post('view', {
+        targetId: this.users[this.selected].user_id,
+      });
+    },
+    async generateNewMatches() {
+      const res = await this.$axios.post('getRecommandation', {
+        order: null,
+      });
+      
+      this.users = [...this.users, ...res.data];
+      this.$nextTick(() => this.swiper.update() );
     },
     dislike() {
-      this.swiper.init();
       this.swiper.slideNext();
     },
   },
@@ -129,6 +132,12 @@ export default {
 </script>
 
 <style>
+.match100 {
+  height: calc(100% - 3rem - 100px);
+}
+#matchContainer {
+  height: calc(100vh - 6rem - 250px);
+}
 .profile {
   border-radius: 20px;
 }
@@ -137,7 +146,10 @@ export default {
   font-size: 5vw;
   bottom: 0;
   color: white;
-  padding: 4%;
+  padding: 3%;
+}
+#profile-info h2 {
+  font-size: 3vw;
 }
 #profile-image {
   box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
@@ -149,11 +161,13 @@ export default {
 #icon-match-like {
   width: 10%;
   height: 100%;
+  max-width: 100px;
   color: greenyellow;
 }
 #icon-match-dislike {
   width: 10%;
   height: 100%;
+  max-width: 100px;
   color: rgb(255, 85, 47);
 }
 </style>

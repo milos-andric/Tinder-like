@@ -502,72 +502,76 @@ app.post('/registerMany', async (req, res) => {
 });
 
 app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
   const user = await getUserInfos(req.user.user_id);
-  if (user.user_id === targetId)
-    return res.status(400).json({ msg: 'You cannot like yourself' });
+  const targetId = req.body.targetId;
 
+  // Check if not liking yourself
+  if (user.user_id === targetId)
+    return res.status(200).json({ msg: 'You cannot like yourself' });
+
+  // Get already liked users
   const data = await db.any(
     'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
     [user.user_id, targetId]
   );
-  if (data.length !== 0)
-    return res.status(400).json({ msg: 'User already liked' });
 
-  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-  await db.any(sql, [user.user_id, targetId]).catch(err => {
-    res.status(500).json(err);
-  });
+  // Like if not already did
+  if (data.length === 0) {
+    await db.any(
+      `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+      [user.user_id, targetId]
+    );
+  } else console.log("ALREADY LIKED");
+
   res.sendStatus(200);
 });
 
 app.post('/view', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
   const user = await getUserInfos(req.user.user_id);
-  if (user.user_id === targetId)
-    return res.status(400).json({ msg: 'You cannot react to yourself' });
+  const targetId = req.body.targetId;
 
+  // Check if not viewing yourself
+  if (user.user_id === targetId)
+    return res.status(200).json({ msg: 'You cannot view yourself' });
+
+  // Get already viewed users
   const data = await db.any(
     'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
     [user.user_id, targetId]
   );
-  if (data.length !== 0)
-    return res.status(400).json({ msg: 'User already scored' });
 
-  const sql = `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`;
-  await db.any(sql, [user.user_id, targetId]).catch(err => {
-    res.status(500).json(err);
-  });
+  // View if not already did
+  if (data.length === 0) {
+    await db.any(
+      `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
+      [user.user_id, targetId]
+    );
+  } else console.log("ALREADY SEEN");
+
   res.sendStatus(200);
 });
 
-const findPartnerFor = async (user, offset) => {
-  let sql = `SELECT * FROM users WHERE`;
-  sql += ` users.user_id != $2`;
-  sql += ` AND users.user_id NOT IN (SELECT likes.target_id FROM likes WHERE likes.liker_id = $2)`;
-  sql += ` AND users.user_id NOT IN (SELECT views.target_id FROM views WHERE views.viewer_id = $2)`;
-  if (user.orientation !== 2) sql += ` AND gender = $1`;
+const findPartnerFor = async user => {
+  let sql = `SELECT * FROM users u 
+  WHERE u.user_id != $1
+  AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
+  AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`;
+  if (user.orientation !== 2) sql += ` AND gender = $2`;
   sql += ` ORDER BY score DESC LIMIT 10`;
 
-  try {
-    const res = await db.many(sql, [user.orientation, user.user_id]);
+  const data =
+    user.orientation !== 2 ? [user.user_id, user.orientation] : user.user_id;
+  const res = await db.any(sql, data);
 
-    res.forEach(user => delete user.password);
-
-    return res;
-  } catch (e) {
-    return null;
-  }
+  res.forEach(reco => delete reco.password);
+  return res;
 };
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartnerFor(user, req.body.offset);
-  if (partner) {
-    res.send(partner);
-  } else {
-    res.send(null);
-  }
+  const partner = await findPartnerFor(user);
+
+  res.status(200).json(partner);
 });
 
 export default {
