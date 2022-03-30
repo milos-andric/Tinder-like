@@ -118,6 +118,8 @@ INSERT into "users"("first_name", "last_name", "user_name", "email", "password",
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
     VALUES ('viewer', 'viewer', 'viewer', 'viewer@viewer.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', NOW());
 --     -- code Toto123456789
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
+    VALUES ('tata', 'tata', 'tata', 'tata@tata.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', NOW());
 
 INSERT into "likes"
     ("liker_id", "target_id", "created_on")
@@ -125,24 +127,33 @@ INSERT into "likes"
 INSERT into "likes"
     ("liker_id", "target_id", "created_on")
     VALUES (2, 1, NOW());
+INSERT into "likes"
+    ("liker_id", "target_id", "created_on")
+    VALUES (1, 5, NOW());
+INSERT into "likes"
+    ("liker_id", "target_id", "created_on")
+    VALUES (5, 1, NOW());
 INSERT into "blocks"
     ("sender_id", "blocked_id", "created_on")
     VALUES (1, 3, NOW());
 INSERT into "views"
     ("viewer_id", "target_id", "created_on")
     VALUES (1, 4, NOW());
--- INSERT into "chats"
---     ("liker_id", "target_id", "created_on")
---     VALUES (2, 1, NOW());
+INSERT into "chats"
+    ("first_id", "second_id", "name", "created_on")
+    VALUES (2, 1, '1-2', NOW());
+INSERT into "chats"
+    ("first_id", "second_id", "name", "created_on")
+    VALUES (1, 5, '1-5', NOW());
 
 INSERT into "messages"
     ( "sender_id", "chat_id", "message", "created_on")
-    VALUES (1, 'general', 'hello', NOW());
+    VALUES (1, '1-2', 'hello', NOW());
 
 INSERT into "messages"
     ( "sender_id", "chat_id", "message", "created_on")
-    VALUES (1, 'general', 'from', NOW());
+    VALUES (1, '1-2', 'from', NOW());
 
 INSERT into "messages"
     ( "sender_id", "chat_id", "message", "created_on")
-    VALUES (1, 'general', 'db', NOW());
+    VALUES (1, '1-2', 'db', NOW());

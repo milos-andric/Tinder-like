@@ -1,11 +1,7 @@
 <template>
   <div>
     <div id="chat-wrapper">
-      <div id="chat-channels">
-        <div class="channel active">Linda</div>
-        <div class="channel">Sophiedelasalope</div>
-        <div class="channel">Clarrisse</div>
-      </div>
+      <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
       <div id="chat-box">
         <div id="v-for-object" class="chat-list">
           <div
@@ -30,24 +26,36 @@
 export default {
   data() {
     return {
+      room: '',
       input: '',
       messages: [],
     };
   },
-  async beforeCreate() {
-    const resp = await this.$axios.get('getRoomMessages', {
-      room: 'general',
-    });
-    this.messages = resp.data;
+  async beforeMount() {
+    await this.getMessage(this.room);
   },
   methods: {
+    async getMessage(room) {
+      const resp = await this.$axios.post('getRoomMessages', {
+        room,
+      });
+      this.messages = resp.data;
+    },
     async sendMessage() {
       const resp = await this.$axios.post('sendRoomMessages', {
-        room: 'general',
+        room: this.room,
         message: this.input,
       });
       this.messages.push(resp.data);
       this.input = '';
+    },
+    async onChangeActiveRoom(newRoom) {
+      try {
+        await this.getMessage(newRoom);
+        this.room = newRoom;
+      } catch (e) {
+        console.log(e);
+      }
     },
   },
 };

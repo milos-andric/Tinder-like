@@ -514,25 +514,54 @@ const idToUsername = async id => {
   return user.user_name;
 };
 
-app.get('/getRoomMessages', authenticateToken, async (req, res) => {
+const isIdInRoom = async (id, room) => {
   const sql =
-    "SELECT * FROM messages WHERE chat_id = 'general' ORDER BY created_on";
-  const messages = await db.many(sql);
-  for (let i = 0; i < messages.length; i++) {
-    messages[i].sender_id = await idToUsername(messages[i].sender_id);
+    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 AND name = $2';
+  const res = await db.manyOrNone(sql, [id, room]);
+  if (res.length) {
+    return true;
+  } else {
+    return false;
   }
-  res.send(messages);
+};
+
+app.post('/getRoomMessages', authenticateToken, async (req, res) => {
+  if (await isIdInRoom(req.user.user_id, req.body.room)) {
+    const sql = 'SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_on';
+    const messages = await db.manyOrNone(sql, [req.body.room]);
+    for (let i = 0; i < messages.length; i++) {
+      messages[i].sender_id = await idToUsername(messages[i].sender_id);
+    }
+    res.send(messages);
+  } else {
+    res.sendStatus(403);
+  }
 });
 
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
-  const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES (${req.user.user_id}, '${req.body.room}', '${req.body.message}', NOW())`;
-  await db.any(sql);
-  const data = {
-    sender_id: (await getUserInfos(req.user.user_id)).user_name,
-    chat_id: req.body.room,
-    message: req.body.message,
-  };
-  res.send(data);
+  if (await isIdInRoom(req.user.user_id, req.body.room)) {
+    const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
+    await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
+    const data = {
+      sender_id: (await getUserInfos(req.user.user_id)).user_name,
+      chat_id: req.body.room,
+      message: req.body.message,
+    };
+    res.send(data);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
+  const sql = 'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1';
+  const rooms = await db.manyOrNone(sql, [req.user.user_id]);
+  for (let i = 0; i < rooms.length; i++) {
+    if (rooms[i].first_id === req.user.user_id) {
+      rooms[i].pal_name = await idToUsername(rooms[i].second_id);
+    } else rooms[i].pal_name = await idToUsername(rooms[i].first_id);
+  }
+  res.send(rooms);
 });
 
 app.post('/search', authenticateToken, (req, res) => {
@@ -643,7 +672,7 @@ const matchDetector = async (myId, targetId) => {
   );
   if (like) {
     // Envoyer notif aux deux personne
-    await db.oneOrNone(
+    await db.any(
       'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
       [myId, targetId, chatName(myId, targetId)]
     );
