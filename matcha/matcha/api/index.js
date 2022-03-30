@@ -54,9 +54,10 @@ function socketIdentification(socket) {
     if (err) {
       console.log(`${socket.id} is disconnected because bad token !`);
       socket.disconnect(true);
+    } else {
+      console.log(`${socket.id} is identified ! as ` + user.user_name);
+      return user;
     }
-    console.log(`${socket.id} is identified !`);
-    return user;
   });
 }
 
