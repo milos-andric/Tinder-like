@@ -1,4 +1,4 @@
-CREATE TYPE enum_types_notifs AS ENUM ('visit', 'like', 'unlike', 'match', 'message');
+CREATE TYPE enum_types_notifs AS ENUM ('view', 'like', 'unlike', 'match', 'message');
 
 CREATE TABLE IF NOT EXISTS "users" (
     "user_id" serial PRIMARY KEY,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS "notifications" (
     "notification_id" serial PRIMARY KEY,
     "user_id_send" INT NOT NULL,
     "user_id_receiver" INT NOT NULL,
-    "content" VARCHAR ( 255 ) NOT NULL,
+    "content" VARCHAR ( 255 ),
     "type" enum_types_notifs NOT NULL,
     "watched" BOOLEAN NOT NULL DEFAULT false,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),

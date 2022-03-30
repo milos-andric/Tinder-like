@@ -49,42 +49,62 @@ function socketIdentification(socket) {
       console.log(`${socket.id} is disconnected because bad token !`)
       socket.disconnect(true);
     }
+    console.log(`${socket.id} is identified !`)
     return user;
   });
 }
 
-function emitToUserId(userId){
-  for (let i = 0; i < users.length; i++) {
-    if (users[i].user_id === userId) {
-      console.log(`notif sent ${users[i].socket_id}`);
-      io.to(users[i].socket_id).emit('receiveNotification', 'You have receive a notif !');
-    }
-  }
+// function emitToUserId(userId) {
+//   for (let i = 0; i < users.length; i++) {
+//     if (String(users[i].user_id) === userId) {
+//       console.log(`notif sent ${users[i].socket_id}`);
+//       io.to(users[i].socket_id).emit('receiveNotification', 'You have receive a notif !');
+//     }
+//   }
+// }
+
+function emitNotifications(socketIds, type) {
+  socketIds.forEach(element => {
+    console.log('emit', element);
+    io.to(element).emit('receiveNotification', type);
+  });
+  // push in DB
+}
+
+function getSocketById(userId) {
+  // eslint-disable-next-line array-callback-return
+  // const socketList = users.map(e => {
+  //   console.log(e);
+  //   console.log(typeof (e.user_id), typeof (userId));
+  //   if (e.user_id === userId)
+  //     return e.socket_id;
+  // });
+  const socketList = users.filter(e => e.user_id === userId).map(e => e.socket_id);
+  return socketList;
 }
 
 io.on("connection", (socket) => {
   console.log(`${socket.id} is connected to / by io !`)
+  // console.log(socket.handshake.auth.token); // parfois undefined ?
   if (socket.handshake.auth.token) {
     const user = socketIdentification(socket);
-    users.push({
-      user_id: user.user_id,
-      socket_id: socket.id,
-    })
+    if (user) {
+      users.push({
+        user_id: user.user_id,
+        socket_id: socket.id,
+      })
+    } else {
+      socket.disconnect(true);
+    }
   } else {
     socket.disconnect(true);
   }
 
-  socket.on('sendNotification', (data) => {
-    console.log(data);
-    emitToUserId(data.receiverId);
-  });
-  
   socket.on("disconnect", (_reason) => {
     users.splice(users.findIndex(obj => obj.socket_id === socket.id), 1)
     socket.disconnect(true);
   });
 
-  // socket.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
 });
 server.listen(3001);
 //
@@ -429,13 +449,31 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 
 // GET routes
 
-app.get('/user/:user_id?', authenticateToken, async (req, res) => {
-  let id = req.user.user_id;
-  if (req.params && req.params.user_id) id = req.params.user_id;
-
+app.get('/me', authenticateToken, async (req, res) => {
+  const id = req.user.user_id;
   try {
     const user = await getUserInfos(id);
-    io.emit('notifications', {notification_id: 3, user_id_send: 1, user_id_receiver: 2, content: "Your profile has benn visited !", type: "visit", watched: false, created_on: new Date()} );
+    res.status(200).json(user);
+  } catch (e) {
+    res.status(404).json({ msg: e });
+  }
+});
+
+app.get('/user/:user_id', authenticateToken, async (req, res) => {
+  const myid = req.user.user_id;
+  let id;
+  if (req.params && req.params.user_id)
+    id = req.params.user_id;
+  const idInt = Number(id);
+  try {
+    const user = await getUserInfos(id);
+    const socketList = getSocketById(idInt);
+    if (idInt !== myid) {
+      const elem = await postNotification(req.user.user_id, req.params.user_id, 'view');
+      console.log("RET:", elem);
+      // emitNotifications(socketList, { type: 'view', user: req.user.user_name, id: req.user.user_id });
+      emitNotifications(socketList, elem);
+    }
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -542,15 +580,33 @@ app.post('/registerMany', async (req, res) => {
   });
 });
 
+async function postNotification(sender, receiver, type) {
+  try {
+    const data = await db.any('INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *', [sender, Number(receiver), type])
+    return data;
+  } catch (error) {
+    console.log(error);
+  };
+};
 
-app.get('/notifications', authenticateToken, (req, res) => {
-  db.any(`SELECT * FROM notifications WHERE user_id_receiver = $1`, req.user.user_id)
-  .then(function (data) {
+app.post('/read-notifications', authenticateToken, (req, res) => {
+  db.any(`UPDATE notifications SET watched=${false} WHERE user_id=${req.user.user_id}`)
+    .then(function (data) {
       res.status(200).json(data);
-  })
-  .catch(function (_error) {
-    res.status(403).send({ msg: 'User is not found' });
-  });
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
+});
+
+app.get('/get-notifications', authenticateToken, (req, res) => {
+  db.any(`SELECT * FROM notifications WHERE user_id_receiver=${req.user.user_id}`)
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
 });
 
 

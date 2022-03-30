@@ -1,3 +1,4 @@
+/* eslint-disable vue/valid-v-for */
 <template>
   <b-navbar toggleable="lg" type="dark" variant="primary">
     <!-- Brand -->
@@ -24,12 +25,13 @@
           </b-dropdown-item>
 
           <b-dropdown-item
-            v-for="x in notifications"
-            :key="x.notification_id"
-            href="#"
+            v-for="(x, index) in notifications.view"
+            :key="index"
+            :href="x.link"
           >
-            {{ x.content }}
+              {{ x.sender }} {{ x.type }}
           </b-dropdown-item>
+
         </b-nav-item-dropdown>
 
         <!-- Account button -->
@@ -58,22 +60,55 @@
   </b-navbar>
 </template>
 <script>
+
+const typesNotifications = Object.freeze({
+  view: "You have a visit",
+  like: "You have a like",
+  unlike: "You have a unlike",
+  match: "You have a match",
+  message: "You have a message",
+});
+
 export default {
   data() {
     return {
-      notifications: [],
+      notifications: {view: [], like: [], unlike: [], match: [], message: [] },
     };
+  },
+  mounted() {
+    this.socket = this.$nuxtSocket({
+      name: 'main',
+      channel: '/',
+      auth: {
+        token: localStorage.getItem('auth._token.local'),
+      },
+      reconnection: false,
+    });
+    this.socket.on('receiveNotification', (data) => {
+      this.manageNotification(data);
+      // this.notifications = data;
+    });
   },
   async beforeMount() {
     try {
-      const res = await this.$axios.get('notifications');
-      this.notifications = res.data;
-      console.log(this.notifications);
+      const res = await this.$axios.get('get-notifications');
+      this.notifications.view = res.data;
     } catch (e) {
       console.log(e);
     }
   },
   methods: {
+    manageNotification(data) {
+      // manage User, url
+      console.log("FRONT:", data);
+      if (data) {
+        const message = typesNotifications[data.type];
+        if (message) {
+          // this.notifications.view.push({ msg: message + ' ' + data.user, user: data.user, link: '/user/' + data.id});
+          this.notifications.view.push(data);
+        }
+      }
+    },
     logout() {
       this.$auth.logout();
       // Code will also be required to invalidate the JWT Cookie on external API

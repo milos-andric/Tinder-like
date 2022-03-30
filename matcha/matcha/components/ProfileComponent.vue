@@ -114,7 +114,7 @@ export default {
   },
   methods: {
     async getUserData() {
-      await this.$axios.get('/user').then(e => {
+      await this.$axios.get('/me').then(e => {
         this.first_name = e.data.first_name;
         this.last_name = e.data.last_name;
         this.user_name = e.data.user_name;
