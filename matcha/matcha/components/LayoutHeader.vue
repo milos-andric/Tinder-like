@@ -1,4 +1,3 @@
-/* eslint-disable vue/valid-v-for */
 <template>
   <b-navbar toggleable="lg" type="dark" variant="primary">
     <!-- Brand -->
@@ -29,10 +28,6 @@
             <font-awesome-icon color="white" icon="bell" />
           </template>
 
-          <b-dropdown-item v-if="notifications.length === 0" href="#">
-            You have 0 notification.
-          </b-dropdown-item>
-
           <b-dropdown-item
             v-for="x in notifications.view"
             :key="x.notification_id"
@@ -41,7 +36,13 @@
             {{ x.message }}
           </b-dropdown-item>
 
-          <button type="button" class="btn btn-primary" @click="readNotifications" >All as read</button>
+          <b-dropdown-text v-if="length === 0">
+            no notification
+          </b-dropdown-text>
+
+          <b-button v-if="length !== 0" block variant="outline-primary" class="m1" size="sm" @click="readNotifications">
+            All as read
+          </b-button>
 
         </b-nav-item-dropdown>
 
@@ -83,6 +84,7 @@ export default {
   data() {
     return {
       notifications: { view: [], like: [], unlike: [], match: [], message: [] },
+      length: 0,
     };
   },
   mounted() {
@@ -96,7 +98,6 @@ export default {
     });
     this.socket.on('receiveNotification', data => {
       this.manageNotifications(data);
-      // this.notifications = data;
     });
   },
 
@@ -111,15 +112,17 @@ export default {
   methods: {
 
     manageNotifications(data) {
-      data.forEach(e => this.manageNotification(e));
+      data.forEach(e => {
+        this.manageNotification(e)
+      });
+      this.lengthNotifications();
     },
 
     manageNotification(notif) {
-      console.log('FRONT:', notif.type);
       if (notif) {
         const message = typesNotifications[notif.type];
         if (message) {
-          notif.message = message + " by " + notif.user_name;
+          notif.message = message + " from " + notif.user_name;
           notif.link = '/user/' + notif.user_id_send;
           this.notifications[notif.type].push( notif );
         }
@@ -131,6 +134,8 @@ export default {
       try {
         await this.$axios.post('read-notification', { id });
         this.notifications[notification.type].splice(this.notifications[notification.type].findIndex(obj => obj.notification_id === id), 1);
+        if (this.length)
+          this.length -= 1;
         this.$router.push(notification.link);
       } catch (e) {
         console.log(e);
@@ -140,10 +145,20 @@ export default {
     async readNotifications() {
       try {
         await this.$axios.post('read-notifications');
-        this.notifications = [];
+        Object.keys(this.notifications).forEach(e => {
+          this.notifications[e].length = [];
+        });
+        this.length = 0;
       } catch (e) {
         console.log(e);
       }
+    },
+
+    lengthNotifications() {
+      this.length = 0;
+      Object.keys(this.notifications).forEach(e => {
+        this.length += this.notifications[e].length;
+      });
     },
 
     logout() {
