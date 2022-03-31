@@ -6,5 +6,6 @@
 export default {
   name: 'RecoverPage',
   auth: 'guest',
+  layout: 'empty',
 };
 </script>

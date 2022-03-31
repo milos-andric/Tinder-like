@@ -93,6 +93,7 @@
     </b-collapse>
   </b-navbar>
 </template>
+
 <script>
 const typesNotifications = Object.freeze({
   view: 'You have a visit',
@@ -101,7 +102,6 @@ const typesNotifications = Object.freeze({
   match: 'You have a match',
   message: 'You have a message',
 });
-
 export default {
   data() {
     return {
@@ -118,19 +118,12 @@ export default {
       },
       reconnection: false,
     });
+    this.getNotifications();
     this.socket.on('receiveNotification', data => {
       this.manageNotifications(data);
     });
   },
 
-  async beforeMount() {
-    try {
-      const res = await this.$axios.get('get-notifications');
-      this.manageNotifications(res.data);
-    } catch (e) {
-      console.log(e);
-    }
-  },
   methods: {
     manageNotifications(data) {
       data.forEach(e => {
@@ -180,6 +173,15 @@ export default {
       }
     },
 
+    async getNotifications() {
+      try {
+        const res = await this.$axios.get('get-notifications');
+        this.manageNotifications(res.data);
+      } catch (e) {
+        console.log(e);
+      }
+    },
+
     lengthNotifications() {
       this.length = 0;
       Object.keys(this.notifications).forEach(e => {
@@ -188,6 +190,7 @@ export default {
     },
 
     logout() {
+      if (this.socket) this.socket.disconnect();
       this.$auth.logout();
       // Code will also be required to invalidate the JWT Cookie on external API
     },

@@ -4,7 +4,7 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4>{{ '@' + user_name }}</h4>
+    <h4>{{ online }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -205,6 +205,7 @@ export default {
       alertMsg: '',
 
       liked: false,
+      online: false,
     };
   },
   async beforeMount() {
@@ -228,6 +229,10 @@ export default {
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
+    });
+
+    await this.$axios.get('/is-online/' + this.id).then(e => {
+      this.online = e.data;
     });
   },
   methods: {

@@ -74,6 +74,13 @@ function getSocketById(userId) {
   return socketList;
 }
 
+function isConnected(userId) {
+  console.log(users, userId);
+  if (users.find(e => e.user_id === userId))
+    return true;
+  return false;
+}
+
 async function sendNotification(myId, targetId, typeNotif) {
   const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3", [typeNotif, myId, targetId])
   if (!alreadyNotified) {
@@ -112,6 +119,7 @@ io.on('connection', socket => {
       users.findIndex(obj => obj.socket_id === socket.id),
       1
     );
+    console.log(`${socket.id} is disconnected to / by io !`);
     socket.disconnect(true);
   });
 });
@@ -513,6 +521,11 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   } catch (e) {
     res.status(404).json({ msg: e });
   }
+});
+
+app.get('/is-online/:target_id', authenticateToken, (req, res) => {
+  const id = Number(req.params.target_id);
+  return res.status(200).json(isConnected(id));
 });
 
 app.post('/search', authenticateToken, (req, res) => {
