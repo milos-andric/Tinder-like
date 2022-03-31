@@ -11,7 +11,7 @@ function buildFactory() {
       user_name: factory.seq('User.email', n => `username${n}`),
       password: '$2b$10$R/y6E88GOfMiSOQzt1xPzeaElXUT3llz7gz/MH5um2Y30DfkpVxDO', // 1234
       activation_code: 'activated',
-      age: factory.chance('birthday', { type: 'adult' }),
+      age: factory.chance('birthday', { year: factory.chance('year', { min: 1980, max: 2003 }) }),
       score: factory.chance('integer', { min: 0, max: 100 }),
       email: factory.seq('User.email', n => `user${n}@ymail.com`),
       bio: factory.chance('paragraph', { sentences: 1 }),

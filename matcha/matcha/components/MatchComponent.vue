@@ -15,7 +15,7 @@
               class="position-absolute d-flex justify-content-between align-items-end"
             >
               <h2>
-                {{ user.first_name + ', ' + user.age }}
+                {{ user.first_name + getAge(user) }}
               </h2>
               <b-link :to="'/user/' + user.user_id">
                 <font-awesome-icon icon="circle-info" color="white" />
@@ -120,23 +120,33 @@ export default {
       const res = await this.$axios.post('getRecommandation', {
         order: null,
       });
-      
+
       this.users = [...this.users, ...res.data];
-      this.$nextTick(() => this.swiper.update() );
+      this.$nextTick(() => this.swiper.update());
     },
     dislike() {
       this.swiper.slideNext();
+    },
+    getAge(user) {
+      if (user.age)
+        return (
+          ', ' +
+          (new Date().getFullYear() -
+          new Date(user.age).getFullYear())
+        );
+      else return '';
     },
   },
 };
 </script>
 
 <style>
-.match100 {
-  height: calc(100% - 3rem - 100px);
-}
 #matchContainer {
   height: calc(100vh - 6rem - 250px);
+  max-width: 750px;
+}
+.match100 {
+  height: calc(100% - 3rem - 100px);
 }
 .profile {
   border-radius: 20px;
@@ -151,6 +161,17 @@ export default {
 #profile-info h2 {
   font-size: 3vw;
 }
+
+@media (min-width: 1600px) {
+  #profile-info {
+  font-size: 75px;
+  padding: 3%;
+}
+#profile-info h2 {
+  font-size: 50px;
+}
+}
+
 #profile-image {
   box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
   height: 100%;
@@ -162,12 +183,14 @@ export default {
   width: 10%;
   height: 100%;
   max-width: 100px;
+  cursor: pointer;
   color: greenyellow;
 }
 #icon-match-dislike {
   width: 10%;
   height: 100%;
   max-width: 100px;
+  cursor: pointer;
   color: rgb(255, 85, 47);
 }
 </style>
