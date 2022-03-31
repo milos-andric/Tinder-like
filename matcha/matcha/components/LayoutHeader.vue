@@ -36,14 +36,28 @@
             {{ x.message }}
           </b-dropdown-item>
 
+          <b-dropdown-item
+            v-for="x in notifications.like"
+            :key="x.notification_id"
+            @click="readNotification(x)"
+          >
+            {{ x.message }}
+          </b-dropdown-item>
+
           <b-dropdown-text v-if="length === 0">
             no notification
           </b-dropdown-text>
 
-          <b-button v-if="length !== 0" block variant="outline-primary" class="m1" size="sm" @click="readNotifications">
+          <b-button
+            v-if="length !== 0"
+            block
+            variant="outline-primary"
+            class="m1"
+            size="sm"
+            @click="readNotifications"
+          >
             All as read
           </b-button>
-
         </b-nav-item-dropdown>
 
         <!-- Account button -->
@@ -110,32 +124,36 @@ export default {
     }
   },
   methods: {
-
     manageNotifications(data) {
       data.forEach(e => {
-        this.manageNotification(e)
+        this.manageNotification(e);
       });
       this.lengthNotifications();
     },
 
     manageNotification(notif) {
+      console.log(notif);
       if (notif) {
         const message = typesNotifications[notif.type];
         if (message) {
-          notif.message = message + " from " + notif.user_name;
+          notif.message = message + ' from ' + notif.user_name;
           notif.link = '/user/' + notif.user_id_send;
-          this.notifications[notif.type].push( notif );
+          this.notifications[notif.type].push(notif);
         }
       }
     },
-    
+
     async readNotification(notification) {
       const id = notification.notification_id;
       try {
         await this.$axios.post('read-notification', { id });
-        this.notifications[notification.type].splice(this.notifications[notification.type].findIndex(obj => obj.notification_id === id), 1);
-        if (this.length)
-          this.length -= 1;
+        this.notifications[notification.type].splice(
+          this.notifications[notification.type].findIndex(
+            obj => obj.notification_id === id
+          ),
+          1
+        );
+        if (this.length) this.length -= 1;
         this.$router.push(notification.link);
       } catch (e) {
         console.log(e);
@@ -166,6 +184,5 @@ export default {
       // Code will also be required to invalidate the JWT Cookie on external API
     },
   },
-
 };
 </script>

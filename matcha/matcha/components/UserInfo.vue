@@ -236,8 +236,12 @@ export default {
         this.alertStatus = true;
       }
     },
-    like() {
-      console.log(this.id);
+    async like() {
+      await this.$axios.post('like', {
+        data: {
+          targetId: this.id,
+        },
+      });
     },
     goToProfile() {
       this.$router.push('/user');

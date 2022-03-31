@@ -62,7 +62,7 @@ function socketIdentification(socket) {
 
 function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
-    console.log('emit', element);
+    console.log('emit', element, notif[0].type, notif[0].user_id_send, " > ", notif[0].uer_id_receiver);
     io.to(element).emit('receiveNotification', notif);
   });
 }
@@ -466,13 +466,13 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
   const idInt = Number(id);
   try {
     const user = await getUserInfos(id);
-    const alreadyNotified = await db.oneOrNone('SELECT * FROM notifications WHERE user_id_send=$1 AND user_id_receiver=$2', [myid, id])
+    const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$3 AND user_id_send=$1 AND user_id_receiver=$2", [myid, id, 'view'])
     if (!alreadyNotified) {
       const socketList = getSocketById(idInt);
       if (idInt !== myid) {
         const elem = await postNotification(
           req.user.user_id,
-          req.params.user_id,
+          idInt,
           'view'
         );
         emitNotifications(socketList, elem);
@@ -590,13 +590,16 @@ app.post('/registerMany', async (req, res) => {
 });
 
 async function postNotification(sender, receiver, type) {
-
+  console.log(typeof(sender), sender);
+  console.log(typeof(receiver), receiver);
+  console.log(typeof(type), type);
   try {
     const data = await db.one(
       'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
-      [sender, Number(receiver), type]
+      [sender, receiver, type]
     );
     const join = await db.any('SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1', data.notification_id);
+    console.log(join);
     return join;
   } catch (error) {
     console.log(error);
@@ -650,12 +653,20 @@ app.post('/like', authenticateToken, async (req, res) => {
     [user.user_id, targetId]
   );
   if (data.length !== 0)
-    return res.status(400).json({ msg: 'User already liked' });
+    return res.status(200).json({ msg: 'User already liked' });
 
   const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
   await db.any(sql, [user.user_id, targetId]).catch(err => {
     res.status(500).json(err);
   });
+  const targetIdInt = Number(targetId);
+  const socketList = getSocketById(targetIdInt);
+  const elem = await postNotification(
+    req.user.user_id,
+    targetIdInt,
+    'like'
+  );
+  emitNotifications(socketList, elem);
   res.sendStatus(200);
 });
 
@@ -670,7 +681,7 @@ app.post('/view', authenticateToken, async (req, res) => {
     [user.user_id, targetId]
   );
   if (data.length !== 0)
-    return res.status(400).json({ msg: 'User already scored' });
+    return res.status(200).json({ msg: 'User already scored' });
 
   const sql = `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`;
   await db.any(sql, [user.user_id, targetId]).catch(err => {
