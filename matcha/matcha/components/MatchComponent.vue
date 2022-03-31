@@ -1,116 +1,173 @@
 <template>
-  <div v-if="name !== undefined && name !== ''">
-    <div id="wrapper-match">
-      <div id="match-photo">
-        <ShowProfilePic />
-        <h2 id="name-age-match">
-          {{ name + ', ' + age }}
-        </h2>
-      </div>
-      <div id="match-buttons">
-        <font-awesome-icon
-          id="icon-match-dislike"
-          class="btn-match"
-          icon="circle-xmark"
-          @click="dislike()"
-        />
-        <font-awesome-icon
-          id="icon-match-like"
-          class="btn-match"
-          icon="fire"
-          @click="like()"
-        />
+  <div id="matchContainer" class="col-10 m-auto d-flex flex-column">
+    <div class="w-100 match100">
+      <div class="swiper h-100">
+        <div class="swiper-wrapper">
+          <div
+            v-for="user in users"
+            :key="user.user_id"
+            class="profile position-relative overflow-hidden mb-5 swiper-slide"
+          >
+            <div id="profile-image" class="position-absolute"></div>
+
+            <div
+              id="profile-info"
+              class="position-absolute d-flex justify-content-between align-items-end"
+            >
+              <h2>
+                {{ user.first_name + ', ' + user.age }}
+              </h2>
+              <b-link :to="'/user/' + user.user_id">
+                <font-awesome-icon icon="circle-info" color="white" />
+              </b-link>
+            </div>
+
+            <img
+              :src="
+                user.profile_pic ||
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg/260px-Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg'
+              "
+              class="swiper-lazy h-100 w-100"
+              style="object-fit: cover"
+              alt="Responsive image"
+            />
+          </div>
+        </div>
+
+        <div class="swiper-button-next"></div>
       </div>
     </div>
-  </div>
-  <div v-else-if="name !== ''">
-    No more matches, go get some pussies elsewhere
+
+    <div
+      v-if="users.length"
+      class="d-flex justify-content-around align-items-end mt-4"
+    >
+      <font-awesome-icon
+        id="icon-match-dislike"
+        icon="xmark"
+        @click="dislike()"
+      />
+      <font-awesome-icon id="icon-match-like" icon="fire" @click="like()" />
+    </div>
+    <div v-else class="col-10 m-auto text-center">
+      <h1>No users to show you yet</h1>
+    </div>
   </div>
 </template>
 
 <script>
-import ShowProfilePic from './ShowProfilePic.vue';
+import { Swiper, Navigation, EffectCards, Lazy } from 'swiper';
+import 'swiper/swiper-bundle.min.css';
+
 export default {
-  components: { ShowProfilePic },
   data() {
     return {
-      name: '',
-      age: 0,
-      targetId: 0,
+      users: [],
+      selected: 0,
+
+      swiper: null,
     };
   },
+  mounted() {
+    Swiper.use([Navigation, EffectCards, Lazy]);
+
+    this.swiper = new Swiper('.swiper', {
+      effect: 'cards',
+
+      preloadImages: false,
+      lazy: true,
+
+      grabCursor: true,
+      direction: 'horizontal',
+      allowSlidePrev: false,
+
+      navigation: {
+        nextEl: '.swiper-button-next',
+      },
+    });
+
+    this.swiper.on('slideChange', async e => {
+      this.selected = e.activeIndex;
+
+      // Set new users as viewed
+      await this.view();
+
+      // Generate new recommandation when no left
+      if (e.activeIndex + 1 === this.users.length) this.generateNewMatches();
+    });
+  },
   async beforeMount() {
-    await this.loadMatch();
+    const res = await this.$axios.post('getRecommandation', {
+      order: null,
+    });
+    this.users = res.data;
+
+    if (this.users.length !== 0) await this.view();
   },
   methods: {
     async like() {
       await this.$axios.post('like', {
-        data: {
-          targetId: this.targetId,
-        },
+        targetId: this.users[this.selected].user_id,
       });
-      await this.loadMatch();
+      await this.swiper.slideNext();
     },
-    async dislike() {
+    async view() {
       await this.$axios.post('view', {
-        data: {
-          targetId: this.targetId,
-        },
+        targetId: this.users[this.selected].user_id,
       });
-      await this.loadMatch();
     },
-    async loadMatch() {
-      await this.$axios.post('getRecommandation', {}).then(r => {
-        this.name = r.data.first_name;
-        this.age = r.data.age;
-        this.targetId = r.data.user_id;
+    async generateNewMatches() {
+      const res = await this.$axios.post('getRecommandation', {
+        order: null,
       });
+      
+      this.users = [...this.users, ...res.data];
+      this.$nextTick(() => this.swiper.update() );
+    },
+    dislike() {
+      this.swiper.slideNext();
     },
   },
 };
 </script>
 
 <style>
-#wrapper-match {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  min-width: 420px;
-  height: 80vh;
+.match100 {
+  height: calc(100% - 3rem - 100px);
 }
-#match-photo {
-  position: relative;
-  width: 80%;
-  min-width: 420px;
-  max-width: 1000px;
-  height: 60%;
+#matchContainer {
+  height: calc(100vh - 6rem - 250px);
 }
-#match-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  width: 60%;
-  min-width: 420px;
-  max-width: 750px;
-  height: 10%;
+.profile {
+  border-radius: 20px;
+}
+#profile-info {
+  width: 100%;
+  font-size: 5vw;
+  bottom: 0;
+  color: white;
+  padding: 3%;
+}
+#profile-info h2 {
+  font-size: 3vw;
+}
+#profile-image {
+  box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
+  height: 100%;
+  width: 120%;
+  margin-left: -10%;
+  margin-right: -10%;
 }
 #icon-match-like {
-  width: 25%;
-  height: 80%;
+  width: 10%;
+  height: 100%;
+  max-width: 100px;
   color: greenyellow;
 }
 #icon-match-dislike {
-  width: 25%;
-  height: 80%;
+  width: 10%;
+  height: 100%;
+  max-width: 100px;
   color: rgb(255, 85, 47);
-}
-#name-age-match {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-}
-.btn-match {
-  cursor: grab;
 }
 </style>
