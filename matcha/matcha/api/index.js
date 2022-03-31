@@ -22,6 +22,7 @@ import {
   validateInt,
   validatePassword,
   validateText,
+  validateAge,
 } from './validator';
 import { getUserInfos, getUserImages } from './getters';
 
@@ -210,19 +211,21 @@ app.post(
     'Username must be at between 3 and 16 chars long'
   ),
   validateEmail('email'),
+  validateAge('birth_date', 'You must be older than 18 yo'),
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
     const sql = `UPDATE users SET
-            ( first_name, last_name, user_name, email, gender, orientation, bio, tags )
-            = ( $1, $2, $3, $4, $5, $6, $7, $8 ) WHERE user_id=$9`;
+            ( first_name, last_name, user_name, email, age, gender, orientation, bio, tags )
+            = ( $1, $2, $3, $4, $5, $6, $7, $8, $9 ) WHERE user_id=$10`;
 
     db.none(sql, [
       req.body.first_name,
       req.body.last_name,
       req.body.user_name,
       req.body.email,
+      req.body.birth_date,
       req.body.gender,
       req.body.orientation,
       req.body.bio,

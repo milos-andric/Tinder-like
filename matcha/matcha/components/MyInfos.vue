@@ -48,16 +48,22 @@
       </div>
 
       <div class="form-outline mb-4">
+        <label for="birth_date" class="form-label">Birth date</label>
+
+        <b-form-datepicker
+          id="birth_date"
+          v-model="birth_date"
+          class="mb-2"
+          :max="max_date"
+          locale="fr"
+        ></b-form-datepicker>
+      </div>
+
+      <div class="form-outline mb-4">
         <label class="form-label">Gender</label>
         <div class="d-flex">
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="male"
@@ -72,13 +78,7 @@
           </div>
 
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="female"
@@ -98,13 +98,7 @@
         <label class="form-label">Orientation</label>
         <div class="d-flex">
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="male"
@@ -119,13 +113,7 @@
           </div>
 
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="female"
@@ -140,13 +128,7 @@
           </div>
 
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="both"
@@ -182,12 +164,16 @@
         <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
       </div>
 
-
       <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
         {{ errorMsg }}
       </b-alert>
 
-      <b-alert v-model="successStatus" variant="success" dismissible class="mt-3">
+      <b-alert
+        v-model="successStatus"
+        variant="success"
+        dismissible
+        class="mt-3"
+      >
         Your informations have successfully been updated
       </b-alert>
 
@@ -207,11 +193,16 @@
 <script>
 export default {
   data() {
+    const maxDate = new Date();
+    maxDate.setYear(maxDate.getFullYear() - 18);
+
     return {
       first_name: '',
       last_name: '',
       user_name: '',
       email: '',
+      birth_date: null,
+      max_date: maxDate,
       gender: 0,
       orientation: 2,
       bio: '',
@@ -223,40 +214,41 @@ export default {
     };
   },
   async beforeMount() {
-    await this.$axios
-      .get('/user')
-      .then(e => {
-        this.first_name = e.data.first_name;
-        this.last_name = e.data.last_name;
-        this.user_name = e.data.user_name;
-        this.email = e.data.email;
-        this.gender = e.data.gender;
-        this.orientation = e.data.orientation;
-        this.bio = e.data.bio;
-        this.tags = e.data.tags;
-      })
+    await this.$axios.get('/user').then(e => {
+      this.first_name = e.data.first_name;
+      this.last_name = e.data.last_name;
+      this.user_name = e.data.user_name;
+      this.email = e.data.email;
+      this.birth_date = e.data.age;
+      this.gender = e.data.gender;
+      this.orientation = e.data.orientation;
+      this.bio = e.data.bio;
+      this.tags = e.data.tags;
+    });
   },
   methods: {
     async updateInfo() {
-      await this.$axios.post('updateUserInfo', {
-        first_name: this.first_name,
-        last_name: this.last_name,
-        user_name: this.user_name,
-        email: this.email,
-        gender: this.gender,
-        orientation: this.orientation,
-        bio: this.bio,
-        tags: this.tags,
-      })
-      .then(() => {
-        this.successStatus = true
-        this.alertStatus = false
-      })
-      .catch((e) => {
-        this.errorMsg = e.response.data.msg
-        this.successStatus = false
-        this.alertStatus = true
-      });
+      await this.$axios
+        .post('updateUserInfo', {
+          first_name: this.first_name,
+          last_name: this.last_name,
+          user_name: this.user_name,
+          email: this.email,
+          birth_date: this.birth_date,
+          gender: this.gender,
+          orientation: this.orientation,
+          bio: this.bio,
+          tags: this.tags,
+        })
+        .then(() => {
+          this.successStatus = true;
+          this.alertStatus = false;
+        })
+        .catch(e => {
+          this.errorMsg = e.response.data.msg;
+          this.successStatus = false;
+          this.alertStatus = true;
+        });
     },
   },
 };

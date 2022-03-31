@@ -21,6 +21,10 @@
       <b-badge class="py-2 px-3" variant="dark">
         <font-awesome-icon icon="star" /> {{ score }}
       </b-badge>
+      <b-badge v-if="birth_date" class="py-2 px-3" variant="dark">
+        <font-awesome-icon icon="cake-candles" />
+        {{ new Date().getFullYear() - birth_date.getFullYear() }}
+      </b-badge>
       <b-badge v-if="!gender" class="py-2 px-3" variant="dark">
         <font-awesome-icon icon="mars" /> Male
       </b-badge>
@@ -102,6 +106,7 @@ export default {
       first_name: '',
       last_name: '',
       user_name: '',
+      birth_date: null,
       gender: 0,
       orientation: 2,
       bio: '',
@@ -131,6 +136,8 @@ export default {
         this.tags = e.data.tags;
 
         this.profile_pic = e.data.profile_pic;
+
+        if (e.data.age) this.birth_date = new Date(e.data.age);
       });
 
       await this.$axios.get('/user-images').then(e => {

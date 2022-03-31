@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "last_name" VARCHAR ( 64 ) NOT NULL,
     "user_name" VARCHAR ( 16 ) UNIQUE NOT NULL,
     "email" VARCHAR ( 255 ) UNIQUE NOT NULL,
-    "age" INT,
+    "age" TIMESTAMP DEFAULT NULL,
     "password" VARCHAR ( 512 ) NOT NULL,
     "gender" INT NOT NULL,
     "orientation" INT DEFAULT 2,

@@ -50,6 +50,7 @@ export default {
         'faPenToSquare',
         'faCircleXmark',
         'faFire',
+        'faCakeCandles',
       ],
     },
   },

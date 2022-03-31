@@ -76,3 +76,17 @@ export const validateText = (data, max, msg) => {
         else return res.status(400).json({ msg });
     };
 };
+
+export const validateAge = (data, msg) => {
+    return (req, res, next) => {
+        const input = req.body[data];
+        
+        const maxDate = new Date();
+        maxDate.setYear(maxDate.getFullYear() - 18);
+
+        const birthDate = new Date(input);
+        
+        if (maxDate - birthDate > 0) next()
+        else return res.status(400).json({ msg });
+    };
+};
