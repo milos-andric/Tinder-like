@@ -44,6 +44,14 @@
             {{ x.message }}
           </b-dropdown-item>
 
+          <b-dropdown-item
+            v-for="x in notifications.unlike"
+            :key="x.notification_id"
+            @click="readNotification(x)"
+          >
+            {{ x.message }}
+          </b-dropdown-item>
+
           <b-dropdown-text v-if="length === 0">
             no notification
           </b-dropdown-text>

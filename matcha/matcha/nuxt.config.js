@@ -44,6 +44,7 @@ export default {
         'faVenus',
         'faVenusMars',
         'faHeart',
+        'faThumbsDown',
         'faBan',
         'faRobot',
         'faMagnifyingGlass',

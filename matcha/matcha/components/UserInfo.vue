@@ -85,7 +85,7 @@
 
       <!-- Like button -->
       <b-button
-        v-if="images.length !== 0"
+        v-if="images.length !== 0 && liked === false"
         v-b-tooltip.hover.top="'Like user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -95,6 +95,21 @@
         <font-awesome-icon
           class="text-dark"
           icon="heart"
+          style="font-size: 3em"
+        />
+      </b-button>
+
+      <b-button
+        v-else-if="images.length !== 0 && liked === true"
+        v-b-tooltip.hover.top="'Unlike user'"
+        class="shadow-lg btn-lg mx-1"
+        variant="light"
+        style="border-radius: 3em; width: 5em; height: 5em"
+        @click="unlike"
+      >
+        <font-awesome-icon
+          class="text-dark"
+          icon="thumbs-down"
           style="font-size: 3em"
         />
       </b-button>
@@ -188,6 +203,8 @@ export default {
       alertStatus: false,
       alertVariant: 'error',
       alertMsg: '',
+
+      liked: false,
     };
   },
   async beforeMount() {
@@ -206,6 +223,8 @@ export default {
 
       this.profile_pic = e.data.profile_pic;
     });
+
+    this.isliked();
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
@@ -236,12 +255,30 @@ export default {
         this.alertStatus = true;
       }
     },
+
+    async isliked() {
+      await this.$axios.get('/isliked/' + this.id).then(e => {
+        console.log(e);
+        this.liked = e.data;
+      });
+    },
+
     async like() {
       await this.$axios.post('like', {
         data: {
           targetId: this.id,
         },
       });
+      this.isliked();
+    },
+
+    async unlike() {
+      await this.$axios.post('unlike', {
+        data: {
+          targetId: this.id,
+        },
+      });
+      this.isliked();
     },
     goToProfile() {
       this.$router.push('/user');
