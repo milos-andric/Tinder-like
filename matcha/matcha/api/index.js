@@ -62,7 +62,7 @@ function socketIdentification(socket) {
 
 function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
-    console.log('emit', element, notif[0].type, notif[0].user_id_send, " > ", notif[0].uer_id_receiver);
+    // console.log('emit', element, notif[0].type, notif[0].user_id_send, " > ", notif[0].uer_id_receiver);
     io.to(element).emit('receiveNotification', notif);
   });
 }
@@ -622,16 +622,16 @@ app.post('/registerMany', async (req, res) => {
 });
 
 async function postNotification(sender, receiver, type) {
-  console.log(typeof(sender), sender);
-  console.log(typeof(receiver), receiver);
-  console.log(typeof(type), type);
+  // console.log(typeof(sender), sender);
+  // console.log(typeof(receiver), receiver);
+  // console.log(typeof(type), type);
   try {
     const data = await db.one(
       'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
       [sender, receiver, type]
     );
     const join = await db.any('SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1', data.notification_id);
-    console.log(join);
+    // console.log(join);
     return join;
   } catch (error) {
     console.log(error);
@@ -680,17 +680,28 @@ app.post('/like', authenticateToken, async (req, res) => {
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot like yourself' });
 
-  const data = await db.any(
+  const like = await db.any(
     'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
     [user.user_id, targetId]
   );
-  if (data.length !== 0)
+  if (like.length !== 0)
     return res.status(200).json({ msg: 'User already liked' });
 
   const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
   await db.any(sql, [user.user_id, targetId]).catch(err => {
     res.status(500).json(err);
   });
+
+  const match = await db.any(
+    'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+    [targetId, user.user_id]
+  );
+  console.log("--->", match);
+  if (match.length !== 0) {
+    sendNotification(req.user.user_id, targetId, 'match');
+    return res.sendStatus(200);
+  }
+
   sendNotification(req.user.user_id, targetId, 'like');
   res.sendStatus(200);
 });
@@ -698,7 +709,7 @@ app.post('/like', authenticateToken, async (req, res) => {
 app.post('/unlike', authenticateToken, async (req, res) => {
   const targetId = req.body.data.targetId;
   const user = await getUserInfos(req.user.user_id);
-  console.log(typeof(targetId), targetId);
+  // console.log(typeof(targetId), targetId);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot unlike yourself' });
   

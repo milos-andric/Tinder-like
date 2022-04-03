@@ -225,8 +225,6 @@ export default {
       this.profile_pic = e.data.profile_pic;
     });
 
-    this.isliked();
-
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
@@ -234,6 +232,9 @@ export default {
     await this.$axios.get('/is-online/' + this.id).then(e => {
       this.online = e.data;
     });
+  },
+  updated() {
+    this.isliked();
   },
   methods: {
     getOrientationIcon() {
@@ -263,7 +264,6 @@ export default {
 
     async isliked() {
       await this.$axios.get('/isliked/' + this.id).then(e => {
-        console.log(e);
         this.liked = e.data;
       });
     },
