@@ -3,21 +3,24 @@
     <div id="chat-wrapper">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
       <div id="chat-box">
-        <div id="v-for-object" class="chat-list">
-          <div
-            v-for="item in messages"
-            :key="item.messages"
-            class="chat-message me"
-          >
-            <!-- // v-if en fonction de si on est le sender ou non -->
-            {{ item.sender_id + ' - ' + item.message }}
+        <div id="message-box">
+          <div id="v-for-object" class="chat-list">
+            <div
+              v-for="item in messages"
+              :key="item.messages"
+              :class="{}"
+              class="chat-message me"
+            >
+              <!-- // v-if en fonction de si on est le sender ou non -->
+              {{ item.sender_id + ' - ' + item.message }}
+            </div>
+          </div>
+          <div id="chat-submit">
+            <input v-model="input" type="text" />
+            <button type="submit" @click="sendMessage()">submit</button>
           </div>
         </div>
       </div>
-    </div>
-    <div id="chat-submit">
-      <input v-model="input" type="text" />
-      <button type="submit" @click="sendMessage()">submit</button>
     </div>
   </div>
 </template>
@@ -58,10 +61,12 @@ export default {
       this.messages = resp.data;
     },
     async sendMessage() {
-      await this.$axios.post('sendRoomMessages', {
-        room: this.room,
-        message: this.input,
-      });
+      if (this.input.length > 0) {
+        await this.$axios.post('sendRoomMessages', {
+          room: this.room,
+          message: this.input,
+        });
+      }
       // this.messages.push(resp.data);
       this.input = '';
     },
@@ -81,19 +86,27 @@ export default {
 #chat-wrapper {
   display: flex;
   flex-direction: row;
+  justify-content: space-around;
   height: 70vh;
 }
 .chat-list {
+  height: 95%;
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
+  overflow-y: scroll;
 }
 #chat-box {
-  margin-left: 5vw;
-  width: 85vw;
+  height: 100%;
+}
+#message-box {
+  width: 75vw;
+  height: 100%;
   overflow-wrap: break-word;
-  overflow-y: scroll;
   background-color: pink;
+  display: flex;
+  display: flex;
+  flex-direction: column;
 }
 #chat-channels {
   width: 10vw;
@@ -103,29 +116,20 @@ export default {
   background-color: paleturquoise;
 }
 #chat-submit {
-  margin-left: 15vw;
+  align-self: center;
+  justify-self: flex-end;
+  bottom: 0px;
 }
-.channel {
-  font-style: oblique;
-  margin: 5%;
-  border: 1px solid rgba(0, 0, 0, 0.281);
-}
-.active {
-  background-color: rgba(0, 0, 0, 0.856);
-  color: rgba(250, 235, 215, 0.733);
-  font-style: normal;
-}
+
 .me {
   background-color: rgba(0, 110, 255, 0.438);
   border-radius: 10px;
-}
-.channel:hover {
-  cursor: pointer;
 }
 .chat-message {
   font-family: 'Helvetica', 'Lucida Sans Unicode', 'Lucida Grande',
     'Lucida Sans', Arial, sans-serif;
   margin-top: 2vh;
+  padding: 1% 2% 1% 2%;
   /* align-self: flex-start; */
 }
 </style>

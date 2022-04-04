@@ -560,7 +560,10 @@ const sendMessage = (id, data) => {
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   const names = req.body.room.split('-');
   const receiverId = names[0] === req.user.user_id ? names[0] : names[1];
-  if (await isIdInRoom(req.user.user_id, req.body.room)) {
+  if (
+    (await isIdInRoom(req.user.user_id, req.body.room)) &&
+    req.body.message.length > 0
+  ) {
     const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
     await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
     const data = {

@@ -14,6 +14,7 @@
         <b-nav-item class="mx-1" to="/match">Match</b-nav-item>
         <b-nav-item class="mx-1" to="/search">Search</b-nav-item>
         <b-nav-item class="mx-1" to="/generate">GeneratePerson</b-nav-item>
+        <b-nav-item class="mx-1" to="/chat">Chat</b-nav-item>
       </b-navbar-nav>
 
       <!-- Right aligned nav items -->

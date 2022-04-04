@@ -1,6 +1,6 @@
 <template>
   <div id="chat-channels">
-    <div v-if="channels.length" id="v-for-object" class="chat-list">
+    <div v-if="channels.length" id="v-for-object" class="chan-list">
       <div
         v-for="channel in channels"
         :key="channel.channels"
@@ -46,4 +46,26 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.chan-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.channel {
+  font-style: oblique;
+  padding: 2%;
+  margin: 5%;
+  border: 1px solid rgba(0, 0, 0, 0.281);
+}
+
+.active {
+  background-color: rgba(0, 0, 0, 0.856);
+  color: rgba(250, 235, 215, 0.733);
+  font-style: normal;
+}
+
+.channel:hover {
+  cursor: pointer;
+}
+</style>
