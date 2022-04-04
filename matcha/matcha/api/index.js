@@ -107,6 +107,7 @@ io.on('connection', socket => {
         user_id: user.user_id,
         socket_id: socket.id,
       });
+      io.emit('online', users.map(e => e.user_id));
     } else {
       socket.disconnect(true);
     }
@@ -119,6 +120,7 @@ io.on('connection', socket => {
       users.findIndex(obj => obj.socket_id === socket.id),
       1
     );
+    io.emit('online', users.map(e => e.user_id));
     console.log(`${socket.id} is disconnected to / by io !`);
     socket.disconnect(true);
   });
@@ -696,7 +698,6 @@ app.post('/like', authenticateToken, async (req, res) => {
     'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
     [targetId, user.user_id]
   );
-  console.log("--->", match);
   if (match.length !== 0) {
     sendNotification(req.user.user_id, targetId, 'match');
     return res.sendStatus(200);

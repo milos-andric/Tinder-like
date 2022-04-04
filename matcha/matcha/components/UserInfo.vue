@@ -233,6 +233,14 @@ export default {
       this.online = e.data;
     });
   },
+  mounted() {
+    this.socket = this.$store.socket;
+    this.socket.on('online', data => {
+      const res = data.find(e => Number(e) === this.id);
+      if (res) this.online = true;
+      else this.online = false;
+    });
+  },
   updated() {
     this.isliked();
   },

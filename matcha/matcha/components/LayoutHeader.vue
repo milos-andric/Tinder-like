@@ -52,7 +52,7 @@
             {{ x.message }}
           </b-dropdown-item> -->
 
-           <b-dropdown-item
+          <b-dropdown-item
             v-for="x in notifications"
             :key="x.notification_id"
             @click="readNotification(x)"
@@ -127,10 +127,14 @@ export default {
       },
       reconnection: false,
     });
+    this.$store.socket = this.socket;
     this.getNotifications();
     this.socket.on('receiveNotification', data => {
       this.manageNotifications(data);
     });
+    // this.socket.on('online', data => {
+    //   console.log('ICI', data);
+    // });
   },
 
   methods: {
@@ -142,7 +146,7 @@ export default {
     },
 
     manageNotification(notif) {
-      console.log(notif);
+      // console.log(notif);
       if (notif) {
         const message = typesNotifications[notif.type];
         if (message) {
@@ -165,9 +169,7 @@ export default {
         //   1
         // );
         this.notifications.splice(
-          this.notifications.findIndex(
-            obj => obj.notification_id === id
-          ),
+          this.notifications.findIndex(obj => obj.notification_id === id),
           1
         );
         if (this.length) this.length -= 1;

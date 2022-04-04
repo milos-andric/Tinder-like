@@ -15,3 +15,7 @@
 //     return state.notifications;
 //   }
 // }
+
+export const state = () => ({
+    socket: {}
+  })
