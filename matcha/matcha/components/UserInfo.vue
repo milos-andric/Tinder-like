@@ -4,7 +4,7 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4>{{ '@' + user_name }}</h4>
+    <h4>{{ online }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -89,7 +89,7 @@
 
       <!-- Like button -->
       <b-button
-        v-if="images.length !== 0"
+        v-if="images.length !== 0 && liked === false"
         v-b-tooltip.hover.top="'Like user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -99,6 +99,21 @@
         <font-awesome-icon
           class="text-dark"
           icon="heart"
+          style="font-size: 3em"
+        />
+      </b-button>
+
+      <b-button
+        v-else-if="images.length !== 0 && liked === true"
+        v-b-tooltip.hover.top="'Unlike user'"
+        class="shadow-lg btn-lg mx-1"
+        variant="light"
+        style="border-radius: 3em; width: 5em; height: 5em"
+        @click="unlike"
+      >
+        <font-awesome-icon
+          class="text-dark"
+          icon="thumbs-down"
           style="font-size: 3em"
         />
       </b-button>
@@ -193,6 +208,9 @@ export default {
       alertStatus: false,
       alertVariant: 'error',
       alertMsg: '',
+
+      liked: false,
+      online: false,
     };
   },
   async beforeMount() {
@@ -217,6 +235,21 @@ export default {
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
+
+    await this.$axios.get('/is-online/' + this.id).then(e => {
+      this.online = e.data;
+    });
+  },
+  mounted() {
+    this.socket = this.$store.socket;
+    this.socket.on('online', data => {
+      const res = data.find(e => Number(e) === this.id);
+      if (res) this.online = true;
+      else this.online = false;
+    });
+  },
+  updated() {
+    this.isliked();
   },
   methods: {
     getOrientationIcon() {
@@ -243,8 +276,29 @@ export default {
         this.alertStatus = true;
       }
     },
-    like() {
-      console.log(this.id);
+
+    async isliked() {
+      await this.$axios.get('/isliked/' + this.id).then(e => {
+        this.liked = e.data;
+      });
+    },
+
+    async like() {
+      await this.$axios.post('like', {
+        data: {
+          targetId: this.id,
+        },
+      });
+      this.isliked();
+    },
+
+    async unlike() {
+      await this.$axios.post('unlike', {
+        data: {
+          targetId: this.id,
+        },
+      });
+      this.isliked();
     },
     goToProfile() {
       this.$router.push('/user');

@@ -7,15 +7,6 @@
 <script>
 export default {
   name: 'IndexPage',
-  mounted() {
-    this.socket = this.$nuxtSocket({
-      name: 'main',
-      //     // channel: '/', // NAMESPACE
-      // auth: {
-      // token: localStorage.getItem('auth._token.local'),
-      // },
-    });
-  },
   methods: {
     async getUserInfo() {
       try {

@@ -6,5 +6,6 @@
 export default {
   name: 'RegisterPage',
   auth: 'guest',
+  layout: 'empty',
 };
 </script>
