@@ -49,6 +49,16 @@ export default {
   axios: {
     // Workaround to avoid enforcing hard-coded localhost:3000: https://github.com/nuxt-community/axios-module/issues/308
     baseURL: '/api/',
+    proxy: true,
+    prefix: '/api', // it only work when proxy is enabled
+    credentials: true,
+  },
+  proxy: {
+    '/api/getIP': {
+      target: 'https://api.ipify.org?format=json',
+      changeOrigin: true,
+      pathRewrite: { '^/api/getIP': '' },
+    },
   },
   auth: {
     cookie: {

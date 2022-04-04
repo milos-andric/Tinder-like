@@ -106,6 +106,7 @@ app.post('/logout', (req, res) => {
 app.get('/user', authenticateToken, (req, res) => {
   console.log(req.user);
   console.log(req.ip);
+  console.log(req.socket.remoteAddress);
   console.log(req.socket.localAddress, req.socket.localPort);
   console.log(lookup(req.socket.localAddress)); // location of the user
   console.log(lookup('46.231.218.154')); // location of the user

@@ -8,7 +8,15 @@
 <script>
 export default {
   name: 'IndexPage',
+  mounted() {
+    this.getIp();
+  },
   methods: {
+    getIp(url) {
+      return this.$axios('/getIP').then(res => {
+        console.log(res.data.ip);
+      });
+    },
     async getUserInfo() {
       try {
         const data = await this.$axios.get('user');
