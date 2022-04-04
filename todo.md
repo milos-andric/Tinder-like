@@ -1,13 +1,13 @@
 # Matcha
 
-- [x] Author file
 
-- Global :
+Global :
+- [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
 - [ ] mobile + small resolution
-- [x] <header> + <main> + <footer>
+- [x] header + main + footer
 - [ ] form validator + security
-  - [ ] no plain password store
+  - [x] no plain password store
     - [ ] no injection html
     - [ ] no bad upload
     - [ ] no sql injection
@@ -42,10 +42,10 @@ La mienne et celle des autres
 
 ## section like
 
-- [ ] peut like le profile des autres si image
+- [x] peut like le profile des autres si image
 - [ ] qui a like
-- [ ] qui a like en retour donc les gent relier
-- [ ] fame rating
+- [ ] qui a like en retour donc les gens relier
+- [x] fame rating
 - [ ] gps positioning
 - [ ] visit history
 - [ ] report button
@@ -54,11 +54,15 @@ La mienne et celle des autres
 ## Suggestion page
 
 [x]  criteria exclusif: gender
+
 [ ] criteria avec coef:
 
 - [ ] location
 - [ ] tag
 - [x] fame
+- [ ] block
+- [x] like
+- [x] view
 
 [ ] filtrable + triable
 
@@ -76,14 +80,15 @@ Par :
 ## Chat
 
 [x] doit etre relier pour chat
+
 [x] real time
 
 ## Notification
 
 [x] visible de partout (dans le header) avec des unread notification
 
-- [ ] The user received a “like”.
-- [ ] The user’s profile has been checked.
+- [x] The user received a “like”.
+- [x] The user’s profile has been checked.
 - [ ] The user received a message.
-- [ ] “liked” user “liked” back.
-- [ ] connected user “unliked” you.
+- [x] “liked” user “liked” back.
+- [x] connected user “unliked” you.
