@@ -214,12 +214,11 @@ export default {
     };
   },
   async beforeMount() {
-    await this.$axios.get('/user').then(e => {
+    await this.$axios.get('/me').then(e => {
       this.first_name = e.data.first_name;
       this.last_name = e.data.last_name;
       this.user_name = e.data.user_name;
       this.email = e.data.email;
-      this.birth_date = e.data.age;
       this.gender = e.data.gender;
       this.orientation = e.data.orientation;
       this.bio = e.data.bio;

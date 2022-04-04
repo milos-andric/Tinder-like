@@ -63,6 +63,8 @@ export default {
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
     '@nuxtjs/auth-next',
+    // https://nuxt-socket-io.netlify.app/
+    'nuxt-socket-io',
   ],
   ssr: false,
 
@@ -105,6 +107,39 @@ export default {
   },
   server: {
     host: '0.0.0.0',
+  },
+
+  io: {
+    server: {
+      cors: {
+        origin: '*',
+      },
+    },
+    sockets: [
+      {
+        default: true,
+        name: 'main',
+        url: 'http://localhost:3001',
+        // vuex: {
+        //   mutations: [],
+        //   actions: [],
+        //   emitBacks: [],
+        // },
+        // namespaces: {
+        //   '/': {
+        //     emitBacks: [],
+        //     // function + content(optional) --> component variable
+        //     emitters: ['getNotifications --> notifications'],
+        //     listeners: [],
+        //   },
+        //   '/chat': {
+        //     emitBacks: [],
+        //     emitters: [],
+        //     listeners: [],
+        //   },
+        // },
+      },
+    ],
   },
 
   router: {

@@ -13,6 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
+import { Server } from 'socket.io';
 import buildFactory from '../model/factory';
 
 import {
@@ -24,7 +25,6 @@ import {
   validateText,
   validateAge,
 } from './validator';
-import { getUserInfos, getUserImages } from './getters';
 
 const pgp = pgPromise();
 const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
@@ -38,10 +38,100 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
+const users = [];
+const http = require('http');
+const server = http.createServer();
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+  },
+});
+
+function socketIdentification(socket) {
+  const token = socket.handshake.auth.token.split(' ')[1];
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      console.log(`${socket.id} is disconnected because bad token !`);
+      socket.disconnect(true);
+    } else {
+      console.log(`${socket.id} is identified ! as ` + user.user_name);
+      return user;
+    }
+  });
+}
+
+function emitNotifications(socketIds, notif) {
+  socketIds.forEach(element => {
+    console.log('emit', element);
+    io.to(element).emit('receiveNotification', notif);
+  });
+}
+
+function getSocketById(userId) {
+  const socketList = users
+    .filter(e => e.user_id === userId)
+    .map(e => e.socket_id);
+  return socketList;
+}
+
+io.on('connection', socket => {
+  console.log(`${socket.id} is connected to / by io !`);
+  // console.log(socket.handshake.auth.token); // parfois undefined TODO
+  if (socket.handshake.auth.token) {
+    const user = socketIdentification(socket);
+    if (user) {
+      users.push({
+        user_id: user.user_id,
+        socket_id: socket.id,
+      });
+    } else {
+      socket.disconnect(true);
+    }
+  } else {
+    socket.disconnect(true);
+  }
+
+  socket.on('disconnect', _reason => {
+    users.splice(
+      users.findIndex(obj => obj.socket_id === socket.id),
+      1
+    );
+    socket.disconnect(true);
+  });
+});
+server.listen(3001);
+
 // Functions
 
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
+};
+
+const getUserInfos = async id => {
+  try {
+    const data = await global.db.one(
+      'SELECT * FROM users WHERE user_id = $1',
+      id
+    );
+    delete data.password;
+
+    if (data.profile_pic)
+      data.profile_pic = await global.db.oneOrNone(
+        'SELECT * FROM images WHERE image_id = $1',
+        data.profile_pic
+      );
+    return data;
+  } catch (e) {
+    throw new Error('User is not found');
+  }
+};
+
+const getUserImages = async id => {
+  try {
+    return await global.db.any('SELECT * FROM images WHERE user_id = $1', id);
+  } catch (e) {
+    throw new Error('Database error');
+  }
 };
 
 const transporter = nodemailer.createTransport({
@@ -387,12 +477,39 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 });
 
 // GET routes
-app.get('/user/:user_id?', authenticateToken, async (req, res) => {
-  let id = req.user.user_id;
-  if (req.params && req.params.user_id) id = req.params.user_id;
 
+app.get('/me', authenticateToken, async (req, res) => {
+  const id = req.user.user_id;
   try {
     const user = await getUserInfos(id);
+    res.status(200).json(user);
+  } catch (e) {
+    res.status(404).json({ msg: e });
+  }
+});
+
+app.get('/user/:user_id', authenticateToken, async (req, res) => {
+  const myid = req.user.user_id;
+  let id;
+  if (req.params && req.params.user_id) id = req.params.user_id;
+  const idInt = Number(id);
+  try {
+    const user = await getUserInfos(id);
+    const alreadyNotified = await db.oneOrNone(
+      'SELECT * FROM notifications WHERE user_id_send=$1 AND user_id_receiver=$2',
+      [myid, id]
+    );
+    if (!alreadyNotified) {
+      const socketList = getSocketById(idInt);
+      if (idInt !== myid) {
+        const elem = await postNotification(
+          req.user.user_id,
+          req.params.user_id,
+          'view'
+        );
+        emitNotifications(socketList, elem);
+      }
+    }
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -411,18 +528,77 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
   }
 });
 
+const idToUsername = async id => {
+  const user = await getUserInfos(id);
+  return user.user_name;
+};
+
+const isIdInRoom = async (id, room) => {
+  const sql =
+    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 AND name = $2';
+  const res = await db.manyOrNone(sql, [id, room]);
+  if (res.length) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+app.post('/getRoomMessages', authenticateToken, async (req, res) => {
+  if (await isIdInRoom(req.user.user_id, req.body.room)) {
+    const sql = 'SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_on';
+    const messages = await db.manyOrNone(sql, [req.body.room]);
+    for (let i = 0; i < messages.length; i++) {
+      messages[i].sender_id = await idToUsername(messages[i].sender_id);
+    }
+    res.send(messages);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+const sendMessage = (id, data) => {
+  io.to(getSocketById(id)).emit('receiveChatMessage', data);
+};
+app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
+  const names = req.body.room.split('-');
+  const receiverId = names[0] === req.user.user_id ? names[0] : names[1];
+  if (
+    (await isIdInRoom(req.user.user_id, req.body.room)) &&
+    req.body.message.length > 0
+  ) {
+    const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
+    await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
+    const data = {
+      sender_id: (await getUserInfos(req.user.user_id)).user_name,
+      chat_id: req.body.room,
+      message: req.body.message,
+    };
+    sendMessage(receiverId, data);
+    res.send(data);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
+  const sql = 'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1';
+  const rooms = await db.manyOrNone(sql, [req.user.user_id]);
+  for (let i = 0; i < rooms.length; i++) {
+    if (rooms[i].first_id === req.user.user_id) {
+      rooms[i].pal_name = await idToUsername(rooms[i].second_id);
+    } else rooms[i].pal_name = await idToUsername(rooms[i].first_id);
+  }
+  res.send(rooms);
+});
+
 app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
-  console.log(req.body.search);
-
   if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-
-  console.log(req.body.search);
-
   let sql = 'SELECT * FROM users';
   const values = [];
   if (Object.keys(req.body.search).length > 0) {
@@ -494,6 +670,7 @@ app.post('/registerMany', async (req, res) => {
         'bio',
         'age',
         'activation_code',
+        'orientation',
       ],
       'users'
     );
@@ -502,6 +679,89 @@ app.post('/registerMany', async (req, res) => {
   db.any(sql).then(function (data) {
     res.sendStatus(200);
   });
+});
+
+// const newRoom = (roomName, id1, id2) => {};
+
+const chatName = (id1, id2) => {
+  let chatName = '';
+  if (id1 !== id2) {
+    chatName += Math.min(id1, id2);
+    chatName += '-';
+    chatName += Math.max(id1, id2);
+    return chatName;
+  }
+  throw new Error('no private room (id1 == id2)');
+};
+
+const matchDetector = async (myId, targetId) => {
+  const like = await db.oneOrNone(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [targetId, myId]
+  );
+  if (like) {
+    // Envoyer notif aux deux personne
+    await db.any(
+      'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+      [myId, targetId, chatName(myId, targetId)]
+    );
+    return true;
+  }
+  return false;
+};
+async function postNotification(sender, receiver, type) {
+  try {
+    const data = await db.one(
+      'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
+      [sender, Number(receiver), type]
+    );
+    const join = await db.any(
+      'SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
+      data.notification_id
+    );
+    return join;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+app.post('/read-notifications', authenticateToken, (req, res) => {
+  db.any(`UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`, [
+    true,
+    req.user.user_id,
+  ])
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
+});
+
+app.post('/read-notification', authenticateToken, (req, res) => {
+  db.any(
+    `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
+    [true, req.body.id, req.user.user_id]
+  )
+    .then(function (data) {
+      res.sendStatus(200);
+    })
+    .catch(function (error) {
+      res.status(403).send(error);
+    });
+});
+
+app.get('/get-notifications', authenticateToken, (req, res) => {
+  db.any(
+    `SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
+    req.user.user_id
+  )
+    .then(function (data) {
+      res.status(200).json(data);
+    })
+    .catch(function (_error) {
+      res.status(403).send({ msg: 'User is not found' });
+    });
 });
 
 app.post('/like', authenticateToken, async (req, res) => {
@@ -520,12 +780,17 @@ app.post('/like', authenticateToken, async (req, res) => {
 
   // Like if not already did
   if (data.length === 0) {
-    await db.any(
-      `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
-      [user.user_id, targetId]
-    );
+    await db
+      .any(`INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`, [
+        user.user_id,
+        targetId,
+      ])
+      .catch(err => {
+        res.status(500).json(err);
+      });
   } else console.log('ALREADY LIKED');
 
+  matchDetector(user.user_id, targetId);
   res.sendStatus(200);
 });
 

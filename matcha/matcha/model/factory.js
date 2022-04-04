@@ -15,6 +15,7 @@ function buildFactory() {
       score: factory.chance('integer', { min: 0, max: 100 }),
       email: factory.seq('User.email', n => `user${n}@ymail.com`),
       bio: factory.chance('paragraph', { sentences: 1 }),
+      orientation: factory.chance('integer', { min: 0, max: 2 }),
     });
     return factory;
   } catch {
