@@ -34,9 +34,6 @@ export default {
       messages: [],
     };
   },
-  async beforeMount() {
-    await this.getMessage(this.room);
-  },
   mounted() {
     this.socket = this.$nuxtSocket({
       name: 'chat',
@@ -72,8 +69,8 @@ export default {
     },
     async onChangeActiveRoom(newRoom) {
       try {
-        await this.getMessage(newRoom);
         this.room = newRoom;
+        await this.getMessage(newRoom);
       } catch (e) {
         console.log(e);
       }

@@ -33,8 +33,6 @@ export default {
     const resp = await this.$axios.get('getAvailableRooms');
     this.channels = resp.data;
     this.changeActiveRoom(resp.data[0]);
-    this.activeroom2 = resp.data[0];
-    console.log(this.activeroom2);
   },
   methods: {
     changeActiveRoom(channel) {
