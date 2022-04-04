@@ -524,7 +524,7 @@ app.post('/like', authenticateToken, async (req, res) => {
       `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
       [user.user_id, targetId]
     );
-  } else console.log("ALREADY LIKED");
+  } else console.log('ALREADY LIKED');
 
   res.sendStatus(200);
 });
@@ -549,7 +549,7 @@ app.post('/view', authenticateToken, async (req, res) => {
       `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
       [user.user_id, targetId]
     );
-  } else console.log("ALREADY SEEN");
+  } else console.log('ALREADY SEEN');
 
   res.sendStatus(200);
 });

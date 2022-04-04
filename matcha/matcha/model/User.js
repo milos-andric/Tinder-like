@@ -2,6 +2,7 @@ export default class User {
   constructor(attrs = {}) {
     this.last_name = attrs.last_name;
     this.first_name = attrs.first_name;
+    this.user_name = attrs.user_name;
     this.email = attrs.email;
     this.gender = attrs.gender;
     this.age = attrs.age;

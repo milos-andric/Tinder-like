@@ -130,9 +130,7 @@ export default {
     getAge(user) {
       if (user.age)
         return (
-          ', ' +
-          (new Date().getFullYear() -
-          new Date(user.age).getFullYear())
+          ', ' + (new Date().getFullYear() - new Date(user.age).getFullYear())
         );
       else return '';
     },
@@ -146,7 +144,7 @@ export default {
   max-width: 750px;
 }
 .match100 {
-  height: calc(100% - 3rem - 100px);
+  height: 80%;
 }
 .profile {
   border-radius: 20px;
@@ -164,12 +162,12 @@ export default {
 
 @media (min-width: 1600px) {
   #profile-info {
-  font-size: 75px;
-  padding: 3%;
-}
-#profile-info h2 {
-  font-size: 50px;
-}
+    font-size: 75px;
+    padding: 3%;
+  }
+  #profile-info h2 {
+    font-size: 50px;
+  }
 }
 
 #profile-image {
