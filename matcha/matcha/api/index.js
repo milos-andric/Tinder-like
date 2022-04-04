@@ -76,26 +76,24 @@ function getSocketById(userId) {
 
 function isConnected(userId) {
   console.log(users, userId);
-  if (users.find(e => e.user_id === userId))
-    return true;
+  if (users.find(e => e.user_id === userId)) return true;
   return false;
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
-  const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3", [typeNotif, myId, targetId])
+  const alreadyNotified = await db.oneOrNone(
+    'SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3',
+    [typeNotif, myId, targetId]
+  );
   if (!alreadyNotified) {
-    const targetIdInt = Number(targetId)
+    const targetIdInt = Number(targetId);
     const socketList = getSocketById(targetIdInt);
     if (targetIdInt !== myId) {
-      const elem = await postNotification(
-        myId,
-        targetIdInt,
-        typeNotif
-      );
+      const elem = await postNotification(myId, targetIdInt, typeNotif);
       emitNotifications(socketList, elem);
     }
   }
-};
+}
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
@@ -107,7 +105,10 @@ io.on('connection', socket => {
         user_id: user.user_id,
         socket_id: socket.id,
       });
-      io.emit('online', users.map(e => e.user_id));
+      io.emit(
+        'online',
+        users.map(e => e.user_id)
+      );
     } else {
       socket.disconnect(true);
     }
@@ -120,7 +121,10 @@ io.on('connection', socket => {
       users.findIndex(obj => obj.socket_id === socket.id),
       1
     );
-    io.emit('online', users.map(e => e.user_id));
+    io.emit(
+      'online',
+      users.map(e => e.user_id)
+    );
     console.log(`${socket.id} is disconnected to / by io !`);
     socket.disconnect(true);
   });
@@ -517,8 +521,7 @@ app.get('/me', authenticateToken, async (req, res) => {
 app.get('/user/:user_id', authenticateToken, async (req, res) => {
   const myId = req.user.user_id;
   let targetId;
-  if (req.params && req.params.user_id)
-    targetId = req.params.user_id;
+  if (req.params && req.params.user_id) targetId = req.params.user_id;
   try {
     const user = await getUserInfos(targetId);
     sendNotification(myId, targetId, 'view');
@@ -532,11 +535,12 @@ app.get('/isliked/:target_id', authenticateToken, async (req, res) => {
   const myId = req.user.user_id;
   const targetId = req.params.target_id;
   try {
-    const liked = await db.manyOrNone("SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2", [myId, targetId])
-    if (liked && liked.length)
-      return res.status(200).json(true);
-    else
-      return res.status(200).json(false);
+    const liked = await db.manyOrNone(
+      'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+      [myId, targetId]
+    );
+    if (liked && liked.length) return res.status(200).json(true);
+    else return res.status(200).json(false);
   } catch (e) {
     return res.status(404).json({ msg: e });
   }
@@ -798,7 +802,7 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
 });
 
 app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
+  const targetId = req.body.targetId;
   const user = await getUserInfos(req.user.user_id);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot like yourself' });
@@ -820,21 +824,26 @@ app.post('/like', authenticateToken, async (req, res) => {
 });
 
 app.post('/unlike', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
+  const targetId = req.body.targetId;
   const user = await getUserInfos(req.user.user_id);
   // console.log(typeof(targetId), targetId);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot unlike yourself' });
-  
+
   // const data = await db.oneOrNone(
   //   'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
   //   [user.user_id, targetId]
   // );
   // if (!data)
   //   return res.status(200).json({ msg: 'User must be liked first' });
-  await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [user.user_id, targetId]).catch(err => {
-    return res.status(500).json(err);
-  });
+  await db
+    .any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
+      user.user_id,
+      targetId,
+    ])
+    .catch(err => {
+      return res.status(500).json(err);
+    });
   sendNotification(req.user.user_id, targetId, 'unlike');
   return res.sendStatus(200);
 });
