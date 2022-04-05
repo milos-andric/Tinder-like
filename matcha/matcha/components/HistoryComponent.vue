@@ -1,16 +1,38 @@
 <template>
   <div id="history-container">
+    <div id="history-title">User History</div>
     <div id="history-selectors">
-      <div id="likes" class="history-buttons" @click="getLikes()">likes</div>
-      <div id="views" class="history-buttons" @click="getViews()">views</div>
-      <div id="matchs" class="history-buttons" @click="getMatchs()">matchs</div>
+      <div
+        id="likes"
+        class="history-buttons"
+        :class="{ active: currentTopic === 'likes' }"
+        @click="getLikes()"
+      >
+        Likes
+      </div>
+      <div
+        id="views"
+        class="history-buttons"
+        :class="{ active: currentTopic === 'views' }"
+        @click="getViews()"
+      >
+        Views
+      </div>
+      <div
+        id="matchs"
+        class="history-buttons"
+        :class="{ active: currentTopic === 'matchs' }"
+        @click="getMatchs()"
+      >
+        Matchs
+      </div>
     </div>
     <div v-if="history.length" id="v-for-object" class="history-list">
       <div v-for="item in history" :key="item.history" class="history-entries">
         {{ item }}
       </div>
     </div>
-    <div v-else>No history for this user</div>
+    <div v-else class="history-list">No history for this user</div>
   </div>
 </template>
 
@@ -106,5 +128,16 @@ export default {
 }
 .history-entries {
   border-bottom: 1px solid rgba(0, 0, 0, 0.247);
+}
+#history-title {
+  font-family: 'Haas Grot Text R Web', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  font-weight: 500;
+
+  color: #dc3545;
+  margin-bottom: 1vh;
+}
+.active {
+  color: #dc3545;
 }
 </style>
