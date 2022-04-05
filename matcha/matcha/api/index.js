@@ -40,6 +40,7 @@ app.use(fileUpload({ createParentPath: true }));
 
 const users = [];
 const http = require('http');
+const { lookup } = require('geoip-lite');
 const server = http.createServer();
 const io = new Server(server, {
   cors: {
@@ -76,26 +77,24 @@ function getSocketById(userId) {
 
 function isConnected(userId) {
   console.log(users, userId);
-  if (users.find(e => e.user_id === userId))
-    return true;
+  if (users.find(e => e.user_id === userId)) return true;
   return false;
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
-  const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3", [typeNotif, myId, targetId])
+  const alreadyNotified = await db.oneOrNone(
+    'SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3',
+    [typeNotif, myId, targetId]
+  );
   if (!alreadyNotified) {
-    const targetIdInt = Number(targetId)
+    const targetIdInt = Number(targetId);
     const socketList = getSocketById(targetIdInt);
     if (targetIdInt !== myId) {
-      const elem = await postNotification(
-        myId,
-        targetIdInt,
-        typeNotif
-      );
+      const elem = await postNotification(myId, targetIdInt, typeNotif);
       emitNotifications(socketList, elem);
     }
   }
-};
+}
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
@@ -107,7 +106,10 @@ io.on('connection', socket => {
         user_id: user.user_id,
         socket_id: socket.id,
       });
-      io.emit('online', users.map(e => e.user_id));
+      io.emit(
+        'online',
+        users.map(e => e.user_id)
+      );
     } else {
       socket.disconnect(true);
     }
@@ -120,7 +122,10 @@ io.on('connection', socket => {
       users.findIndex(obj => obj.socket_id === socket.id),
       1
     );
-    io.emit('online', users.map(e => e.user_id));
+    io.emit(
+      'online',
+      users.map(e => e.user_id)
+    );
     console.log(`${socket.id} is disconnected to / by io !`);
     socket.disconnect(true);
   });
@@ -517,8 +522,7 @@ app.get('/me', authenticateToken, async (req, res) => {
 app.get('/user/:user_id', authenticateToken, async (req, res) => {
   const myId = req.user.user_id;
   let targetId;
-  if (req.params && req.params.user_id)
-    targetId = req.params.user_id;
+  if (req.params && req.params.user_id) targetId = req.params.user_id;
   try {
     const user = await getUserInfos(targetId);
     sendNotification(myId, targetId, 'view');
@@ -532,11 +536,12 @@ app.get('/isliked/:target_id', authenticateToken, async (req, res) => {
   const myId = req.user.user_id;
   const targetId = req.params.target_id;
   try {
-    const liked = await db.manyOrNone("SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2", [myId, targetId])
-    if (liked && liked.length)
-      return res.status(200).json(true);
-    else
-      return res.status(200).json(false);
+    const liked = await db.manyOrNone(
+      'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+      [myId, targetId]
+    );
+    if (liked && liked.length) return res.status(200).json(true);
+    else return res.status(200).json(false);
   } catch (e) {
     return res.status(404).json({ msg: e });
   }
@@ -825,16 +830,21 @@ app.post('/unlike', authenticateToken, async (req, res) => {
   // console.log(typeof(targetId), targetId);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot unlike yourself' });
-  
+
   // const data = await db.oneOrNone(
   //   'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
   //   [user.user_id, targetId]
   // );
   // if (!data)
   //   return res.status(200).json({ msg: 'User must be liked first' });
-  await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [user.user_id, targetId]).catch(err => {
-    return res.status(500).json(err);
-  });
+  await db
+    .any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
+      user.user_id,
+      targetId,
+    ])
+    .catch(err => {
+      return res.status(500).json(err);
+    });
   sendNotification(req.user.user_id, targetId, 'unlike');
   return res.sendStatus(200);
 });
@@ -865,7 +875,7 @@ app.post('/view', authenticateToken, async (req, res) => {
 });
 
 const findPartnerFor = async user => {
-  let sql = `SELECT * FROM users u 
+  let sql = `SELECT * FROM users u
   WHERE u.user_id != $1
   AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
   AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`;
@@ -881,12 +891,51 @@ const findPartnerFor = async user => {
 };
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
+  const pos = getPosById(req.body.ip);
+  console.log(pos);
+  distPos([45.764043, 4.835659], [48.856614, 2.352222]);
   const user = await getUserInfos(req.user.user_id);
   const partner = await findPartnerFor(user);
 
   res.status(200).json(partner);
 });
 
+function distPos(ll1, ll2) {
+  //   SELECT
+  // id,
+  // (
+  //    3959 *
+  //    acos(cos(radians(37)) *
+  //    cos(radians(lat)) *
+  //    cos(radians(lng) -
+  //    radians(-122)) +
+  //    sin(radians(37)) *
+  //    sin(radians(lat )))
+  // ) AS distance
+  // FROM markers
+  // HAVING distance < 28
+  // https://www.movable-type.co.uk/scripts/latlong.html
+  const lat1 = ll1[0];
+  const lat2 = ll2[0];
+  const lon1 = ll1[1];
+  const lon2 = ll2[1];
+  const R = 6371e3; // metres
+  const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  const d = R * c; // in metres
+  console.log(d);
+}
+function getPosById(ip) {
+  return lookup(ip).ll;
+}
 export default {
   path: '/api',
   handler: app,

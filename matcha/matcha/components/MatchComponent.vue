@@ -97,8 +97,12 @@ export default {
     });
   },
   async beforeMount() {
+    let ip = await this.$axios.get('/getIP');
+    ip = ip.data.ip;
+    console.log(ip);
     const res = await this.$axios.post('getRecommandation', {
       order: null,
+      ip,
     });
     this.users = res.data;
 
