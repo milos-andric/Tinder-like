@@ -182,6 +182,7 @@
     >
       {{ alertMsg }}
     </b-alert>
+    <HistoryComponent :userId="id" />
   </div>
 </template>
 

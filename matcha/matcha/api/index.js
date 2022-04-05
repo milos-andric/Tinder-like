@@ -622,6 +622,63 @@ app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
   res.send(rooms);
 });
 
+app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
+  console.log(req.body.userId);
+  const sql =
+    'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].liker_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].target_id);
+      data.push(`${myName} liked ${tmp}`);
+    } else {
+      const tmp = await idToUsername(entries[i].liker_id);
+      data.push(`${myName} got a like from ${tmp}`);
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
+  console.log(req.body.userId);
+  const sql =
+    'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].viewer_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].target_id);
+      data.push(`${myName} viewed ${tmp}'s profile`);
+    } else {
+      const tmp = await idToUsername(entries[i].viewer_id);
+      data.push(`${myName} got a view from ${tmp}`);
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
+  console.log(req.body.userId);
+  const sql =
+    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].first_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].second_id);
+      data.push(`${myName} got a match with ${tmp}`);
+    } else {
+      const tmp = await idToUsername(entries[i].first_id);
+      data.push(`${myName} got a match with ${tmp}`);
+    }
+  }
+  res.send(data);
+});
+
 app.get('/is-online/:target_id', authenticateToken, (req, res) => {
   const id = Number(req.params.target_id);
   return res.status(200).json(isConnected(id));
