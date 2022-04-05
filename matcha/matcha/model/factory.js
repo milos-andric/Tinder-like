@@ -16,6 +16,8 @@ function buildFactory() {
       email: factory.seq('User.email', n => `user${n}@ymail.com`),
       bio: factory.chance('paragraph', { sentences: 1 }),
       orientation: factory.chance('integer', { min: 0, max: 2 }),
+      latitude: factory.chance('latitude', { min: 41, max: 51 }),
+      longitude: factory.chance('longitude', { min: -5, max: 8 }),
     });
     return factory;
   } catch {

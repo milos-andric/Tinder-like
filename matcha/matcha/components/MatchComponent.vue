@@ -15,7 +15,7 @@
               class="position-absolute d-flex justify-content-between align-items-end"
             >
               <h2>
-                {{ user.first_name + getAge(user) }}
+                {{ user.first_name + getAge(user) + getDistance(user) }}
               </h2>
               <b-link :to="'/user/' + user.user_id">
                 <font-awesome-icon icon="circle-info" color="white" />
@@ -131,10 +131,19 @@ export default {
     dislike() {
       this.swiper.slideNext();
     },
+    getDistance(user) {
+      if (user.distance) {
+        return ', à ' + Math.round(user.distance) + ' km de chez toi';
+      } else {
+        return '';
+      }
+    },
     getAge(user) {
       if (user.age)
         return (
-          ', ' + (new Date().getFullYear() - new Date(user.age).getFullYear())
+          ', ' +
+          (new Date().getFullYear() - new Date(user.age).getFullYear()) +
+          ' ans'
         );
       else return '';
     },
