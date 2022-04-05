@@ -197,7 +197,7 @@ export default {
         const res = await this.$axios.get('get-notifications');
         this.manageNotifications(res.data);
         // console.log(...this.notifications);
-        this.notifications.reverse();
+        // this.notifications.reverse();
       } catch (e) {
         console.log(e);
       }

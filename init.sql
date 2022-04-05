@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
     "activation_code" VARCHAR ( 512 ) NOT NULL,
+    "updated_on" TIMESTAMP NOT NULL DEFAULT now(),
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS "notifications" (
     "user_id_send" INT NOT NULL,
     "user_id_receiver" INT NOT NULL,
     "content" VARCHAR ( 255 ),
+    "link" VARCHAR ( 255 ),
     "type" enum_types_notifs NOT NULL,
     "watched" BOOLEAN NOT NULL DEFAULT false,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),

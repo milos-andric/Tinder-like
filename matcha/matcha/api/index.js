@@ -62,7 +62,6 @@ function socketIdentification(socket) {
 
 function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
-    // console.log('emit', element, notif[0].type, notif[0].user_id_send, " > ", notif[0].uer_id_receiver);
     io.to(element).emit('receiveNotification', notif);
   });
 }
@@ -75,24 +74,59 @@ function getSocketById(userId) {
 }
 
 function isConnected(userId) {
-  console.log(users, userId);
+  // NOT FINISH : standardisé la donnee
+  const data = {
+    online: true,
+    lastTime: undefined,
+  }
   if (users.find(e => e.user_id === userId))
-    return true;
-  return false;
+    return data;
+  return db.one(
+    // 'SELECT users.updated_on FROM users WHERE sender_id=$1',
+    'SELECT * FROM users WHERE user_id=$1',
+    userId,
+  ).then(ret => {
+    data.online = false;
+    data.lastTime = ret.updated_on;
+    return data;
+  });
+}
+
+function userIsBlocked(userId, targetId) {
+  return db.manyOrNone(
+    `SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`,
+    [targetId, userId],
+  ).then(data => {
+    if (data.length > 0)
+      return true;
+    return false;
+  });
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
-  const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3", [typeNotif, myId, targetId])
+  // remake: handle input
+  const myIdInt = Number(myId);
+  const targetIdInt = Number(targetId);
+  const typeNotifString = String(typeNotif);
+  const blocked = await userIsBlocked(myIdInt, targetIdInt);
+  if (blocked === true)
+    return;
+  const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4", [typeNotifString, myIdInt, targetIdInt, false])
   if (!alreadyNotified) {
-    const targetIdInt = Number(targetId)
-    const socketList = getSocketById(targetIdInt);
-    if (targetIdInt !== myId) {
-      const elem = await postNotification(
-        myId,
+  // if (!alreadyNotified || String(alreadyNotified.type) === "message") {
+  //   if (alreadyNotified) {
+  //     const messageRead = await db.oneOrNone("SELECT * FROM notifications WHERE notification_id=$1 AND type=$2 AND user_id_send=$3 AND watched=$4", [alreadyNotified.notification_id, "message", myIdInt, false]);
+  //     if (messageRead)
+  //       return;
+  //   }
+    if (targetIdInt !== myIdInt) {
+      const socketList = getSocketById(targetIdInt);
+      const data = await postNotification(
+        myIdInt,
         targetIdInt,
-        typeNotif
+        typeNotifString
       );
-      emitNotifications(socketList, elem);
+      emitNotifications(socketList, data);
     }
   }
 };
@@ -448,8 +482,24 @@ app.post('/profile-image', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/logout', (_req, res) => {
-  res.status(200).json({ msg: 'Successfully logged out' });
+// app.post('/logout', (_req, res) => {
+//   res.status(200).json({ msg: 'Successfully logged out' });
+// });
+
+app.post('/logout', authenticateToken, async (req, res) => {
+  const user = await getUserInfos(req.user.user_id);
+  console.log(user);
+  console.log(new Date(), user.user_id);
+  db.none(
+    `UPDATE users SET updated_on=$1 WHERE user_id=$2`,
+    [new Date(), user.user_id]
+  )
+    .then(_data => {
+      res.status(200).json({ msg: 'Successfully logged out' });
+    })
+    .catch(_error => {
+      res.status(403).send({ msg: 'User is not found' });
+    });
 });
 
 // User actions
@@ -459,7 +509,7 @@ app.post('/user-block', authenticateToken, async (req, res) => {
   const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: 'You cannot block yourself' });
+    return res.status(200).json({ msg: 'You cannot block yourself' });
 
   try {
     const data = await db.any(
@@ -467,7 +517,7 @@ app.post('/user-block', authenticateToken, async (req, res) => {
       [sender, receiver]
     );
     if (data.length !== 0)
-      return res.status(400).json({ msg: 'User already blocked' });
+      return res.status(200).json({ msg: 'User already blocked' });
     await db.none(
       'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
       [sender, receiver]
@@ -483,7 +533,7 @@ app.post('/user-report', authenticateToken, async (req, res) => {
   const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: 'You cannot report yourself' });
+    return res.status(200).json({ msg: 'You cannot report yourself' });
 
   try {
     const data = await db.any(
@@ -491,7 +541,7 @@ app.post('/user-report', authenticateToken, async (req, res) => {
       [sender, receiver]
     );
     if (data.length !== 0)
-      return res.status(400).json({ msg: 'User already reported' });
+      return res.status(200).json({ msg: 'User already reported' });
     await db.none(
       'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
       [sender, receiver]
@@ -583,12 +633,17 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = (id, data) => {
-  io.to(getSocketById(id)).emit('receiveChatMessage', data);
+const sendMessage = (myId, targetId, data) => {
+  sendNotification(myId, targetId, 'message');
+  io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
 };
+
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   const names = req.body.room.split('-');
-  const receiverId = names[0] === req.user.user_id ? names[0] : names[1];
+  let receiverId = '0';
+  let senderId = '0';
+  Number(names[0]) !== req.user.user_id ? receiverId = names[0] : receiverId = names[1];
+  Number(names[0]) === req.user.user_id ? senderId = names[0] : senderId = names[1];
   if (
     (await isIdInRoom(req.user.user_id, req.body.room)) &&
     req.body.message.length > 0
@@ -600,7 +655,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
       chat_id: req.body.room,
       message: req.body.message,
     };
-    sendMessage(receiverId, data);
+    sendMessage(senderId, receiverId, data);
     res.send(data);
   } else {
     res.sendStatus(403);

@@ -4,7 +4,8 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4>{{ online }}</h4>
+    <h4 v-if="online === false">{{ lastConnexion }}</h4>
+    <h4 v-else>{{ online }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -211,6 +212,7 @@ export default {
 
       liked: false,
       online: false,
+      lastConnexion: '',
     };
   },
   async beforeMount() {
@@ -226,6 +228,7 @@ export default {
       this.orientation = e.data.orientation;
       this.bio = e.data.bio;
       this.tags = e.data.tags;
+      this.lastConnexion = e.lastTime;
 
       this.profile_pic = e.data.profile_pic;
 
@@ -244,8 +247,9 @@ export default {
     this.socket = this.$store.socket;
     this.socket.on('online', data => {
       const res = data.find(e => Number(e) === this.id);
-      if (res) this.online = true;
-      else this.online = false;
+      if (res) {
+        this.online = true;
+      } else this.online = false;
     });
   },
   updated() {
