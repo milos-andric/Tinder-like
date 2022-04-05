@@ -803,7 +803,7 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
 });
 
 app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
+  const targetId = req.body.targetId;
   const user = await getUserInfos(req.user.user_id);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot like yourself' });
@@ -825,7 +825,7 @@ app.post('/like', authenticateToken, async (req, res) => {
 });
 
 app.post('/unlike', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
+  const targetId = req.body.targetId;
   const user = await getUserInfos(req.user.user_id);
   // console.log(typeof(targetId), targetId);
   if (user.user_id === targetId)
