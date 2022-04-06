@@ -630,6 +630,156 @@ app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
   res.send(rooms);
 });
 
+function timeDifference(date) {
+  const nowTime = Date.now();
+  let difference = nowTime - date.getTime();
+
+  const daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
+  difference -= daysDifference * 1000 * 60 * 60 * 24;
+
+  const hoursDifference = Math.floor(difference / 1000 / 60 / 60);
+  difference -= hoursDifference * 1000 * 60 * 60;
+
+  const minutesDifference = Math.floor(difference / 1000 / 60);
+  difference -= minutesDifference * 1000 * 60;
+
+  const secondsDifference = Math.floor(difference / 1000);
+
+  if (daysDifference) {
+    return `${daysDifference} day(s) ago`;
+  } else if (hoursDifference) {
+    return `${hoursDifference} hour(s)  ago`;
+  } else if (minutesDifference) {
+    return `${minutesDifference} minute(s) ago`;
+  } else {
+    return `${secondsDifference} second(s) ago`;
+  }
+}
+
+app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].liker_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].target_id);
+      data.push(
+        `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].liker_id);
+      data.push(
+        `${myName} got a like from ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].viewer_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].target_id);
+      data.push(
+        `${myName} viewed ${tmp}'s profile ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].viewer_id);
+      data.push(
+        `${myName} got a view from ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].first_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].second_id);
+      data.push(
+        `${myName} got a match with ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].first_id);
+      data.push(
+        `${myName} got a match with ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].sender_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].blocked_id);
+      data.push(
+        `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].sender_id);
+      data.push(
+        `${myName} was blocked by ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].sender_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].reported_id);
+      data.push(
+        `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].sender_id);
+      data.push(
+        `${myName} was reported by ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
 app.get('/is-online/:target_id', authenticateToken, (req, res) => {
   const id = Number(req.params.target_id);
   return res.status(200).json(isConnected(id));

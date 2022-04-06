@@ -164,7 +164,7 @@
     </b-modal>
 
     <!-- Block modals -->
-    <b-modal id="block" title="Report as robot" @ok="userAction('/user-block')">
+    <b-modal id="block" title="Block user" @ok="userAction('/user-block')">
       <p class="text-center my-4">
         <font-awesome-icon icon="ban" style="font-size: 2em" />
       </p>
@@ -182,6 +182,7 @@
     >
       {{ alertMsg }}
     </b-alert>
+    <HistoryComponent :userId="id" />
   </div>
 </template>
 
