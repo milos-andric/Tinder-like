@@ -13,7 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import buildFactory from '../model/factory';
 
 import {
@@ -67,35 +67,34 @@ function emitNotifications(socketIds, notif) {
 }
 
 function getSocketById(userId) {
+  const userIdInt = Number(userId);
   const socketList = users
-    .filter(e => e.user_id === userId)
+    .filter(e => e.user_id === userIdInt)
     .map(e => e.socket_id);
   return socketList;
 }
 
 function isConnected(userId) {
-  // NOT FINISH : standardisé la donnee
-  const data = {
-    online: true,
-    lastTime: undefined,
-  }
   if (users.find(e => e.user_id === userId))
-    return data;
-  return db.one(
-    // 'SELECT users.updated_on FROM users WHERE sender_id=$1',
-    'SELECT * FROM users WHERE user_id=$1',
-    userId,
-  ).then(ret => {
-    data.online = false;
-    data.lastTime = ret.updated_on;
-    return data;
-  });
+    return true;
+  return false;
 }
 
-function userIsBlocked(userId, targetId) {
+function lastConnexion(userId) {
+  return db.one(
+    'SELECT * FROM users WHERE user_id=$1',
+    userId,
+  ).then(user => {
+    return timeDifference(user.last_connexion);
+  });
+};
+
+function userIsBlocked(myId, targetId) {
+  const myIdInt = Number(myId);
+  const targetIdInt = Number(targetId);
   return db.manyOrNone(
     `SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`,
-    [targetId, userId],
+    [targetIdInt, myIdInt],
   ).then(data => {
     if (data.length > 0)
       return true;
@@ -150,13 +149,19 @@ io.on('connection', socket => {
   }
 
   socket.on('disconnect', _reason => {
-    users.splice(
-      users.findIndex(obj => obj.socket_id === socket.id),
-      1
-    );
-    io.emit('online', users.map(e => e.user_id));
-    console.log(`${socket.id} is disconnected to / by io !`);
-    socket.disconnect(true);
+    const userItem = users.find(e => e.socket_id === socket.id);
+    userItem.disconnectId = setTimeout( function() {
+      if (!users.find(e => e.socket_id === userItem.socket_id && userItem.disconnectId)) {
+        clearTimeout(userItem.disconnectId);
+      }
+      socket.disconnect(true);
+      users.splice(
+        users.findIndex(obj => obj.socket_id === socket.id),
+        1
+      );
+      setLastConnexion(userItem.user_id);
+      io.emit('online', users.map(e => e.user_id));
+    }, 2000, userItem, socket);
   });
 });
 server.listen(3001);
@@ -482,24 +487,21 @@ app.post('/profile-image', authenticateToken, async (req, res) => {
   }
 });
 
-// app.post('/logout', (_req, res) => {
-//   res.status(200).json({ msg: 'Successfully logged out' });
-// });
+function setLastConnexion(id) {
+  return db.none(
+    `UPDATE users SET last_connexion=$1 WHERE user_id=$2`,
+    [new Date(), id]
+  );
+}
 
 app.post('/logout', authenticateToken, async (req, res) => {
-  const user = await getUserInfos(req.user.user_id);
-  console.log(user);
-  console.log(new Date(), user.user_id);
-  db.none(
-    `UPDATE users SET updated_on=$1 WHERE user_id=$2`,
-    [new Date(), user.user_id]
-  )
-    .then(_data => {
-      res.status(200).json({ msg: 'Successfully logged out' });
-    })
-    .catch(_error => {
-      res.status(403).send({ msg: 'User is not found' });
-    });
+  try {
+    const user = await getUserInfos(req.user.user_id);
+    await setLastConnexion(user.user_id);
+    return res.status(200).json({ msg: 'Successfully logged out' });
+  } catch(e) {
+    return res.status(403).send({ msg: 'User is not found' });
+  }
 });
 
 // User actions
@@ -571,6 +573,8 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
     targetId = req.params.user_id;
   try {
     const user = await getUserInfos(targetId);
+    user.online = isConnected();
+    user.last_connexion = await lastConnexion(targetId);
     sendNotification(myId, targetId, 'view');
     res.status(200).json(user);
   } catch (e) {
@@ -633,8 +637,13 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = (myId, targetId, data) => {
+const sendMessage = async (myId, targetId, data) => {
   sendNotification(myId, targetId, 'message');
+  // const blocked = await userIsBlocked(myId, targetId);
+  // if (blocked === true) {
+  //   io.to(getSocketById(myId)).emit('receiveChatMessage', data);
+  //   return;
+  // }
   io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
 };
 
@@ -673,10 +682,31 @@ app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
   res.send(rooms);
 });
 
-app.get('/is-online/:target_id', authenticateToken, (req, res) => {
-  const id = Number(req.params.target_id);
-  return res.status(200).json(isConnected(id));
-});
+function timeDifference(date) {
+  const nowTime = Date.now();
+  let difference = nowTime - date.getTime();
+
+  const daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
+  difference -= daysDifference * 1000 * 60 * 60 * 24;
+
+  const hoursDifference = Math.floor(difference / 1000 / 60 / 60);
+  difference -= hoursDifference * 1000 * 60 * 60;
+
+  const minutesDifference = Math.floor(difference / 1000 / 60);
+  difference -= minutesDifference * 1000 * 60;
+
+  const secondsDifference = Math.floor(difference / 1000);
+
+  if (daysDifference) {
+    return `${daysDifference} day(s) ago`;
+  } else if (hoursDifference) {
+    return `${hoursDifference} hour(s)  ago`;
+  } else if (minutesDifference) {
+    return `${minutesDifference} minute(s) ago`;
+  } else {
+    return `${secondsDifference} second(s) ago`;
+  }
+};
 
 app.post('/search', authenticateToken, (req, res) => {
   // console.log(req.body);

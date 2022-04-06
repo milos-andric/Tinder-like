@@ -4,8 +4,8 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4 v-if="online === false">{{ lastConnexion }}</h4>
-    <h4 v-else>{{ online }}</h4>
+    <h4 v-if="online === false">Last connexion: {{ last_connexion }}</h4>
+    <h4 v-else>Connected</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -202,6 +202,8 @@ export default {
       bio: '',
       tags: [],
       score: 0,
+      online: false,
+      last_connexion: '',
       profile_pic: '',
 
       images: [],
@@ -211,51 +213,54 @@ export default {
       alertMsg: '',
 
       liked: false,
-      online: false,
-      lastConnexion: '',
     };
   },
   async beforeMount() {
-    await this.$axios.get('/user').then(e => {
+    await this.$axios.get('/me').then(e => {
       this.self_id = e.data.user_id;
     });
 
-    await this.$axios.get('/user/' + this.id).then(e => {
-      this.first_name = e.data.first_name;
-      this.last_name = e.data.last_name;
-      this.user_name = e.data.user_name;
-      this.gender = e.data.gender;
-      this.orientation = e.data.orientation;
-      this.bio = e.data.bio;
-      this.tags = e.data.tags;
-      this.lastConnexion = e.lastTime;
-
-      this.profile_pic = e.data.profile_pic;
-
-      if (e.data.age) this.birth_date = new Date(e.data.age);
-    });
+    this.getInfos();
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
-
-    await this.$axios.get('/is-online/' + this.id).then(e => {
-      this.online = e.data;
-    });
   },
   mounted() {
     this.socket = this.$store.socket;
-    this.socket.on('online', data => {
-      const res = data.find(e => Number(e) === this.id);
-      if (res) {
-        this.online = true;
-      } else this.online = false;
+    this.socket.on('online', async usersOnline => {
+      const found = usersOnline.find(e => Number(e) === this.id);
+      if (found) this.online = true;
+      else {
+        await this.getInfos();
+        this.online = false;
+      }
     });
   },
   updated() {
     this.isliked();
   },
   methods: {
+    async getInfos() {
+      await this.$axios.get('/user/' + this.id).then(e => {
+        this.first_name = e.data.first_name;
+        this.last_name = e.data.last_name;
+        this.user_name = e.data.user_name;
+        this.gender = e.data.gender;
+        this.orientation = e.data.orientation;
+        this.bio = e.data.bio;
+        this.tags = e.data.tags;
+        this.online = e.data.online;
+        console.log(typeof this.self_id, typeof this.id);
+        if (this.self_id === this.id) this.online = true;
+        this.last_connexion = e.data.last_connexion;
+
+        this.profile_pic = e.data.profile_pic;
+
+        if (e.data.age) this.birth_date = new Date(e.data.age);
+      });
+    },
+
     getOrientationIcon() {
       if (this.orientation === 0) return 'mars';
       else if (this.orientation === 2) return 'venus-mars';
@@ -304,6 +309,7 @@ export default {
       });
       this.isliked();
     },
+
     goToProfile() {
       this.$router.push('/user');
     },

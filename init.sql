@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
     "activation_code" VARCHAR ( 512 ) NOT NULL,
-    "updated_on" TIMESTAMP NOT NULL DEFAULT now(),
+    "last_connexion" TIMESTAMP NOT NULL DEFAULT now(),
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 
