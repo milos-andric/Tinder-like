@@ -1,26 +1,38 @@
 <template>
-  <div>
-    <div id="chat-wrapper">
+  <div class="d-flex flex-column">
+    <div class="d-flex w-100" style="height: calc(100vh - 280px)">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
-      <div id="chat-box">
-        <div id="message-box">
-          <div id="v-for-object" class="chat-list">
-            <div
-              v-for="item in messages"
-              :key="item.messages"
-              :class="{}"
-              class="chat-message me"
-            >
-              <!-- // v-if en fonction de si on est le sender ou non -->
-              {{ item.sender_id + ' - ' + item.message }}
-            </div>
-          </div>
-          <div id="chat-submit">
-            <input v-model="input" type="text" />
-            <button type="submit" @click="sendMessage()">submit</button>
+
+      <div class="w-100" style="flex-grow: 1">
+        <div id="v-for-object" class="w-100 chat-list pt-4">
+          <div
+            v-for="item in messages"
+            :key="item.messages"
+            :class="item.sender_id === self_id ? 'myself' : 'other'"
+            class="message"
+          >
+            <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
+            <p>{{ item.message }}</p>
           </div>
         </div>
       </div>
+    </div>
+
+    <div id="chat-submit" class="w-100">
+      <b-input-group>
+        <b-form-input
+          v-model="input"
+          autocomplete="off"
+          type="text"
+          class="input"
+        />
+
+        <template #append>
+          <button class="btn btn-primary" type="submit" @click="sendMessage()">
+            <font-awesome-icon color="white" icon="paper-plane" />
+          </button>
+        </template>
+      </b-input-group>
     </div>
   </div>
 </template>
@@ -29,12 +41,16 @@
 export default {
   data() {
     return {
+      self_id: null,
       room: '',
       input: '',
       messages: [],
     };
   },
-  mounted() {
+  async mounted() {
+    const me = await this.$axios.get('/me');
+    this.self_id = me.data.user_id;
+
     this.socket = this.$nuxtSocket({
       name: 'chat',
       channel: '/',
@@ -43,8 +59,8 @@ export default {
       },
       reconnection: false,
     });
+
     this.socket.on('receiveChatMessage', data => {
-      console.log(data.chat_id, this.room);
       if (data.chat_id === this.room) {
         this.messages.push(data);
       }
@@ -64,7 +80,7 @@ export default {
           message: this.input,
         });
       }
-      // this.messages.push(resp.data);
+
       this.input = '';
     },
     async onChangeActiveRoom(newRoom) {
@@ -80,30 +96,12 @@ export default {
 </script>
 
 <style>
-#chat-wrapper {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  height: 70vh;
-}
 .chat-list {
-  height: 95%;
+  height: 100%;
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
   overflow-y: scroll;
-}
-#chat-box {
-  height: 100%;
-}
-#message-box {
-  width: 75vw;
-  height: 100%;
-  overflow-wrap: break-word;
-  background-color: pink;
-  display: flex;
-  display: flex;
-  flex-direction: column;
 }
 #chat-channels {
   width: 10vw;
@@ -116,17 +114,25 @@ export default {
   align-self: center;
   justify-self: flex-end;
   bottom: 0px;
+  padding: 5px;
 }
 
-.me {
-  background-color: rgba(0, 110, 255, 0.438);
-  border-radius: 10px;
+.message {
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0rem 1rem 1rem 1rem;
 }
-.chat-message {
-  font-family: 'Helvetica', 'Lucida Sans Unicode', 'Lucida Grande',
-    'Lucida Sans', Arial, sans-serif;
-  margin-top: 2vh;
-  padding: 1% 2% 1% 2%;
-  /* align-self: flex-start; */
+
+.message p {
+  margin-bottom: 0;
+}
+
+.myself {
+  background-color: rgba(0, 110, 255, 0.738);
+  align-self: end;
+}
+
+.other {
+  background-color: rgba(0, 110, 255, 0.438);
 }
 </style>

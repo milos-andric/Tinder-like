@@ -285,18 +285,14 @@ export default {
 
     async like() {
       await this.$axios.post('like', {
-        data: {
-          targetId: this.id,
-        },
+        targetId: this.id,
       });
       this.isliked();
     },
 
     async unlike() {
       await this.$axios.post('unlike', {
-        data: {
-          targetId: this.id,
-        },
+        targetId: this.id,
       });
       this.isliked();
     },

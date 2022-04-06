@@ -433,7 +433,7 @@ app.post('/delete-image', authenticateToken, (req, res) => {
       'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
       [req.user.user_id, req.body.id]
     );
-    fs.unlink('static' + req.body.url, () => {});
+    fs.unlink('static' + req.body.url, () => { });
     res.status(200).json({ msg: 'Success' });
   } catch (e) {
     res.status(400).json({ msg: 'Image not found' });
@@ -576,11 +576,11 @@ const isIdInRoom = async (id, room) => {
 
 app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   if (await isIdInRoom(req.user.user_id, req.body.room)) {
-    const sql = 'SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_on';
+    const sql = 'SELECT * FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on';
     const messages = await db.manyOrNone(sql, [req.body.room]);
-    for (let i = 0; i < messages.length; i++) {
-      messages[i].sender_id = await idToUsername(messages[i].sender_id);
-    }
+
+    for (let i = 0; i < messages.length; i++) delete messages[i].password
+
     res.send(messages);
   } else {
     res.sendStatus(403);
@@ -600,7 +600,8 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
     const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
     await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
     const data = {
-      sender_id: (await getUserInfos(req.user.user_id)).user_name,
+      sender_id: (await getUserInfos(req.user.user_id)).user_id,
+      user_name: (await getUserInfos(req.user.user_id)).user_name,
       chat_id: req.body.room,
       message: req.body.message,
     };
@@ -617,7 +618,14 @@ app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
   for (let i = 0; i < rooms.length; i++) {
     if (rooms[i].first_id === req.user.user_id) {
       rooms[i].pal_name = await idToUsername(rooms[i].second_id);
-    } else rooms[i].pal_name = await idToUsername(rooms[i].first_id);
+      rooms[i].pal_id = rooms[i].second_id;
+      rooms[i].pal_img = (await getUserInfos(rooms[i].second_id)).profile_pic;
+    } else {
+      rooms[i].pal_name = await idToUsername(rooms[i].first_id);
+      rooms[i].pal_id = rooms[i].first_id;
+      rooms[i].pal_img = (await getUserInfos(rooms[i].first_id)).profile_pic;
+    }
+    console.log(rooms[i].pal_img);
   }
   res.send(rooms);
 });
@@ -802,7 +810,8 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
 });
 
 app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = req.body.targetId;
+  const targetId = Number(req.body.targetId);
+
   const user = await getUserInfos(req.user.user_id);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot like yourself' });
@@ -815,9 +824,13 @@ app.post('/like', authenticateToken, async (req, res) => {
     return res.status(200).json({ msg: 'User already liked' });
 
   const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-  await db.any(sql, [user.user_id, targetId]).catch(err => {
-    res.status(500).json(err);
-  });
+
+  try {
+    await db.any(sql, [user.user_id, targetId])
+  } catch (e) {
+    return res.status(500).json(e);
+  }
+
   sendNotification(req.user.user_id, targetId, 'like');
   matchDetector(user.user_id, targetId);
   res.sendStatus(200);

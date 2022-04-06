@@ -53,6 +53,8 @@ export default {
         'faFire',
         'faCakeCandles',
         'faCircleInfo',
+        'faPaperPlane',
+        'faAngleRight',
       ],
     },
   },
