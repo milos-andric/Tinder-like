@@ -649,7 +649,6 @@ function timeDifference(date) {
 }
 
 app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
-  console.log(req.body.userId);
   const sql =
     'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
   const entries = await db.manyOrNone(sql, [req.body.userId]);
@@ -674,9 +673,8 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
-  console.log(req.body.userId);
   const sql =
-    'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on';
+    'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
   const entries = await db.manyOrNone(sql, [req.body.userId]);
   const myName = await idToUsername(req.body.userId);
   const data = [];
@@ -701,9 +699,8 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
-  console.log(req.body.userId);
   const sql =
-    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on';
+    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
   const entries = await db.manyOrNone(sql, [req.body.userId]);
   const myName = await idToUsername(req.body.userId);
   const data = [];
@@ -719,6 +716,54 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
       const tmp = await idToUsername(entries[i].first_id);
       data.push(
         `${myName} got a match with ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].sender_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].blocked_id);
+      data.push(
+        `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].sender_id);
+      data.push(
+        `${myName} was blocked by ${tmp} ${timeDifference(
+          entries[i].created_on
+        )}`
+      );
+    }
+  }
+  res.send(data);
+});
+
+app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
+  const sql =
+    'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
+  const entries = await db.manyOrNone(sql, [req.body.userId]);
+  const myName = await idToUsername(req.body.userId);
+  const data = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].sender_id === req.body.userId) {
+      const tmp = await idToUsername(entries[i].reported_id);
+      data.push(
+        `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
+      );
+    } else {
+      const tmp = await idToUsername(entries[i].sender_id);
+      data.push(
+        `${myName} was reported by ${tmp} ${timeDifference(
           entries[i].created_on
         )}`
       );

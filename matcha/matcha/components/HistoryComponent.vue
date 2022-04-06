@@ -26,6 +26,22 @@
       >
         Matchs
       </div>
+      <div
+        id="matchs"
+        class="history-buttons"
+        :class="{ active: currentTopic === 'reports' }"
+        @click="getReports()"
+      >
+        Reports
+      </div>
+      <div
+        id="matchs"
+        class="history-buttons"
+        :class="{ active: currentTopic === 'blocks' }"
+        @click="getBlocks()"
+      >
+        Blocks
+      </div>
     </div>
     <div v-if="history.length" id="v-for-object" class="history-list">
       <div v-for="item in history" :key="item.history" class="history-entries">
@@ -76,6 +92,24 @@ export default {
           userId: this.userId,
         });
         this.currentTopic = 'matchs';
+        this.history = resp.data;
+      }
+    },
+    async getBlocks() {
+      if (this.currentTopic !== 'blocks') {
+        const resp = await this.$axios.post('getUserBlockHistory', {
+          userId: this.userId,
+        });
+        this.currentTopic = 'blocks';
+        this.history = resp.data;
+      }
+    },
+    async getReports() {
+      if (this.currentTopic !== 'reports') {
+        const resp = await this.$axios.post('getUserReportHistory', {
+          userId: this.userId,
+        });
+        this.currentTopic = 'reports';
         this.history = resp.data;
       }
     },
