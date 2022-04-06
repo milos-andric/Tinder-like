@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto col-10 h-100 text-center">
-    <b-link class="d-block mb-4" to="/profile">Go back to profile</b-link>
+    <b-link class="d-block mb-4" to="/user">Go back to profile</b-link>
 
     <b-avatar
       v-if="imageInput"

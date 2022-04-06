@@ -214,7 +214,7 @@ export default {
     };
   },
   async beforeMount() {
-    await this.$axios.get('/user').then(e => {
+    await this.$axios.get('/me').then(e => {
       this.self_id = e.data.user_id;
     });
 
