@@ -8,6 +8,10 @@ import * as jwt from 'jsonwebtoken';
 import * as uuid from 'uuid';
 import * as bcrypt from 'bcrypt';
 
+// Location
+import nearbyCities from 'nearby-cities';
+import WorldCities from 'worldcities';
+
 // Core
 import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -40,6 +44,7 @@ app.use(fileUpload({ createParentPath: true }));
 
 const users = [];
 const http = require('http');
+const { lookup } = require('geoip-lite');
 const server = http.createServer();
 const io = new Server(server, {
   cors: {
@@ -315,6 +320,19 @@ app.post('/recover', validateEmail('email'), (req, res) => {
   });
 });
 
+function validateLocation() {
+  return (req, res, next) => {
+    const input = req.body.ville;
+    const ll = getLLFromCity(input);
+    if (!ll) {
+      return res.status(400).json({ msg: 'City not found' });
+    } else {
+      req.body.ll = ll;
+    }
+    next();
+  };
+}
+
 app.post(
   '/updateUserInfo',
   authenticateToken,
@@ -330,6 +348,7 @@ app.post(
     'user_name',
     'Username must be at between 3 and 16 chars long'
   ),
+  validateLocation(),
   validateEmail('email'),
   validateAge('birth_date', 'You must be older than 18 yo'),
   validateInt('gender', 0, 1),
@@ -337,8 +356,8 @@ app.post(
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   (req, res) => {
     const sql = `UPDATE users SET
-            ( first_name, last_name, user_name, email, age, gender, orientation, bio, tags )
-            = ( $1, $2, $3, $4, $5, $6, $7, $8, $9 ) WHERE user_id=$10`;
+            ( first_name, last_name, user_name, email, age, gender, orientation, bio, tags, latitude, longitude )
+            = ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 ) WHERE user_id=$12`;
 
     db.none(sql, [
       req.body.first_name,
@@ -350,6 +369,8 @@ app.post(
       req.body.orientation,
       req.body.bio,
       req.body.tags,
+      req.body.ll[0],
+      req.body.ll[1],
       req.user.user_id,
     ])
       .then(data => res.status(200).json(data))
@@ -508,10 +529,36 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 
 // GET routes
 
+function getCityFromLL(latitude, longitude) {
+  const query = { latitude, longitude };
+  console.log(query);
+  try {
+    const cities = nearbyCities(query);
+    if (!cities) {
+      return undefined;
+    } else if (cities.length) {
+      console.log(cities[0]);
+      return cities[0].name;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+function getLLFromCity(city) {
+  let res = WorldCities.getAllByName(city);
+  res = res.sort((a, b) => b.population - a.population);
+  if (res.length) {
+    return [res[0].latitude, res[0].longitude];
+  }
+  return undefined;
+}
 app.get('/me', authenticateToken, async (req, res) => {
   const id = req.user.user_id;
   try {
     const user = await getUserInfos(id);
+    if (user.latitude && user.longitude) {
+      user.ville = getCityFromLL(user.latitude, user.longitude);
+    }
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -865,6 +912,8 @@ app.post('/registerMany', async (req, res) => {
         'age',
         'activation_code',
         'orientation',
+        'latitude',
+        'longitude',
       ],
       'users'
     );
@@ -1037,29 +1086,108 @@ app.post('/view', authenticateToken, async (req, res) => {
   res.sendStatus(200);
 });
 
-const findPartnerFor = async user => {
-  let sql = `SELECT * FROM users u 
+async function findPartnerFor(user, pos) {
+  // filter by gender and tags
+  // order by distance then by fame
+  // exclude block view like
+  let lat;
+  let long;
+  if (pos) {
+    lat = pos[0];
+    long = pos[1];
+  }
+  const data = [user.user_id];
+  if (!user.latitude && !user.longitude && lat && long) {
+    data.push(lat);
+    data.push(long);
+    // await insertLatLong(user.user_id, lat, long);
+  } else if (user.latitude && user.longitude) {
+    data.push(user.latitude);
+    data.push(user.longitude);
+  } else {
+    data.push(48.856614);
+    data.push(2.3522219);
+  }
+  let sql = `SELECT *,
+  (
+    6371 *
+    acos(cos(radians($2)) *
+    cos(radians(u.latitude)) *
+    cos(radians(u.longitude) -
+    radians($3)) +
+    sin(radians($2)) *
+    sin(radians(u.latitude )))
+    ) AS distance
+  FROM users u
   WHERE u.user_id != $1
   AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
   AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`;
-  if (user.orientation !== 2) sql += ` AND gender = $2`;
-  sql += ` ORDER BY score DESC LIMIT 10`;
-
-  const data =
-    user.orientation !== 2 ? [user.user_id, user.orientation] : user.user_id;
+  if (user.orientation !== 2) {
+    sql += ` AND gender = $4`;
+    data.push(user.orientation);
+  }
+  sql += ` ORDER BY distance LIMIT 10`;
   const res = await db.any(sql, data);
-
-  res.forEach(reco => delete reco.password);
+  res.forEach(reco => {
+    reco.ville = getCityFromLL(reco.latitude, reco.longitude);
+    delete reco.password;
+  });
   return res;
-};
+}
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
+  // console.log(req.body.ip);
+  const pos = getPosById(req.body.ip);
+  // console.log(pos);
   const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartnerFor(user);
+  const partner = await findPartnerFor(user, pos);
 
   res.status(200).json(partner);
 });
 
+// async function insertLatLong(myId, lat, long) {
+//   await db.any('UPDATE users SET latitude=$1 , longitude=$2 WHERE user_id=$3', [
+//     lat,
+//     long,
+//     myId,
+//   ]);
+// }
+// function distPos(ll1, ll2) {
+//   //   SELECT
+//   // id,
+//   // (
+//   //    3959 *
+//   //    acos(cos(radians(37)) *
+//   //    cos(radians(lat)) *
+//   //    cos(radians(lng) -
+//   //    radians(-122)) +
+//   //    sin(radians(37)) *
+//   //    sin(radians(lat )))
+//   // ) AS distance
+//   // FROM markers
+//   // HAVING distance < 28
+//   // https://www.movable-type.co.uk/scripts/latlong.html
+//   const lat1 = ll1[0];
+//   const lat2 = ll2[0];
+//   const lon1 = ll1[1];
+//   const lon2 = ll2[1];
+//   const R = 6371e3; // metres
+//   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
+//   const φ2 = (lat2 * Math.PI) / 180;
+//   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+//   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+//   const a =
+//     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+//     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+//   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+//   const d = R * c; // in metres
+//   console.log(d);
+// }
+function getPosById(ip) {
+  return lookup(ip)?.ll;
+}
 export default {
   path: '/api',
   handler: app,

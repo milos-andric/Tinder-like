@@ -14,9 +14,14 @@
               id="profile-info"
               class="position-absolute d-flex justify-content-between align-items-end"
             >
-              <h2>
-                {{ user.first_name + getAge(user) }}
-              </h2>
+              <div>
+                <h2>
+                  {{ user.first_name + getAge(user) }}
+                </h2>
+                <h3>
+                  {{ getDistance(user) + ' (' + user.ville + ')' }}
+                </h3>
+              </div>
               <b-link :to="'/user/' + user.user_id">
                 <font-awesome-icon icon="circle-info" color="white" />
               </b-link>
@@ -64,7 +69,7 @@ export default {
     return {
       users: [],
       selected: 0,
-
+      ip: null,
       swiper: null,
     };
   },
@@ -97,8 +102,12 @@ export default {
     });
   },
   async beforeMount() {
+    const resultIp = await this.$axios.get('/getIP');
+    this.ip = resultIp.data.ip;
+    console.log(this.ip);
     const res = await this.$axios.post('getRecommandation', {
       order: null,
+      ip: this.ip,
     });
     this.users = res.data;
 
@@ -119,6 +128,7 @@ export default {
     async generateNewMatches() {
       const res = await this.$axios.post('getRecommandation', {
         order: null,
+        ip: this.ip,
       });
 
       this.users = [...this.users, ...res.data];
@@ -127,10 +137,19 @@ export default {
     dislike() {
       this.swiper.slideNext();
     },
+    getDistance(user) {
+      if (user.distance) {
+        return 'à ' + Math.round(user.distance) + ' km';
+      } else {
+        return '';
+      }
+    },
     getAge(user) {
       if (user.age)
         return (
-          ', ' + (new Date().getFullYear() - new Date(user.age).getFullYear())
+          ', ' +
+          (new Date().getFullYear() - new Date(user.age).getFullYear()) +
+          ' ans'
         );
       else return '';
     },

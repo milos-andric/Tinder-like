@@ -46,6 +46,14 @@
           required
         />
       </div>
+      <div class="form-outline mb-4">
+        <label class="form-label">Localisation</label>
+        <input
+          v-model="ville"
+          class="form-control form-control-lg"
+          name="ville"
+        />
+      </div>
 
       <div class="form-outline mb-4">
         <label for="birth_date" class="form-label">Birth date</label>
@@ -205,6 +213,7 @@ export default {
       max_date: maxDate,
       gender: 0,
       orientation: 2,
+      ville: '',
       bio: '',
       tags: [],
 
@@ -223,6 +232,7 @@ export default {
       this.orientation = e.data.orientation;
       this.bio = e.data.bio;
       this.tags = e.data.tags;
+      this.ville = e.data.ville;
     });
   },
   methods: {
@@ -238,6 +248,7 @@ export default {
           orientation: this.orientation,
           bio: this.bio,
           tags: this.tags,
+          ville: this.ville,
         })
         .then(() => {
           this.successStatus = true;
