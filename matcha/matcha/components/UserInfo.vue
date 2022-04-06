@@ -284,18 +284,33 @@ export default {
     },
 
     async like() {
-      await this.$axios.post('like', {
-        targetId: this.id,
-      });
+      try {
+        await this.$axios.post('like', {
+          targetId: this.id,
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
       this.isliked();
     },
 
     async unlike() {
-      await this.$axios.post('unlike', {
-        targetId: this.id,
-      });
+      try {
+        await this.$axios.post('unlike', {
+          targetId: this.id,
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
       this.isliked();
     },
+
     goToProfile() {
       this.$router.push('/user');
     },
