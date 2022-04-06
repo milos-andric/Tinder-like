@@ -964,7 +964,10 @@ async function findPartnerFor(user, pos) {
   }
   sql += ` ORDER BY distance LIMIT 10`;
   const res = await db.any(sql, data);
-  res.forEach(reco => delete reco.password);
+  res.forEach(reco => {
+    reco.ville = getCityFromLL(reco.latitude, reco.longitude);
+    delete reco.password;
+  });
   return res;
 }
 
