@@ -182,7 +182,7 @@
     >
       {{ alertMsg }}
     </b-alert>
-    <HistoryComponent :userId="id" />
+    <HistoryComponent v-if="self_id === id" />
   </div>
 </template>
 

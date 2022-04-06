@@ -433,7 +433,7 @@ app.post('/delete-image', authenticateToken, (req, res) => {
       'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
       [req.user.user_id, req.body.id]
     );
-    fs.unlink('static' + req.body.url, () => { });
+    fs.unlink('static' + req.body.url, () => {});
     res.status(200).json({ msg: 'Success' });
   } catch (e) {
     res.status(400).json({ msg: 'Image not found' });
@@ -576,10 +576,11 @@ const isIdInRoom = async (id, room) => {
 
 app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   if (await isIdInRoom(req.user.user_id, req.body.room)) {
-    const sql = 'SELECT * FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on';
+    const sql =
+      'SELECT * FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on';
     const messages = await db.manyOrNone(sql, [req.body.room]);
 
-    for (let i = 0; i < messages.length; i++) delete messages[i].password
+    for (let i = 0; i < messages.length; i++) delete messages[i].password;
 
     res.send(messages);
   } else {
@@ -659,11 +660,11 @@ function timeDifference(date) {
 app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
   const sql =
     'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.body.userId]);
-  const myName = await idToUsername(req.body.userId);
+  const entries = await db.manyOrNone(sql, [req.user.user_id]);
+  const myName = await idToUsername(req.user.user_id);
   const data = [];
   for (let i = 0; i < entries.length; i++) {
-    if (entries[i].liker_id === req.body.userId) {
+    if (entries[i].liker_id === req.user.user_id) {
       const tmp = await idToUsername(entries[i].target_id);
       data.push(
         `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
@@ -683,11 +684,11 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
 app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
   const sql =
     'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.body.userId]);
-  const myName = await idToUsername(req.body.userId);
+  const entries = await db.manyOrNone(sql, [req.user.user_id]);
+  const myName = await idToUsername(req.user.user_id);
   const data = [];
   for (let i = 0; i < entries.length; i++) {
-    if (entries[i].viewer_id === req.body.userId) {
+    if (entries[i].viewer_id === req.user.user_id) {
       const tmp = await idToUsername(entries[i].target_id);
       data.push(
         `${myName} viewed ${tmp}'s profile ${timeDifference(
@@ -709,11 +710,11 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
 app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
   const sql =
     'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.body.userId]);
-  const myName = await idToUsername(req.body.userId);
+  const entries = await db.manyOrNone(sql, [req.user.user_id]);
+  const myName = await idToUsername(req.user.user_id);
   const data = [];
   for (let i = 0; i < entries.length; i++) {
-    if (entries[i].first_id === req.body.userId) {
+    if (entries[i].first_id === req.user.user_id) {
       const tmp = await idToUsername(entries[i].second_id);
       data.push(
         `${myName} got a match with ${tmp} ${timeDifference(
@@ -735,11 +736,11 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
 app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
   const sql =
     'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.body.userId]);
-  const myName = await idToUsername(req.body.userId);
+  const entries = await db.manyOrNone(sql, [req.user.user_id]);
+  const myName = await idToUsername(req.user.user_id);
   const data = [];
   for (let i = 0; i < entries.length; i++) {
-    if (entries[i].sender_id === req.body.userId) {
+    if (entries[i].sender_id === req.user.user_id) {
       const tmp = await idToUsername(entries[i].blocked_id);
       data.push(
         `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
@@ -759,11 +760,11 @@ app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
 app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
   const sql =
     'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.body.userId]);
-  const myName = await idToUsername(req.body.userId);
+  const entries = await db.manyOrNone(sql, [req.user.user_id]);
+  const myName = await idToUsername(req.user.user_id);
   const data = [];
   for (let i = 0; i < entries.length; i++) {
-    if (entries[i].sender_id === req.body.userId) {
+    if (entries[i].sender_id === req.user.user_id) {
       const tmp = await idToUsername(entries[i].reported_id);
       data.push(
         `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
@@ -976,7 +977,7 @@ app.post('/like', authenticateToken, async (req, res) => {
   const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
 
   try {
-    await db.any(sql, [user.user_id, targetId])
+    await db.any(sql, [user.user_id, targetId]);
   } catch (e) {
     return res.status(500).json(e);
   }

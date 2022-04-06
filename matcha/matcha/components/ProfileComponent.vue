@@ -96,6 +96,7 @@
     <b-alert v-model="alertStatus" variant="danger" dismissible class="mt-3">
       {{ alertMsg }}
     </b-alert>
+    <HistoryComponent />
   </div>
 </template>
 
