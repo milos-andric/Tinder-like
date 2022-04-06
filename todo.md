@@ -43,13 +43,13 @@ La mienne et celle des autres
 ## section like
 
 - [x] peut like le profile des autres si image
-- [ ] qui a like
-- [ ] qui a like en retour donc les gens relier
+- [x] qui a like
+- [x] qui a like en retour donc les gens relier
 - [x] fame rating
 - [ ] gps positioning
-- [ ] visit history
-- [ ] report button
-- [ ] block button
+- [x] visit history
+- [x] report button
+- [x] block button
 
 ## Suggestion page
 
@@ -57,7 +57,7 @@ La mienne et celle des autres
 
 [ ] criteria avec coef:
 
-- [ ] location
+- [x] location
 - [ ] tag
 - [x] fame
 - [ ] block
