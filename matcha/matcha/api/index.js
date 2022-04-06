@@ -840,14 +840,38 @@ app.post('/search', authenticateToken, (req, res) => {
   // verify data type value
   // search db
   if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-  let sql = 'SELECT * FROM users';
+
+  let sql = '';
+  let counter = 0;
   const values = [];
+
+  if (req.body.search.location) {
+    sql = `SELECT *, (
+    6371 *
+    acos(cos(radians(48.856614)) *
+    cos(radians(users.latitude)) *
+    cos(radians(users.longitude) -
+    radians(2.3522219)) +
+    sin(radians(48.856614)) *
+    sin(radians(users.latitude )))
+    ) AS distance FROM users`;
+    console.log(req.user.latitude);
+    console.log(req.user.longitude);
+    // values.push(req.user.latitude);
+    // values.push(req.user.longitude);
+    // counter = 2;
+  } else {
+    sql = `Select * FROM users`;
+  }
+
   if (Object.keys(req.body.search).length > 0) {
-    let counter = 0;
     sql += ' WHERE';
     if (req.body.search.last_name) {
       counter++;
-      if (counter > 1) {
+      if (
+        (counter > 1 && !req.body.search.location) ||
+        (counter >= 2 && req.body.search.location)
+      ) {
         sql += ' AND';
       }
       sql += ' last_name LIKE $' + counter + '';
@@ -856,7 +880,10 @@ app.post('/search', authenticateToken, (req, res) => {
     }
     if (req.body.search.first_name) {
       counter++;
-      if (counter > 1) {
+      if (
+        (counter > 1 && !req.body.search.location) ||
+        (counter >= 2 && req.body.search.location)
+      ) {
         sql += ' AND';
       }
       sql += ' first_name LIKE $' + counter + '';
@@ -865,31 +892,49 @@ app.post('/search', authenticateToken, (req, res) => {
     }
     if (req.body.search.age) {
       counter++;
-      if (counter > 1) {
+      if (
+        (counter > 1 && !req.body.search.location) ||
+        (counter >= 2 && req.body.search.location)
+      ) {
         sql += ' AND';
       }
       sql += ' age BETWEEN' + ' $' + counter;
       counter++;
       sql += ' AND' + ' $' + counter;
-      values.push(req.body.search.age[0]);
-      values.push(req.body.search.age[1]);
+      const maxDate = new Date();
+      maxDate.setYear(maxDate.getFullYear() - req.body.search.age[0]);
+      const minDate = new Date();
+      minDate.setYear(minDate.getFullYear() - req.body.search.age[1]);
+      values.push(minDate);
+      values.push(maxDate);
     }
-    // if (req.body.search.location) {
-    //   counter++;
-    //   if (counter > 1) {
-    //     sql += ' AND';
-    //   }
-    //   sql += '  =' + ' $' + counter;
-    // }
     if (req.body.search.fame) {
       counter++;
-      if (counter > 1) {
+      if (
+        (counter > 1 && !req.body.search.location) ||
+        (counter >= 2 && req.body.search.location)
+      ) {
         sql += ' AND';
       }
       sql += ' score >=' + ' $' + counter;
       values.push(req.body.search.fame);
     }
+    if (req.body.search.location) {
+      counter++;
+      sql =
+        'SELECT * FROM (' +
+        sql +
+        ') AS t WHERE t.distance BETWEEN 0 AND $' +
+        counter;
+      const distance = req.body.search.location;
+      values.push(distance);
+    }
+    console.log(sql, values);
     db.any(sql, values).then(data => {
+      data.forEach(e => {
+        const age = new Date().getFullYear() - new Date(e.age).getFullYear();
+        e.age = age;
+      });
       res.status(200).send(data);
     });
   }
@@ -1145,46 +1190,6 @@ app.post('/getRecommandation', authenticateToken, async (req, res) => {
   res.status(200).json(partner);
 });
 
-// async function insertLatLong(myId, lat, long) {
-//   await db.any('UPDATE users SET latitude=$1 , longitude=$2 WHERE user_id=$3', [
-//     lat,
-//     long,
-//     myId,
-//   ]);
-// }
-// function distPos(ll1, ll2) {
-//   //   SELECT
-//   // id,
-//   // (
-//   //    3959 *
-//   //    acos(cos(radians(37)) *
-//   //    cos(radians(lat)) *
-//   //    cos(radians(lng) -
-//   //    radians(-122)) +
-//   //    sin(radians(37)) *
-//   //    sin(radians(lat )))
-//   // ) AS distance
-//   // FROM markers
-//   // HAVING distance < 28
-//   // https://www.movable-type.co.uk/scripts/latlong.html
-//   const lat1 = ll1[0];
-//   const lat2 = ll2[0];
-//   const lon1 = ll1[1];
-//   const lon2 = ll2[1];
-//   const R = 6371e3; // metres
-//   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
-//   const φ2 = (lat2 * Math.PI) / 180;
-//   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-//   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-//   const a =
-//     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-//     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-//   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-//   const d = R * c; // in metres
-//   console.log(d);
-// }
 function getPosById(ip) {
   return lookup(ip)?.ll;
 }

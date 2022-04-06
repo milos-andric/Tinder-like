@@ -214,10 +214,10 @@ export default {
         if (this.lastChecked === true) search.last_name = this.lastValue;
         if (this.firstChecked === true) search.first_name = this.firstValue;
         if (this.ageChecked === true) search.age = this.ageSlider.value;
-        // if (this.locationChecked === true)
-        //   search.location = this.locationSlider.value;
+        if (this.locationChecked === true)
+          search.location = this.locationSlider.value;
         if (this.fameChecked === true) search.fame = this.fameSlider.value;
-        // if (this.tagsChecked === true) search.tags = this.tagsValue;
+        if (this.tagsChecked === true) search.tags = this.tagsValue;
 
         const res = await this.$axios.post('search', { search });
         this.list = res.data;

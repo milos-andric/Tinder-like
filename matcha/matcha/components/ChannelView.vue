@@ -32,7 +32,7 @@
           </div>
         </div>
       </div>
-      <div v-else>Lol</div>
+      <div v-else>You have no accessible chat channel</div>
     </b-sidebar>
   </div>
 </template>
