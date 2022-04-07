@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "longitude" FLOAT,
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 
-    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("tags_users_id") REFERENCES "tags_users"(users_id")
+    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("tags_users_id") REFERENCES "tags_users"("users_id")
 );
 
 
@@ -174,3 +174,7 @@ INSERT into "messages"
 INSERT into "messages"
     ( "sender_id", "chat_id", "message", "created_on")
     VALUES (1, '1-2', 'db', NOW());
+
+INSERT into "likes"
+    ("liker_id", "target_id", "created_on")
+    VALUES (1, 2, NOW());
