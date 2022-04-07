@@ -231,6 +231,8 @@ export default {
       this.profile_pic = e.data.profile_pic;
 
       if (e.data.age) this.birth_date = new Date(e.data.age);
+
+      console.log(e.data);
     });
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
