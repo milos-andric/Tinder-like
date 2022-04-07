@@ -67,35 +67,57 @@ function socketIdentification(socket) {
 
 function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
-    // console.log('emit', element, notif[0].type, notif[0].user_id_send, " > ", notif[0].uer_id_receiver);
     io.to(element).emit('receiveNotification', notif);
   });
 }
 
 function getSocketById(userId) {
+  // const userIdInt = Number(userId);
   const socketList = users
+    // .filter(e => e.user_id === userIdInt)
     .filter(e => e.user_id === userId)
     .map(e => e.socket_id);
   return socketList;
 }
 
 function isConnected(userId) {
-  console.log(users, userId);
-  if (users.find(e => e.user_id === userId)) return true;
+  if (users.find(e => e.user_id === userId))
+    return true;
   return false;
 }
 
+function userIsBlocked(myId, targetId) {
+  const myIdInt = Number(myId);
+  const targetIdInt = Number(targetId);
+  return db.manyOrNone(
+    `SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`,
+    [targetIdInt, myIdInt],
+  ).then(data => {
+    if (data.length > 0)
+      return true;
+    return false;
+  });
+}
+
 async function sendNotification(myId, targetId, typeNotif) {
+  const myIdInt = Number(myId);
+  const targetIdInt = Number(targetId);
+  const typeNotifString = String(typeNotif);
+  if (await userIsBlocked(myIdInt, targetIdInt) === true)
+    return;
   const alreadyNotified = await db.oneOrNone(
-    'SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3',
-    [typeNotif, myId, targetId]
-  );
+    `SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4`,
+    [typeNotifString, myIdInt, targetIdInt, false],
+  )
   if (!alreadyNotified) {
-    const targetIdInt = Number(targetId);
-    const socketList = getSocketById(targetIdInt);
-    if (targetIdInt !== myId) {
-      const elem = await postNotification(myId, targetIdInt, typeNotif);
-      emitNotifications(socketList, elem);
+    if (targetIdInt !== myIdInt) {
+      const socketList = getSocketById(targetIdInt);
+      const data = await postNotification(
+        myIdInt,
+        targetIdInt,
+        typeNotifString
+      );
+      emitNotifications(socketList, data);
     }
   }
 }
@@ -122,16 +144,19 @@ io.on('connection', socket => {
   }
 
   socket.on('disconnect', _reason => {
-    users.splice(
-      users.findIndex(obj => obj.socket_id === socket.id),
-      1
-    );
-    io.emit(
-      'online',
-      users.map(e => e.user_id)
-    );
-    console.log(`${socket.id} is disconnected to / by io !`);
-    socket.disconnect(true);
+    const userItem = users.find(e => e.socket_id === socket.id);
+    userItem.disconnectId = setTimeout( function() {
+      if (!users.find(e => e.socket_id === userItem.socket_id && userItem.disconnectId)) {
+        clearTimeout(userItem.disconnectId);
+      }
+      socket.disconnect(true);
+      users.splice(
+        users.findIndex(obj => obj.socket_id === socket.id),
+        1
+      );
+      setLastConnexion(userItem.user_id);
+      io.emit('online', users.map(e => e.user_id));
+    }, 2000, userItem, socket);
   });
 });
 server.listen(3001);
@@ -480,6 +505,8 @@ app.post('/upload-image', authenticateToken, (req, res) => {
     return res.status(400).json({ msg: 'No files were uploaded.' });
 
   const image = req.files.image;
+  if (image.size > 50000)
+    return res.status(413).json({ msg: 'File too heavy.' });
   const imageExt = path.extname(image.name);
   const imagePath = '/uploads/' + req.user.user_id + '/' + uuid.v1() + imageExt;
   const allowedExt = ['.png', '.jpg', '.jpeg'];
@@ -536,8 +563,20 @@ app.post('/profile-image', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/logout', (_req, res) => {
-  res.status(200).json({ msg: 'Successfully logged out' });
+function setLastConnexion(id) {
+  return db.none(
+    `UPDATE users SET last_connexion=$1 WHERE user_id=$2`,
+    [new Date(), id]
+  );
+}
+
+app.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    await setLastConnexion(req.user.user_id);
+    return res.status(200).json({ msg: 'Successfully logged out' });
+  } catch(e) {
+    return res.status(403).send({ msg: 'User is not found' });
+  }
 });
 
 // User actions
@@ -547,7 +586,7 @@ app.post('/user-block', authenticateToken, async (req, res) => {
   const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: 'You cannot block yourself' });
+    return res.status(200).json({ msg: 'You cannot block yourself' });
 
   try {
     const data = await db.any(
@@ -555,11 +594,27 @@ app.post('/user-block', authenticateToken, async (req, res) => {
       [sender, receiver]
     );
     if (data.length !== 0)
-      return res.status(400).json({ msg: 'User already blocked' });
+      return res.status(200).json({ msg: 'User already blocked' });
     await db.none(
       'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
       [sender, receiver]
     );
+    
+    const room = await db.oneOrNone(
+      'SELECT * FROM chats WHERE (first_id=$1 AND second_id=$2) OR (second_id=$1 AND first_id=$2)',
+      [sender, receiver],
+    )
+    if (room) {
+      await db.none(
+        'DELETE FROM messages WHERE chat_id=$1',
+        [room.name],
+      )
+      await db.none(
+        'DELETE FROM chats WHERE name=$1',
+        [room.name],
+      )
+    }
+
     res.status(200).json({ msg: 'Successfully blocked user' });
   } catch (e) {
     res.status(400).json({ msg: "Couldn't block user" });
@@ -571,7 +626,7 @@ app.post('/user-report', authenticateToken, async (req, res) => {
   const receiver = req.body.receiver;
 
   if (sender === receiver)
-    return res.status(400).json({ msg: 'You cannot report yourself' });
+    return res.status(200).json({ msg: 'You cannot report yourself' });
 
   try {
     const data = await db.any(
@@ -579,7 +634,7 @@ app.post('/user-report', authenticateToken, async (req, res) => {
       [sender, receiver]
     );
     if (data.length !== 0)
-      return res.status(400).json({ msg: 'User already reported' });
+      return res.status(200).json({ msg: 'User already reported' });
     await db.none(
       'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
       [sender, receiver]
@@ -634,7 +689,9 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
   if (req.params && req.params.user_id) targetId = req.params.user_id;
   try {
     const user = await getUserInfos(targetId);
-    sendNotification(myId, targetId, 'view');
+    user.last_connexion = timeDifference(user.last_connexion);
+    await sendNotification(myId, targetId, 'view');
+    await recalculUserScore(targetId);
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -698,12 +755,21 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = (id, data) => {
-  io.to(getSocketById(id)).emit('receiveChatMessage', data);
+const sendMessage = async (myId, targetId, data) => {
+  await sendNotification(myId, targetId, 'message');
+  io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
 };
+
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   const names = req.body.room.split('-');
-  const receiverId = names[0] === req.user.user_id ? names[0] : names[1];
+  let receiverId = '0';
+  let senderId = '0';
+  Number(names[0]) !== req.user.user_id ? receiverId = names[0] : receiverId = names[1];
+  Number(names[0]) === req.user.user_id ? senderId = names[0] : senderId = names[1];
+
+  if (await userIsBlocked(senderId, receiverId) === true)
+    return
+  
   if (
     (await isIdInRoom(req.user.user_id, req.body.room)) &&
     req.body.message.length > 0
@@ -716,7 +782,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
       chat_id: req.body.room,
       message: req.body.message,
     };
-    sendMessage(receiverId, data);
+    sendMessage(senderId, receiverId, data);
     res.send(data);
   } else {
     res.sendStatus(403);
@@ -1007,20 +1073,30 @@ const chatName = (id1, id2) => {
 };
 
 const matchDetector = async (myId, targetId) => {
-  const like = await db.oneOrNone(
-    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-    [targetId, myId]
-  );
-  if (like) {
-    await db.any(
-      'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
-      [myId, targetId, chatName(myId, targetId)]
+  try {
+    const like = await db.oneOrNone(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [targetId, myId]
     );
-    sendNotification(myId, targetId, 'match');
-    sendNotification(targetId, myId, 'match');
-    return true;
+    if (like) {
+      const name = chatName(myId, targetId);
+      const alreadyExist = await db.oneOrNone(
+        'SELECT * FROM chats WHERE name=$1',
+        [name],
+      );
+      if (!alreadyExist) {
+        await db.any(
+          'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+          [myId, targetId, chatName(myId, targetId)]
+        );
+        await sendNotification(myId, targetId, 'match');
+        await sendNotification(targetId, myId, 'match');
+        await recalculUserScore(myId);
+        await recalculUserScore(targetId);
+      }
+    }
+  } catch {
   }
-  return false;
 };
 
 async function postNotification(sender, receiver, type) {
@@ -1078,56 +1154,65 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
     });
 });
 
-app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = Number(req.body.targetId);
-
-  const user = await getUserInfos(req.user.user_id);
-  if (user.user_id === targetId)
-    return res.status(400).json({ msg: 'You cannot like yourself' });
-
-  const like = await db.any(
-    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-    [user.user_id, targetId]
-  );
-  if (like.length !== 0)
-    return res.status(200).json({ msg: 'User already liked' });
-
-  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-
+async function recalculUserScore(myId) {
   try {
-    await db.any(sql, [user.user_id, targetId]);
-  } catch (e) {
-    return res.status(500).json(e);
+    const positiveCount = await db.oneOrNone(
+      `SELECT COUNT(*) FROM notifications WHERE user_id_receiver=$1 AND (type='view' OR type='match')`,
+      [myId],
+    );
+    const likesCount = await db.oneOrNone(
+      `SELECT COUNT(*) FROM likes WHERE target_id=$1`,
+      [myId],
+    ); 
+    const newScore = Number(positiveCount.count) + Number(likesCount.count);
+    await db.none(
+      `UPDATE users SET score=$1 WHERE user_id=$2`,
+      [newScore, myId],
+    )
+  } catch {
   }
+}
 
-  sendNotification(req.user.user_id, targetId, 'like');
-  matchDetector(user.user_id, targetId);
-  res.sendStatus(200);
+app.post('/like', authenticateToken, async (req, res) => {
+  try {
+    const targetId = Number(req.body.targetId);
+    const user = await getUserInfos(req.user.user_id);
+    if (user.user_id === targetId)
+      return res.status(400).json({ msg: 'You cannot like yourself' });
+
+    const like = await db.any(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [user.user_id, targetId]
+    );
+    if (like.length !== 0)
+      return res.status(200).json({ msg: 'User already liked' });
+
+    const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+    await db.any(sql, [user.user_id, targetId]).catch(err => {
+      res.status(500).json(err);
+    });
+    await sendNotification(req.user.user_id, targetId, 'like');
+    await recalculUserScore(targetId);
+    matchDetector(user.user_id, targetId);
+    return res.sendStatus(200);
+  } catch(_e) {
+    return res.status(500);
+  }
 });
 
 app.post('/unlike', authenticateToken, async (req, res) => {
+  try {
   const targetId = req.body.targetId;
   const user = await getUserInfos(req.user.user_id);
-  // console.log(typeof(targetId), targetId);
   if (user.user_id === targetId)
     return res.status(400).json({ msg: 'You cannot unlike yourself' });
-
-  // const data = await db.oneOrNone(
-  //   'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-  //   [user.user_id, targetId]
-  // );
-  // if (!data)
-  //   return res.status(200).json({ msg: 'User must be liked first' });
-  await db
-    .any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
-      user.user_id,
-      targetId,
-    ])
-    .catch(err => {
-      return res.status(500).json(err);
-    });
-  sendNotification(req.user.user_id, targetId, 'unlike');
+  await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [user.user_id, targetId])
+  await sendNotification(req.user.user_id, targetId, 'unlike');
+  await recalculUserScore(targetId);
   return res.sendStatus(200);
+} catch(e) {
+  return res.status(500).json(e);
+}
 });
 
 app.post('/view', authenticateToken, async (req, res) => {
