@@ -4,8 +4,10 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4 v-if="online === false">Last connexion: {{ last_connexion }}</h4>
-    <h4 v-else>Connected</h4>
+    <h4 v-if="(user_name !== '' && online === true) || id === self_id">
+      Connected
+    </h4>
+    <h4 v-else-if="user_name !== ''">Last connexion: {{ last_connexion }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -203,7 +205,7 @@ export default {
       bio: '',
       tags: [],
       score: 0,
-      online: false,
+      online: true,
       last_connexion: '',
       profile_pic: '',
 
@@ -221,7 +223,7 @@ export default {
       this.self_id = e.data.user_id;
     });
 
-    this.getInfos();
+    await this.getInfos();
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
@@ -230,7 +232,11 @@ export default {
   mounted() {
     this.socket = this.$store.socket;
     this.socket.on('online', async usersOnline => {
+      console.log(usersOnline);
+      console.log(this.id);
+      console.log('socket: ', this.online);
       const found = usersOnline.find(e => Number(e) === this.id);
+      console.log(found);
       if (found) this.online = true;
       else {
         await this.getInfos();
@@ -251,12 +257,8 @@ export default {
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;
-        this.online = e.data.online;
-        if (this.self_id === this.id) this.online = true;
         this.last_connexion = e.data.last_connexion;
-
         this.profile_pic = e.data.profile_pic;
-
         if (e.data.age) this.birth_date = new Date(e.data.age);
       });
     },

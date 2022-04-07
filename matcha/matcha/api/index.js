@@ -86,15 +86,6 @@ function isConnected(userId) {
   return false;
 }
 
-function lastConnexion(userId) {
-  return db.one(
-    'SELECT * FROM users WHERE user_id=$1',
-    userId,
-  ).then(user => {
-    return timeDifference(user.last_connexion);
-  });
-};
-
 function userIsBlocked(myId, targetId) {
   const myIdInt = Number(myId);
   const targetIdInt = Number(targetId);
@@ -516,8 +507,7 @@ function setLastConnexion(id) {
 
 app.post('/logout', authenticateToken, async (req, res) => {
   try {
-    const user = await getUserInfos(req.user.user_id);
-    await setLastConnexion(user.user_id);
+    await setLastConnexion(req.user.user_id);
     return res.status(200).json({ msg: 'Successfully logged out' });
   } catch(e) {
     return res.status(403).send({ msg: 'User is not found' });
@@ -634,8 +624,7 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
   if (req.params && req.params.user_id) targetId = req.params.user_id;
   try {
     const user = await getUserInfos(targetId);
-    user.online = isConnected();
-    user.last_connexion = await lastConnexion(targetId);
+    user.last_connexion = timeDifference(user.last_connexion);
     await sendNotification(myId, targetId, 'view');
     await recalculUserScore(targetId);
     res.status(200).json(user);
