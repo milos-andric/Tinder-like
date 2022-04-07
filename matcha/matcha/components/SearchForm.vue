@@ -97,7 +97,7 @@
         block
         variant="secondary"
       >
-        Fame
+        Fame (superieur à)
       </b-button>
       <b-collapse
         id="fame-accordion"
@@ -185,6 +185,7 @@ export default {
     locationSlider: {
       value: 20,
       min: 10,
+      max: 1000,
     },
     fameSlider: {
       value: 20,
@@ -204,7 +205,8 @@ export default {
       },
       { field: 'last_name', sortable: true, filter: true },
       { field: 'age', sortable: true, filter: true },
-      { field: 'score', sortable: true, filter: true },
+      { headerName: 'Fame', field: 'score', sortable: true, filter: true },
+      { field: 'distance', sortable: true, filter: true },
     ];
   },
   methods: {
@@ -215,10 +217,11 @@ export default {
         if (this.firstChecked === true) search.first_name = this.firstValue;
         if (this.ageChecked === true) search.age = this.ageSlider.value;
         if (this.locationChecked === true)
-          search.location = this.locationSlider.value;
+          search.distance = this.locationSlider.value;
         if (this.fameChecked === true) search.fame = this.fameSlider.value;
         if (this.tagsChecked === true) search.tags = this.tagsValue;
-
+        const ip = await this.$axios.get('/getIP');
+        search.ip = ip.data.ip;
         const res = await this.$axios.post('search', { search });
         this.list = res.data;
         this.rowData = res.data;

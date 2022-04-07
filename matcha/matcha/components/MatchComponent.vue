@@ -104,7 +104,6 @@ export default {
   async beforeMount() {
     const resultIp = await this.$axios.get('/getIP');
     this.ip = resultIp.data.ip;
-    console.log(this.ip);
     const res = await this.$axios.post('getRecommandation', {
       order: null,
       ip: this.ip,

@@ -833,111 +833,72 @@ app.get('/is-online/:target_id', authenticateToken, (req, res) => {
   return res.status(200).json(isConnected(id));
 });
 
-app.post('/search', authenticateToken, (req, res) => {
-  // console.log(req.body);
+app.post('/search', authenticateToken, async (req, res) => {
   // sanitize all inputs.
   // verify no additional data
   // verify data type value
   // search db
   if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
 
-  let sql = '';
-  let counter = 0;
-  const values = [];
-
-  if (req.body.search.location) {
-    sql = `SELECT *, (
+  let sql;
+  let ids = await db.any(`SELECT user_id FROM users`);
+  ids = ids.map(e => e.user_id);
+  const ll = getLL(req.user, req.body.search.ip);
+  if (req.body.search.distance && ids.length) {
+    sql = `SELECT * FROM (SELECT user_id, (
+      6371 *
+      acos(cos(radians($3)) *
+      cos(radians(users.latitude)) *
+      cos(radians(users.longitude) -
+      radians($4)) +
+      sin(radians($3)) *
+      sin(radians(users.latitude)))
+      ) AS distance FROM users) al WHERE user_id IN ($1:csv) AND distance < $2`;
+    ids = await db.any(sql, [ids, req.body.search.distance, ll[0], ll[1]]);
+    ids = ids.map(e => e.user_id);
+  }
+  if (req.body.search.last_name && ids.length) {
+    sql =
+      'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND last_name ILIKE $2';
+    const lastName = '%' + req.body.search.last_name + '%';
+    ids = await db.any(sql, [ids, lastName]);
+    ids = ids.map(e => e.user_id);
+  }
+  if (req.body.search.first_name && ids.length) {
+    sql =
+      'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND first_name ILIKE $2';
+    const lastName = '%' + req.body.search.first_name + '%';
+    ids = await db.any(sql, [ids, lastName]);
+    ids = ids.map(e => e.user_id);
+  }
+  if (req.body.search.age && ids.length) {
+    sql =
+      'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND age BETWEEN $2 AND $3';
+    const maxDate = new Date();
+    maxDate.setYear(maxDate.getFullYear() - req.body.search.age[0]);
+    const minDate = new Date();
+    minDate.setYear(minDate.getFullYear() - req.body.search.age[1]);
+    ids = await db.any(sql, [ids, minDate, maxDate]);
+    ids = ids.map(e => e.user_id);
+  }
+  if (req.body.search.fame) {
+    sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score > $2';
+    ids = await db.any(sql, [ids, req.body.search.fame]);
+    ids = ids.map(e => e.user_id);
+  }
+  sql = `SELECT *,distance FROM (SELECT *, (
     6371 *
-    acos(cos(radians(48.856614)) *
+    acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
     cos(radians(users.longitude) -
-    radians(2.3522219)) +
-    sin(radians(48.856614)) *
-    sin(radians(users.latitude )))
-    ) AS distance FROM users`;
-    console.log(req.user.latitude);
-    console.log(req.user.longitude);
-    // values.push(req.user.latitude);
-    // values.push(req.user.longitude);
-    // counter = 2;
-  } else {
-    sql = `Select * FROM users`;
-  }
-
-  if (Object.keys(req.body.search).length > 0) {
-    sql += ' WHERE';
-    if (req.body.search.last_name) {
-      counter++;
-      if (
-        (counter > 1 && !req.body.search.location) ||
-        (counter >= 2 && req.body.search.location)
-      ) {
-        sql += ' AND';
-      }
-      sql += ' last_name LIKE $' + counter + '';
-      const lastName = '%' + req.body.search.last_name + '%';
-      values.push(lastName);
-    }
-    if (req.body.search.first_name) {
-      counter++;
-      if (
-        (counter > 1 && !req.body.search.location) ||
-        (counter >= 2 && req.body.search.location)
-      ) {
-        sql += ' AND';
-      }
-      sql += ' first_name LIKE $' + counter + '';
-      const firstName = '%' + req.body.search.first_name + '%';
-      values.push(firstName);
-    }
-    if (req.body.search.age) {
-      counter++;
-      if (
-        (counter > 1 && !req.body.search.location) ||
-        (counter >= 2 && req.body.search.location)
-      ) {
-        sql += ' AND';
-      }
-      sql += ' age BETWEEN' + ' $' + counter;
-      counter++;
-      sql += ' AND' + ' $' + counter;
-      const maxDate = new Date();
-      maxDate.setYear(maxDate.getFullYear() - req.body.search.age[0]);
-      const minDate = new Date();
-      minDate.setYear(minDate.getFullYear() - req.body.search.age[1]);
-      values.push(minDate);
-      values.push(maxDate);
-    }
-    if (req.body.search.fame) {
-      counter++;
-      if (
-        (counter > 1 && !req.body.search.location) ||
-        (counter >= 2 && req.body.search.location)
-      ) {
-        sql += ' AND';
-      }
-      sql += ' score >=' + ' $' + counter;
-      values.push(req.body.search.fame);
-    }
-    if (req.body.search.location) {
-      counter++;
-      sql =
-        'SELECT * FROM (' +
-        sql +
-        ') AS t WHERE t.distance BETWEEN 0 AND $' +
-        counter;
-      const distance = req.body.search.location;
-      values.push(distance);
-    }
-    console.log(sql, values);
-    db.any(sql, values).then(data => {
-      data.forEach(e => {
-        const age = new Date().getFullYear() - new Date(e.age).getFullYear();
-        e.age = age;
-      });
-      res.status(200).send(data);
-    });
-  }
+    radians($3)) +
+    sin(radians($2)) *
+    sin(radians(users.latitude)))
+    ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
+  if (ids.length) {
+    const find = await db.any(sql, [ids, ll[0], ll[1]]);
+    return res.status(200).send(find);
+  } else res.status(200).send([]);
 });
 
 app.post('/registerMany', async (req, res) => {
@@ -1131,28 +1092,14 @@ app.post('/view', authenticateToken, async (req, res) => {
   res.sendStatus(200);
 });
 
-async function findPartnerFor(user, pos) {
+async function findPartnerFor(user, ip) {
   // filter by gender and tags
   // order by distance then by fame
   // exclude block view like
-  let lat;
-  let long;
-  if (pos) {
-    lat = pos[0];
-    long = pos[1];
-  }
   const data = [user.user_id];
-  if (!user.latitude && !user.longitude && lat && long) {
-    data.push(lat);
-    data.push(long);
-    // await insertLatLong(user.user_id, lat, long);
-  } else if (user.latitude && user.longitude) {
-    data.push(user.latitude);
-    data.push(user.longitude);
-  } else {
-    data.push(48.856614);
-    data.push(2.3522219);
-  }
+  const ll = getLL(user, ip);
+  data.push(ll[0]);
+  data.push(ll[1]);
   let sql = `SELECT *,
   (
     6371 *
@@ -1180,12 +1127,24 @@ async function findPartnerFor(user, pos) {
   return res;
 }
 
+function getLL(user, ip) {
+  if (user.latitude && user.longitude) {
+    return [user.latitude, user.longitude];
+  } else {
+    const pos = getPosById(ip);
+    if (pos) {
+      return [pos[0], pos[1]];
+    } else {
+      return [48.856614, 2.3522219]; // paris
+    }
+  }
+}
+
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   // console.log(req.body.ip);
-  const pos = getPosById(req.body.ip);
   // console.log(pos);
   const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartnerFor(user, pos);
+  const partner = await findPartnerFor(user, req.body.ip);
 
   res.status(200).json(partner);
 });
