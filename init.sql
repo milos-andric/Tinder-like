@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS "users" (
     "gender" INT NOT NULL,
     "orientation" INT DEFAULT 2,
     "bio" TEXT,
-    "tags" VARCHAR(16)[],
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
     "activation_code" VARCHAR ( 512 ) NOT NULL,
@@ -19,8 +18,6 @@ CREATE TABLE IF NOT EXISTS "users" (
     "longitude" FLOAT,
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
-
-
 
 CREATE TABLE IF NOT EXISTS "images" (
     "image_id" serial PRIMARY KEY,
@@ -105,6 +102,21 @@ CREATE TABLE IF NOT EXISTS "notifications" (
     CONSTRAINT "fk_user_receiver" FOREIGN KEY("user_id_receiver") REFERENCES "users"("user_id")
 );
 
+CREATE TABLE IF NOT EXISTS "tags" (
+    "tag_id" serial PRIMARY KEY,
+    "label" VARCHAR(16) UNIQUE NOT NULL,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "user_tags" ( 
+    "user_tag_id" serial PRIMARY KEY,
+    "tag_id" INT NOT NULL,
+    "user_id"  INT NOT NULL,
+
+    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("user_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_tags_tag_id" FOREIGN KEY("tag_id") REFERENCES "tags"("tag_id")
+);
+
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
     VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', NOW());
 
@@ -158,3 +170,11 @@ INSERT into "messages"
 INSERT into "messages"
     ( "sender_id", "chat_id", "message", "created_on")
     VALUES (1, '1-2', 'db', NOW());
+
+INSERT into "tags"
+    ("label")
+    VALUES ('chien');
+
+INSERT INTO "user_tags" 
+    ("tag_id", "user_id") 
+    VALUES (1, 1);

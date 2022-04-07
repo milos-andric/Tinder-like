@@ -142,6 +142,20 @@ const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 };
 
+const getUserTags = async id => {
+  try {
+    const ret = [];
+    const sql =
+      'SELECT t.label FROM user_tags u JOIN tags t ON t.tag_id=u.tag_id WHERE u.user_id=$1';
+    const tags = await db.manyOrNone(sql, [id]);
+    tags.forEach(e => ret.push(e.label));
+    console.log(ret);
+    return ret;
+  } catch (e) {
+    return [];
+  }
+};
+
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
@@ -149,6 +163,14 @@ const getUserInfos = async id => {
       id
     );
     delete data.password;
+    // const data = await global.db.one(
+    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
+    //   id
+    // );
+    
+
+    // sortir les tags sous forme de tableau dans data.tags
+    data.tags = await getUserTags(data.user_id);
 
     if (data.profile_pic)
       data.profile_pic = await global.db.oneOrNone(
@@ -333,6 +355,42 @@ function validateLocation() {
   };
 }
 
+const updateTags = async (userId, tags) => {
+  // Add tags in tag list (they are unique so just ignore conflict)
+  // If any db error it ll be catched later in /updateUserInfo so
+  //    no need for try catch
+  // We wont delete them even if unused tho i guess
+
+  // /!\ tag primary key id seems to increment even on conflict ??
+
+  const tagsId = [];
+
+  // cant use foreach cause no async (couldnt retrieve tagsId later)
+  for (let i = 0; i < tags.length; i++) {
+    const newTagId = await db.one(
+      `INSERT INTO tags (label) VALUES ($1)
+        ON CONFLICT ON CONSTRAINT tags_label_key
+        DO UPDATE SET label=$1 RETURNING tag_id`,
+      [tags[i]]
+    );
+
+    tagsId.push(newTagId.tag_id);
+  }
+
+  // Add user relational tags (will be more difficult)
+  //    - Delete all user's tags for less difficulty (dont hurt me robz)
+  //    - Add new tags
+
+  db.none('DELETE FROM user_tags WHERE user_id = $1', [userId]);
+
+  tagsId.forEach(async tag => {
+    await db.none(
+      `INSERT INTO user_tags (tag_id, user_id) VALUES ($1, $2)`,
+      [tag, userId]
+    );
+  })
+};
+
 app.post(
   '/updateUserInfo',
   authenticateToken,
@@ -354,27 +412,32 @@ app.post(
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
-  (req, res) => {
-    const sql = `UPDATE users SET
-            ( first_name, last_name, user_name, email, age, gender, orientation, bio, tags, latitude, longitude )
-            = ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 ) WHERE user_id=$12`;
+  async (req, res) => {
+    try {
+      const sql = `UPDATE users SET
+            ( first_name, last_name, user_name, email, age, gender, orientation, bio, latitude, longitude )
+            = ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ) WHERE user_id=$11`;
 
-    db.none(sql, [
-      req.body.first_name,
-      req.body.last_name,
-      req.body.user_name,
-      req.body.email,
-      req.body.birth_date,
-      req.body.gender,
-      req.body.orientation,
-      req.body.bio,
-      req.body.tags,
-      req.body.ll[0],
-      req.body.ll[1],
-      req.user.user_id,
-    ])
-      .then(data => res.status(200).json(data))
-      .catch(() => res.status(400).json({ msg: 'Database error' }));
+      const data = await db.none(sql, [
+        req.body.first_name,
+        req.body.last_name,
+        req.body.user_name,
+        req.body.email,
+        req.body.birth_date,
+        req.body.gender,
+        req.body.orientation,
+        req.body.bio,
+        req.body.ll[0],
+        req.body.ll[1],
+        req.user.user_id,
+      ]);
+
+      await updateTags(req.user.user_id, req.body.tags);
+
+      res.status(200).json(data);
+    } catch (e) {
+      res.status(400).json({ msg: 'Database error' });
+    }
   }
 );
 
