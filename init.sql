@@ -11,13 +11,15 @@ CREATE TABLE IF NOT EXISTS "users" (
     "gender" INT NOT NULL,
     "orientation" INT DEFAULT 2,
     "bio" TEXT,
-    "tags" VARCHAR(16)[],
+    "tags_users_id" INT NOT NULL,
     "profile_pic" INT DEFAULT NULL,
     "score" INT DEFAULT 0,
     "activation_code" VARCHAR ( 512 ) NOT NULL,
     "latitude" FLOAT,
     "longitude" FLOAT,
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
+
+    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("tags_users_id") REFERENCES "tags_users"(users_id")
 );
 
 
@@ -103,6 +105,20 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 
     CONSTRAINT "fk_user_send" FOREIGN KEY("user_id_send") REFERENCES "users"("user_id"),
     CONSTRAINT "fk_user_receiver" FOREIGN KEY("user_id_receiver") REFERENCES "users"("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "tags" (
+    "tags_id" serial PRIMARY KEY,
+    "label" VARCHAR(16) NOT NULL,
+    "tags_users_id" INT NOT NULL,
+    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("tags_users_id") REFERENCES "tags_users"("tags_id"),
+);
+
+CREATE TABLE IF NOT EXISTS "tags_users" (
+    "tags_users_id" serial PRIMARY KEY,
+    "users_id"  INT NOT NULL,
+    "tags_id" INT NOT NULL,
+    CONSTRAINT "fk_tags_user_id" FOREIGN KEY("tags_users_id") REFERENCES "tags_users"("tags_id"),
 );
 
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
