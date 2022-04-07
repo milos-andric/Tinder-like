@@ -72,7 +72,7 @@ Par :
 
 - [x] age
 - [x] fame
-- [ ] location
+- [x] location
 - [ ] tag
 
 [x] filtrable + triable
