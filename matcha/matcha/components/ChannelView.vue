@@ -11,7 +11,7 @@
         {{ channel.pal_name }}
       </div>
     </div>
-    <div v-else>Lol</div>
+    <div v-else>No channel found (like back user for create channel)</div>
   </div>
 </template>
 

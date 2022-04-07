@@ -13,7 +13,7 @@ import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
 import pgPromise from 'pg-promise';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import buildFactory from '../model/factory';
 
 import {
@@ -67,9 +67,10 @@ function emitNotifications(socketIds, notif) {
 }
 
 function getSocketById(userId) {
-  const userIdInt = Number(userId);
+  // const userIdInt = Number(userId);
   const socketList = users
-    .filter(e => e.user_id === userIdInt)
+    // .filter(e => e.user_id === userIdInt)
+    .filter(e => e.user_id === userId)
     .map(e => e.socket_id);
   return socketList;
 }
@@ -103,21 +104,16 @@ function userIsBlocked(myId, targetId) {
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
-  // remake: handle input
   const myIdInt = Number(myId);
   const targetIdInt = Number(targetId);
   const typeNotifString = String(typeNotif);
-  const blocked = await userIsBlocked(myIdInt, targetIdInt);
-  if (blocked === true)
+  if (await userIsBlocked(myIdInt, targetIdInt) === true)
     return;
-  const alreadyNotified = await db.oneOrNone("SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4", [typeNotifString, myIdInt, targetIdInt, false])
+  const alreadyNotified = await db.oneOrNone(
+    `SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4`,
+    [typeNotifString, myIdInt, targetIdInt, false],
+  )
   if (!alreadyNotified) {
-  // if (!alreadyNotified || String(alreadyNotified.type) === "message") {
-  //   if (alreadyNotified) {
-  //     const messageRead = await db.oneOrNone("SELECT * FROM notifications WHERE notification_id=$1 AND type=$2 AND user_id_send=$3 AND watched=$4", [alreadyNotified.notification_id, "message", myIdInt, false]);
-  //     if (messageRead)
-  //       return;
-  //   }
     if (targetIdInt !== myIdInt) {
       const socketList = getSocketById(targetIdInt);
       const data = await postNotification(
@@ -524,6 +520,22 @@ app.post('/user-block', authenticateToken, async (req, res) => {
       'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
       [sender, receiver]
     );
+    
+    const room = await db.oneOrNone(
+      'SELECT * FROM chats WHERE (first_id=$1 AND second_id=$2) OR (second_id=$1 AND first_id=$2)',
+      [sender, receiver],
+    )
+    if (room) {
+      await db.none(
+        'DELETE FROM messages WHERE chat_id=$1',
+        [room.name],
+      )
+      await db.none(
+        'DELETE FROM chats WHERE name=$1',
+        [room.name],
+      )
+    }
+
     res.status(200).json({ msg: 'Successfully blocked user' });
   } catch (e) {
     res.status(400).json({ msg: "Couldn't block user" });
@@ -637,13 +649,8 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = async (myId, targetId, data) => {
+const sendMessage = (myId, targetId, data) => {
   sendNotification(myId, targetId, 'message');
-  // const blocked = await userIsBlocked(myId, targetId);
-  // if (blocked === true) {
-  //   io.to(getSocketById(myId)).emit('receiveChatMessage', data);
-  //   return;
-  // }
   io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
 };
 
@@ -653,6 +660,10 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   let senderId = '0';
   Number(names[0]) !== req.user.user_id ? receiverId = names[0] : receiverId = names[1];
   Number(names[0]) === req.user.user_id ? senderId = names[0] : senderId = names[1];
+
+  if (await userIsBlocked(senderId, receiverId) === true)
+    return
+  
   if (
     (await isIdInRoom(req.user.user_id, req.body.room)) &&
     req.body.message.length > 0

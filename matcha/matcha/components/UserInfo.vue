@@ -251,7 +251,6 @@ export default {
         this.bio = e.data.bio;
         this.tags = e.data.tags;
         this.online = e.data.online;
-        console.log(typeof this.self_id, typeof this.id);
         if (this.self_id === this.id) this.online = true;
         this.last_connexion = e.data.last_connexion;
 
