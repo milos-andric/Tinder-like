@@ -1,7 +1,7 @@
 # Matcha
 
-
 Global :
+
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
 - [ ] mobile + small resolution
@@ -53,7 +53,7 @@ La mienne et celle des autres
 
 ## Suggestion page
 
-[x]  criteria exclusif: gender
+[x] criteria exclusif: gender
 
 [ ] criteria avec coef:
 
@@ -92,3 +92,19 @@ Par :
 - [ ] The user received a message.
 - [x] “liked” user “liked” back.
 - [x] connected user “unliked” you.
+
+## Pensebête
+
+Chat:
+
+- press enter
+- scroll auto
+- message too big
+- strip message
+
+## Verif
+
+- Password (not send getUserInfos)
+- email (not send getUserInfos + everywhere)
+
+http://localhost:8000/api/user/21 pending /user/id

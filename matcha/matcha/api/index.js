@@ -132,10 +132,7 @@ io.on('connection', socket => {
         user_id: user.user_id,
         socket_id: socket.id,
       });
-      io.emit(
-        'online',
-        users.map(e => e.user_id)
-      );
+      io.emit('online', users.map(e => e.user_id));
     } else {
       socket.disconnect(true);
     }
