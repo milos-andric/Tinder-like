@@ -163,6 +163,11 @@ const getUserInfos = async id => {
       id
     );
     delete data.password;
+    // const data = await global.db.one(
+    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
+    //   id
+    // );
+    
 
     // sortir les tags sous forme de tableau dans data.tags
     data.tags = await getUserTags(data.user_id);
