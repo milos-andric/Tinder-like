@@ -442,6 +442,8 @@ app.post('/upload-image', authenticateToken, (req, res) => {
     return res.status(400).json({ msg: 'No files were uploaded.' });
 
   const image = req.files.image;
+  if (image.size > 50000)
+    return res.status(413).json({ msg: 'File too heavy.' });
   const imageExt = path.extname(image.name);
   const imagePath = '/uploads/' + req.user.user_id + '/' + uuid.v1() + imageExt;
   const allowedExt = ['.png', '.jpg', '.jpeg'];

@@ -180,20 +180,23 @@ export default {
       const formData = new FormData();
       formData.append('image', this.imageInput);
 
-      await this.$axios
-        .post('/upload-image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-        .then(() => {
+      if (this.imageInput.size < 50000) {
+        try {
+          await this.$axios.post('/upload-image', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
           this.alertStatus = false;
           this.getUserData();
-        })
-        .catch(e => {
+        } catch (e) {
           this.alertMsg = e.response.data.msg;
           this.alertStatus = true;
-        });
+        }
+      } else {
+        this.alertMsg = 'File too heavy.';
+        this.alertStatus = true;
+      }
     },
   },
 };
