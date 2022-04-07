@@ -8,7 +8,7 @@ function buildFactory() {
       gender: factory.chance('integer', { min: 0, max: 1 }),
       first_name: factory.chance('first', { nationality: 'fr' }),
       last_name: factory.chance('last', { nationality: 'fr' }),
-      user_name: factory.seq('User.email', n => `username${n}`),
+      user_name: factory.seq('User.user_name', n => `username${n}`),
       password: '$2b$10$R/y6E88GOfMiSOQzt1xPzeaElXUT3llz7gz/MH5um2Y30DfkpVxDO', // 1234
       activation_code: 'activated',
       age: factory.chance('birthday'),

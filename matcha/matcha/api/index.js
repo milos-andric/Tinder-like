@@ -587,7 +587,8 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
     const user = await getUserInfos(targetId);
     user.online = isConnected();
     user.last_connexion = await lastConnexion(targetId);
-    sendNotification(myId, targetId, 'view');
+    await sendNotification(myId, targetId, 'view');
+    await recalculUserScore(targetId);
     res.status(200).json(user);
   } catch (e) {
     res.status(404).json({ msg: e });
@@ -649,8 +650,8 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = (myId, targetId, data) => {
-  sendNotification(myId, targetId, 'message');
+const sendMessage = async (myId, targetId, data) => {
+  await sendNotification(myId, targetId, 'message');
   io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
 };
 
@@ -822,20 +823,30 @@ const chatName = (id1, id2) => {
 };
 
 const matchDetector = async (myId, targetId) => {
-  const like = await db.oneOrNone(
-    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-    [targetId, myId]
-  );
-  if (like) {
-    await db.any(
-      'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
-      [myId, targetId, chatName(myId, targetId)]
+  try {
+    const like = await db.oneOrNone(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [targetId, myId]
     );
-    sendNotification(myId, targetId, 'match');
-    sendNotification(targetId, myId, 'match');
-    return true;
+    if (like) {
+      const name = chatName(myId, targetId);
+      const alreadyExist = await db.oneOrNone(
+        'SELECT * FROM chats WHERE name=$1',
+        [name],
+      );
+      if (!alreadyExist) {
+        await db.any(
+          'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+          [myId, targetId, chatName(myId, targetId)]
+        );
+        await sendNotification(myId, targetId, 'match');
+        await sendNotification(targetId, myId, 'match');
+        await recalculUserScore(myId);
+        await recalculUserScore(targetId);
+      }
+    }
+  } catch {
   }
-  return false;
 };
 
 async function postNotification(sender, receiver, type) {
@@ -893,26 +904,51 @@ app.get('/get-notifications', authenticateToken, (req, res) => {
     });
 });
 
+async function recalculUserScore(myId) {
+  try {
+    const positiveCount = await db.oneOrNone(
+      `SELECT COUNT(*) FROM notifications WHERE user_id_receiver=$1 AND (type='view' OR type='match')`,
+      [myId],
+    );
+    const likesCount = await db.oneOrNone(
+      `SELECT COUNT(*) FROM likes WHERE target_id=$1`,
+      [myId],
+    ); 
+    const newScore = Number(positiveCount.count) + Number(likesCount.count);
+    await db.none(
+      `UPDATE users SET score=$1 WHERE user_id=$2`,
+      [newScore, myId],
+    )
+  } catch {
+  }
+}
+
 app.post('/like', authenticateToken, async (req, res) => {
-  const targetId = req.body.data.targetId;
-  const user = await getUserInfos(req.user.user_id);
-  if (user.user_id === targetId)
-    return res.status(400).json({ msg: 'You cannot like yourself' });
+  try {
+    const targetId = req.body.data.targetId;
+    const user = await getUserInfos(req.user.user_id);
+    if (user.user_id === targetId)
+      return res.status(400).json({ msg: 'You cannot like yourself' });
 
-  const like = await db.any(
-    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-    [user.user_id, targetId]
-  );
-  if (like.length !== 0)
-    return res.status(200).json({ msg: 'User already liked' });
+    const like = await db.any(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [user.user_id, targetId]
+    );
+    if (like.length !== 0)
+      return res.status(200).json({ msg: 'User already liked' });
 
-  const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-  await db.any(sql, [user.user_id, targetId]).catch(err => {
-    res.status(500).json(err);
-  });
-  sendNotification(req.user.user_id, targetId, 'like');
-  matchDetector(user.user_id, targetId);
-  res.sendStatus(200);
+    const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+    await db.any(sql, [user.user_id, targetId]).catch(err => {
+      res.status(500).json(err);
+    });
+    await sendNotification(req.user.user_id, targetId, 'like');
+    await recalculUserScore(targetId);
+    matchDetector(user.user_id, targetId);
+    return res.sendStatus(200);
+  } catch(_e) {
+    return res.status(500);
+  }
+
 });
 
 app.post('/unlike', authenticateToken, async (req, res) => {
@@ -931,7 +967,8 @@ app.post('/unlike', authenticateToken, async (req, res) => {
   await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [user.user_id, targetId]).catch(err => {
     return res.status(500).json(err);
   });
-  sendNotification(req.user.user_id, targetId, 'unlike');
+  await sendNotification(req.user.user_id, targetId, 'unlike');
+  await recalculUserScore(targetId);
   return res.sendStatus(200);
 });
 
