@@ -170,7 +170,7 @@ io.on('connection', socket => {
     );
   });
 });
-// server.listen(3001);
+server.listen(3001);
 
 // Functions
 
@@ -646,6 +646,18 @@ app.post('/user-report', authenticateToken, async (req, res) => {
     res.status(200).json({ msg: 'Successfully reported user' });
   } catch (e) {
     res.status(400).json({ msg: "Couldn't report user" });
+  }
+});
+
+app.post('/getRandomTags', authenticateToken, async (req, res) => {
+  try {
+    const sql = `SELECT label FROM tags ORDER BY random() LIMIT 3`;
+    const tags = await db.manyOrNone(sql);
+    console.log(tags);
+    if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
+    res.status(200).json({ tags });
+  } catch (_e) {
+    return res.status(500);
   }
 });
 

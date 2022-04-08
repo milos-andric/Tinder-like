@@ -129,6 +129,7 @@
         class="mb-2"
         role="tabpanel"
       >
+        <TagSuggestions numberOfTags="5" />
         <b-form-tags v-model="tagsValue" input-id="tags-basic"></b-form-tags>
       </b-collapse>
 

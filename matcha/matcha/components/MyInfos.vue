@@ -169,6 +169,7 @@
         <label for="tags-basic" class="form-label">
           Type a new tag and press enter
         </label>
+        <TagSuggestions numberOfTags="5" />
         <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
       </div>
 
