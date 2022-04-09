@@ -6,6 +6,7 @@
         v-for="item in tags"
         :key="item.label"
         class="tags-suggestions-units"
+        @click="sendTag(item.label)"
       >
         {{ item.label }}
       </span>
@@ -15,10 +16,10 @@
 
 <script>
 export default {
+  props: ['numberOfTags'],
   data() {
     return {
       tags: [],
-      numberOfTags: 5,
     };
   },
   async beforeMount() {
@@ -28,6 +29,11 @@ export default {
     this.tags = resp.data.tags;
     console.log(this.tags, this.numberOfTags);
   },
+  methods: {
+    sendTag(tag){
+      this.$emit('loadTag', tag)
+    }
+  }
 };
 </script>
 

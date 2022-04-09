@@ -651,8 +651,8 @@ app.post('/user-report', authenticateToken, async (req, res) => {
 
 app.post('/getRandomTags', authenticateToken, async (req, res) => {
   try {
-    const sql = `SELECT label FROM tags ORDER BY random() LIMIT 3`;
-    const tags = await db.manyOrNone(sql);
+    const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
+    const tags = await db.manyOrNone(sql, [req.body.number]);
     console.log(tags);
     if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
     res.status(200).json({ tags });
