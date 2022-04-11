@@ -8,7 +8,7 @@
       <font-awesome-icon color="grey" icon="angle-right" />
     </div>
     <b-sidebar id="sidebar-1" title="Discussions" backdrop shadow width="250px">
-      <div v-if="channels.length" id="v-for-object" class="chan-list">
+      <div v-if="channels.length" class="chan-list">
         <div
           v-for="channel in channels"
           :key="channel.channels"

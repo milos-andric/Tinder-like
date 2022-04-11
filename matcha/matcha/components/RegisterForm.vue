@@ -62,13 +62,7 @@
         <label class="form-label">Gender</label>
         <div class="d-flex">
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="man"
@@ -83,13 +77,7 @@
           </div>
 
           <div
-            class="
-              d-flex
-              flex-column
-              align-items-center
-              justify-content-center
-              flex-fill
-            "
+            class="d-flex flex-column align-items-center justify-content-center flex-fill"
           >
             <input
               id="woman"
@@ -163,12 +151,12 @@ export default {
           gender: this.gender,
         });
 
-        this.successStatus = true
-        this.alertStatus = false
+        this.successStatus = true;
+        this.alertStatus = false;
       } catch (e) {
-        this.errorMsg = e.response.data.msg
-        this.successStatus = false
-        this.alertStatus = true
+        this.errorMsg = e.response.data.msg;
+        this.successStatus = false;
+        this.alertStatus = true;
       }
     },
   },
