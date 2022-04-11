@@ -429,14 +429,14 @@ const updateTags = async (userId, tags) => {
   const toDeleteTags = currentTags.filter(x => !tagsId.includes(x));
   const toAddTags = tagsId.filter(x => !currentTags.includes(x));
 
-   await Promise.all(
-      toDeleteTags.map(async tag => {
-        await db.none(`DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`, [
-          tag,
-          userId,
-        ]);
-      })
-    );
+  await Promise.all(
+    toDeleteTags.map(async tag => {
+      await db.none(
+        `DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`,
+        [tag, userId]
+      );
+    })
+  );
 
   await Promise.all(
     toAddTags.map(async tag => {
@@ -1287,7 +1287,9 @@ app.post('/view', authenticateToken, async (req, res) => {
       `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
       [user.user_id, targetId]
     );
-  } else console.log('ALREADY SEEN');
+  } else {
+    // console.log('ALREADY SEEN');
+  }
 
   res.sendStatus(200);
 });
