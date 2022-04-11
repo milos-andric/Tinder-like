@@ -1,60 +1,60 @@
 version: "3.7"
 
 services:
-  postgres:
-    container_name: postgres_container
-    image: postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: matcha_db
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
-    networks:
-      - postgres
-    restart: unless-stopped
+    postgres:
+        container_name: postgres_container
+        image: postgres
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+            POSTGRES_DB: matcha_db
+        volumes:
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        ports:
+            - "5432:5432"
+        networks:
+            - postgres
+        restart: unless-stopped
 
-  pgadmin:
-    logging:
-      driver: none
-    container_name: pgadmin_container
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-      GUNICORN_ACCESS_LOGFILE: "/dev/null"
-    volumes:
-      - pgadmin:/var/lib/pgadmin
+    pgadmin:
+        logging:
+            driver: none
+        container_name: pgadmin_container
+        image: dpage/pgadmin4
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+            GUNICORN_ACCESS_LOGFILE: "/dev/null"
+        volumes:
+            - pgadmin:/var/lib/pgadmin
 
-    ports:
-      - "${PGADMIN_PORT:-5050}:80"
-    networks:
-      - postgres
-    restart: unless-stopped
+        ports:
+            - "${PGADMIN_PORT:-5050}:80"
+        networks:
+            - postgres
+        restart: unless-stopped
 
-  matcha:
-    build: ./matcha
-    stdin_open: true
-    tty: true
-    container_name: matcha
-    restart: on-failure
-    env_file: .env
-    volumes:
-      - "${PWD}/matcha/matcha:/usr/src/app/"
-    command: sh -c "npm i && npm run dev -- --port 3000"
-    ports:
-      - "8000:3000"
-      - "3001:3001"
-    depends_on:
-      - postgres
-    networks:
-      - postgres
+    matcha:
+        build: ./matcha
+        stdin_open: true
+        tty: true
+        container_name: matcha
+        restart: on-failure
+        env_file: .env
+        volumes:
+            - "${PWD}/matcha/matcha:/usr/src/app/"
+        command: sh -c "npm i && npm run build && npm run start -- --port 3000"
+        ports:
+            - "8000:3000"
+            - "3001:3001"
+        depends_on:
+            - postgres
+        networks:
+            - postgres
 networks:
-  postgres:
-    driver: bridge
+    postgres:
+        driver: bridge
 volumes:
-  postgres:
-  pgadmin:
+    postgres:
+    pgadmin:

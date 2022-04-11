@@ -429,14 +429,14 @@ const updateTags = async (userId, tags) => {
   const toDeleteTags = currentTags.filter(x => !tagsId.includes(x));
   const toAddTags = tagsId.filter(x => !currentTags.includes(x));
 
-   await Promise.all(
-      toDeleteTags.map(async tag => {
-        await db.none(`DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`, [
-          tag,
-          userId,
-        ]);
-      })
-    );
+  await Promise.all(
+    toDeleteTags.map(async tag => {
+      await db.none(
+        `DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`,
+        [tag, userId]
+      );
+    })
+  );
 
   await Promise.all(
     toAddTags.map(async tag => {
