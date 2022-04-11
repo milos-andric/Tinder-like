@@ -28,6 +28,7 @@ import {
   validatePassword,
   validateText,
   validateAge,
+  validateTags,
 } from './validator';
 
 const pgp = pgPromise();
@@ -419,10 +420,26 @@ const updateTags = async (userId, tags) => {
   //    - Delete all user's tags for less difficulty (dont hurt me robz)
   //    - Add new tags
 
-  await db.none('DELETE FROM user_tags WHERE user_id = $1', [userId]);
+  const currentTags = (
+    await db.any('SELECT tag_id FROM user_tags WHERE user_id = $1', userId)
+  ).map(e => {
+    return e.tag_id;
+  });
+
+  const toDeleteTags = currentTags.filter(x => !tagsId.includes(x));
+  const toAddTags = tagsId.filter(x => !currentTags.includes(x));
+
+   await Promise.all(
+      toDeleteTags.map(async tag => {
+        await db.none(`DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`, [
+          tag,
+          userId,
+        ]);
+      })
+    );
 
   await Promise.all(
-    tagsId.map(async tag => {
+    toAddTags.map(async tag => {
       await db.none(`INSERT INTO user_tags (tag_id, user_id) VALUES ($1, $2)`, [
         tag,
         userId,
@@ -452,6 +469,7 @@ app.post(
   validateInt('gender', 0, 1),
   validateInt('orientation', 0, 2),
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
+  validateTags('tags', 'Invalid tag format'),
   async (req, res) => {
     try {
       const sql = `UPDATE users SET
