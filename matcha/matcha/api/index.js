@@ -655,6 +655,18 @@ app.post('/user-report', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/getRandomTags', authenticateToken, async (req, res) => {
+  try {
+    const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
+    const tags = await db.manyOrNone(sql, [req.body.number]);
+    console.log(tags);
+    if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
+    res.status(200).json({ tags });
+  } catch (_e) {
+    return res.status(500);
+  }
+});
+
 // GET routes
 
 function getCityFromLL(latitude, longitude) {
@@ -782,6 +794,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
     : (senderId = names[1]);
 
   if ((await userIsBlocked(senderId, receiverId)) === true) return;
+
   if (
     (await isIdInRoom(req.user.user_id, req.body.room)) &&
     req.body.message.length > 0
@@ -1026,6 +1039,17 @@ app.post('/search', authenticateToken, async (req, res) => {
     sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score > $2';
     ids = await db.any(sql, [ids, req.body.search.fame]);
     ids = ids.map(e => e.user_id);
+  }
+  if (req.body.search.tags && ids.length) {
+    for (let i = 0; i < req.body.search.tags.length; i++) {
+      sql = `SELECT * FROM users AS u
+      JOIN user_tags AS uTag ON u.user_id = uTag.user_id
+      JOIN tags AS tag ON tag.tag_id = uTag.tag_id
+      WHERE u.user_id IN ($1:csv) AND tag.label LIKE $2`;
+      const tags = req.body.search.tags;
+      ids = await db.any(sql, [ids, tags[i]]);
+      ids = ids.map(e => e.user_id);
+    }
   }
   sql = `SELECT *,distance FROM (SELECT *, (
     6371 *
