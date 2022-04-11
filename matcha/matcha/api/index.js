@@ -171,7 +171,7 @@ io.on('connection', socket => {
     );
   });
 });
-server.listen(3001);
+// server.listen(3001);
 
 // Functions
 
@@ -195,7 +195,24 @@ const getUserTags = async id => {
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
-      'SELECT * FROM users WHERE user_id = $1',
+      `SELECT 
+      user_id, 
+      first_name, 
+      last_name, 
+      user_name, 
+      email, 
+      age, 
+      gender, 
+      orientation, 
+      bio, 
+      profile_pic, 
+      score, 
+      activation_code, 
+      latitude, 
+      longitude, 
+      last_connexion, 
+      created_on
+      FROM users WHERE user_id = $1`,
       id
     );
     delete data.password;
@@ -208,7 +225,12 @@ const getUserInfos = async id => {
 
     if (data.profile_pic)
       data.profile_pic = await global.db.oneOrNone(
-        'SELECT * FROM images WHERE image_id = $1',
+        `SELECT
+        image_id,
+        url,
+        user_id,
+        created_on
+        FROM images WHERE image_id = $1`,
         data.profile_pic
       );
     return data;
@@ -219,7 +241,15 @@ const getUserInfos = async id => {
 
 const getUserImages = async id => {
   try {
-    return await global.db.any('SELECT * FROM images WHERE user_id = $1', id);
+    return await global.db.any(
+      `SELECT
+      image_id,
+      url,
+      user_id,
+      created_on
+      FROM images WHERE user_id = $1`,
+      id
+    );
   } catch (e) {
     throw new Error('Database error');
   }
@@ -429,14 +459,14 @@ const updateTags = async (userId, tags) => {
   const toDeleteTags = currentTags.filter(x => !tagsId.includes(x));
   const toAddTags = tagsId.filter(x => !currentTags.includes(x));
 
-   await Promise.all(
-      toDeleteTags.map(async tag => {
-        await db.none(`DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`, [
-          tag,
-          userId,
-        ]);
-      })
-    );
+  await Promise.all(
+    toDeleteTags.map(async tag => {
+      await db.none(
+        `DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`,
+        [tag, userId]
+      );
+    })
+  );
 
   await Promise.all(
     toAddTags.map(async tag => {
@@ -513,7 +543,7 @@ app.post(
         .send({ msg: 'Password confirmation does not match password' });
 
     // Get and check current user's pass
-    db.one(`SELECT * FROM users WHERE user_id=$1`, req.user.user_id)
+    db.one(`SELECT password FROM users WHERE user_id=$1`, req.user.user_id)
       .then(data => {
         bcrypt.compare(req.body.oldPass, data.password, (_err, result) => {
           if (result === true) {
