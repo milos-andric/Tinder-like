@@ -1,7 +1,7 @@
 # Matcha
 
-
 Global :
+
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
 - [ ] mobile + small resolution
@@ -92,3 +92,17 @@ Par :
 - [x] The user received a message.
 - [x] “liked” user “liked” back.
 - [x] connected user “unliked” you.
+
+### pense bete
+
+- [ ] add init tags
+- [ ] block in match
+- [ ] filter sort match
+- [ ] home page
+- [ ] message too big
+- [ ] strip message
+
+- [ ] Password (not send getUserInfos)
+- [ ] email (not send getUserInfos + everywhere)
+
+- launch factory on init

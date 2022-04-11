@@ -129,7 +129,7 @@
         class="mb-2"
         role="tabpanel"
       >
-        <TagSuggestions @loadTag='loadTag' numberOfTags="5" />
+        <TagSuggestions numberOfTags="5" @loadTag="loadTag" />
         <b-form-tags v-model="tagsValue" input-id="tags-basic"></b-form-tags>
       </b-collapse>
 
@@ -231,7 +231,7 @@ export default {
         this.alertStatus = true;
       }
     },
-    loadTag(tag){
+    loadTag(tag) {
       this.tagsValue.push(tag);
     },
   },

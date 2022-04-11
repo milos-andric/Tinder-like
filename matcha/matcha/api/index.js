@@ -1317,7 +1317,9 @@ app.post('/view', authenticateToken, async (req, res) => {
       `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
       [user.user_id, targetId]
     );
-  } else console.log('ALREADY SEEN');
+  } else {
+    // console.log('ALREADY SEEN');
+  }
 
   res.sendStatus(200);
 });

@@ -173,7 +173,7 @@
         <label for="tags-basic" class="form-label">
           Type a new tag and press enter
         </label>
-        <TagSuggestions @loadTag="loadTag" numberOfTags="5" />
+        <TagSuggestions numberOfTags="5" @loadTag="loadTag" />
         <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
       </div>
 
