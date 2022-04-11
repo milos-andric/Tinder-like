@@ -230,12 +230,11 @@ export default {
   },
   mounted() {
     this.socket = this.$store.socket;
-    this.socket.on('online', usersOnline => {
+    this.socket.on('online', async usersOnline => {
       const found = usersOnline.find(e => Number(e) === this.id);
-      console.log(found);
       if (found) this.online = true;
-      else if (this.id ===) {
-        this.last_connexion = 'Now';
+      else {
+        await this.getInfos();
         this.online = false;
       }
     });
@@ -282,9 +281,16 @@ export default {
     },
 
     async isliked() {
-      await this.$axios.get('/isliked/' + this.id).then(e => {
-        this.liked = e.data;
-      });
+      try {
+        await this.$axios.get('/is-liked/' + this.id).then(e => {
+          this.liked = e.data;
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
     },
 
     async like() {

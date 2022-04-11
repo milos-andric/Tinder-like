@@ -68,28 +68,29 @@ export default {
   },
   methods: {
     async getMessage(room) {
-      const resp = await this.$axios.post('getRoomMessages', {
-        room,
-      });
-      this.messages = resp.data;
+      try {
+        const resp = await this.$axios.post('getRoomMessages', {
+          room,
+        });
+        this.messages = resp.data;
+      } catch (e) {}
     },
     async sendMessage() {
-      if (this.input.length > 0) {
-        await this.$axios.post('sendRoomMessages', {
-          room: this.room,
-          message: this.input,
-        });
-      }
-
-      this.input = '';
+      try {
+        if (this.input.length > 0) {
+          await this.$axios.post('sendRoomMessages', {
+            room: this.room,
+            message: this.input,
+          });
+        }
+        this.input = '';
+      } catch (e) {}
     },
     async onChangeActiveRoom(newRoom) {
       try {
         this.room = newRoom;
         await this.getMessage(newRoom);
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
     },
   },
 };
