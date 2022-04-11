@@ -4,7 +4,7 @@
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
       <div class="w-100" style="flex-grow: 1">
-        <div id="v-for-object" class="w-100 chat-list pt-4">
+        <div id="message-box" class="w-100 chat-list pt-4">
           <div
             v-for="item in messages"
             :key="item.messages"
@@ -25,6 +25,7 @@
           autocomplete="off"
           type="text"
           class="input"
+          @keyup.enter="sendMessage()"
         />
 
         <template #append>
@@ -63,6 +64,7 @@ export default {
     this.socket.on('receiveChatMessage', data => {
       if (data.chat_id === this.room) {
         this.messages.push(data);
+        this.scrollToLast();
       }
     });
   },
@@ -72,6 +74,7 @@ export default {
         room,
       });
       this.messages = resp.data;
+      this.scrollToLast();
     },
     async sendMessage() {
       if (this.input.length > 0) {
@@ -84,12 +87,15 @@ export default {
       this.input = '';
     },
     async onChangeActiveRoom(newRoom) {
-      try {
-        this.room = newRoom;
-        await this.getMessage(newRoom);
-      } catch (e) {
-        console.log(e);
-      }
+      this.room = newRoom;
+      await this.getMessage(newRoom);
+    },
+    scrollToLast() {
+      setTimeout(() => {
+        const box = document.getElementById('message-box');
+        const target = box.lastElementChild;
+        target.scrollIntoView();
+      }, 10);
     },
   },
 };
