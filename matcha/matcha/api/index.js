@@ -494,7 +494,6 @@ app.post(
 
       res.status(200).json(data);
     } catch (e) {
-      console.log(e);
       res.status(500).json({ msg: 'Database error' });
     }
   }
@@ -676,7 +675,6 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
   try {
     const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
     const tags = await db.manyOrNone(sql, [req.body.number]);
-    // console.log(tags);
     if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
     res.status(200).json({ tags });
   } catch (_e) {
