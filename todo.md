@@ -46,7 +46,7 @@ La mienne et celle des autres
 - [x] qui a like
 - [x] qui a like en retour donc les gens relier
 - [x] fame rating
-- [ ] gps positioning
+- [x] gps positioning
 - [x] visit history
 - [x] report button
 - [x] block button
@@ -89,6 +89,6 @@ Par :
 
 - [x] The user received a “like”.
 - [x] The user’s profile has been checked.
-- [ ] The user received a message.
+- [x] The user received a message.
 - [x] “liked” user “liked” back.
 - [x] connected user “unliked” you.

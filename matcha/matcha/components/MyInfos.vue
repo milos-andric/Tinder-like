@@ -54,6 +54,10 @@
           name="ville"
         />
       </div>
+      <div v-if="displayCoord">
+        <p class="coord">Latitude : {{ latitude }}</p>
+        <p class="coord">Longitude : {{ longitude }}</p>
+      </div>
 
       <div class="form-outline mb-4">
         <label for="birth_date" class="form-label">Birth date</label>
@@ -213,8 +217,11 @@ export default {
       max_date: maxDate,
       gender: 0,
       orientation: 2,
+      latitude: '',
+      longitude: '',
       ville: '',
       bio: '',
+      displayCoord: false,
       tags: [],
 
       alertStatus: false,
@@ -223,22 +230,32 @@ export default {
     };
   },
   async beforeMount() {
-    await this.$axios.get('/me').then(e => {
-      this.first_name = e.data.first_name;
-      this.last_name = e.data.last_name;
-      this.user_name = e.data.user_name;
-      this.email = e.data.email;
-      this.gender = e.data.gender;
-      this.orientation = e.data.orientation;
-      this.bio = e.data.bio;
-      this.tags = e.data.tags;
-      this.ville = e.data.ville;
-    });
+    await this.getInfo();
   },
   methods: {
+    async getInfo() {
+      await this.$axios.get('/me').then(e => {
+        this.first_name = e.data.first_name;
+        this.last_name = e.data.last_name;
+        this.user_name = e.data.user_name;
+        this.email = e.data.email;
+        this.gender = e.data.gender;
+        this.orientation = e.data.orientation;
+        this.bio = e.data.bio;
+        this.tags = e.data.tags;
+        this.ville = e.data.ville;
+        this.latitude = e.data.latitude;
+        this.longitude = e.data.longitude;
+        if (e.data.latitude) {
+          this.displayCoord = true;
+        } else {
+          this.displayCoord = false;
+        }
+      });
+    },
     async updateInfo() {
-      await this.$axios
-        .post('updateUserInfo', {
+      try {
+        await this.$axios.post('updateUserInfo', {
           first_name: this.first_name,
           last_name: this.last_name,
           user_name: this.user_name,
@@ -249,17 +266,22 @@ export default {
           bio: this.bio,
           tags: this.tags,
           ville: this.ville,
-        })
-        .then(() => {
-          this.successStatus = true;
-          this.alertStatus = false;
-        })
-        .catch(e => {
-          this.errorMsg = e.response.data.msg;
-          this.successStatus = false;
-          this.alertStatus = true;
         });
+        this.successStatus = true;
+        this.alertStatus = false;
+        await this.getInfo();
+      } catch (e) {
+        this.errorMsg = e.response.data.msg;
+        this.successStatus = false;
+        this.alertStatus = true;
+      }
     },
   },
 };
 </script>
+<style>
+.coord {
+  color: grey;
+  size: 0.7rem;
+}
+</style>
