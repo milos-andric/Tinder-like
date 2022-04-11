@@ -403,30 +403,33 @@ const updateTags = async (userId, tags) => {
 
   const tagsId = [];
 
-  // cant use foreach cause no async (couldnt retrieve tagsId later)
-  for (let i = 0; i < tags.length; i++) {
-    const newTagId = await db.one(
-      `INSERT INTO tags (label) VALUES ($1)
-        ON CONFLICT ON CONSTRAINT tags_label_key
-        DO UPDATE SET label=$1 RETURNING tag_id`,
-      [tags[i]]
-    );
+  await Promise.all(
+    tags.map(async tag => {
+      const newTagId = await db.one(
+        `INSERT INTO tags (label) VALUES ($1)
+          ON CONFLICT ON CONSTRAINT tags_label_key
+          DO UPDATE SET label=$1 RETURNING tag_id`,
+        [tag]
+      );
 
-    tagsId.push(newTagId.tag_id);
-  }
+      tagsId.push(newTagId.tag_id);
+    })
+  );
 
   // Add user relational tags (will be more difficult)
   //    - Delete all user's tags for less difficulty (dont hurt me robz)
   //    - Add new tags
 
-  db.none('DELETE FROM user_tags WHERE user_id = $1', [userId]);
+  await db.none('DELETE FROM user_tags WHERE user_id = $1', [userId]);
 
-  tagsId.forEach(async tag => {
-    await db.none(`INSERT INTO user_tags (tag_id, user_id) VALUES ($1, $2)`, [
-      tag,
-      userId,
-    ]);
-  });
+  await Promise.all(
+    tagsId.map(async tag => {
+      await db.none(`INSERT INTO user_tags (tag_id, user_id) VALUES ($1, $2)`, [
+        tag,
+        userId,
+      ]);
+    })
+  );
 };
 
 app.post(
@@ -474,7 +477,8 @@ app.post(
 
       res.status(200).json(data);
     } catch (e) {
-      res.status(400).json({ msg: 'Database error' });
+      console.log(e);
+      res.status(500).json({ msg: 'Database error' });
     }
   }
 );
