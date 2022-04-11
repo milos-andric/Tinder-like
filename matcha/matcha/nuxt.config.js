@@ -55,6 +55,7 @@ export default {
         'faCircleInfo',
         'faPaperPlane',
         'faAngleRight',
+        'faArrowRotateRight',
       ],
     },
   },

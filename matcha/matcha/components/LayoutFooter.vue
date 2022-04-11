@@ -2,12 +2,11 @@
   <div class="bg-primary text-white text-center text-lg-start mt-auto">
     <div class="container p-4">
       <p>Brought by</p>
-
-      <div class="d-flex justify-content-around">
-        <h5 class="text-uppercase w-100">MANDRIC</h5>
-        <h5 class="text-uppercase w-100">RMAZARS</h5>
-        <h5 class="text-uppercase w-100">TMARCON</h5>
-        <h5 class="text-uppercase w-100">JOBENASS</h5>
+      <div id="name-wrapper">
+        <h5 class="text-uppercase p-2">MANDRIC</h5>
+        <h5 class="text-uppercase p-2">RMAZARS</h5>
+        <h5 class="text-uppercase p-2">TMARCON</h5>
+        <h5 class="text-uppercase p-2">JOBENASS</h5>
       </div>
     </div>
 
@@ -17,3 +16,11 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+#name-wrapper {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-around;
+}
+</style>
