@@ -41,7 +41,6 @@
             :key="x.notification_id"
             @click="readNotification(x)"
           >
-            <b-avatar></b-avatar>
             {{ x.message }}
           </b-dropdown-item>
 
@@ -59,15 +58,6 @@
           >
             All as read
           </b-button>
-
-          <!-- <b-alert
-            v-model="alertStatus"
-            :variant="alertVariant"
-            dismissible
-            class="mt-3"
-          >
-            {{ alertMsg }}
-          </b-alert> -->
         </b-nav-item-dropdown>
 
         <!-- Account button -->
@@ -109,9 +99,6 @@ export default {
     return {
       notifications: [],
       length: 0,
-      // alertStatus: false,
-      // alertVariant: 'error',
-      // alertMsg: '',
     };
   },
   mounted() {
@@ -161,12 +148,7 @@ export default {
         );
         if (this.length) this.length -= 1;
         this.$router.push(notification.link);
-        // this.alertStatus = false;
-      } catch (e) {
-        // this.alertMsg = e.response.data.msg;
-        // this.alertVariant = 'danger';
-        // this.alertStatus = true;
-      }
+      } catch (e) {}
     },
 
     async readNotifications() {
@@ -174,29 +156,18 @@ export default {
         await this.$axios.post('/read-notifications');
         this.notifications = [];
         this.length = 0;
-        // this.alertStatus = false;
-      } catch (e) {
-        // this.alertMsg = e.response.data.msg;
-        // this.alertVariant = 'danger';
-        // this.alertStatus = true;
-      }
+      } catch (e) {}
     },
 
     async getNotifications() {
       try {
         const res = await this.$axios.get('/get-notifications');
         this.manageNotifications(res.data);
-        // this.alertStatus = false;
-      } catch (e) {
-        // this.alertMsg = e.response.data.msg;
-        // this.alertVariant = 'danger';
-        // this.alertStatus = true;
-      }
+      } catch (e) {}
     },
 
     lengthNotifications() {
       this.length = this.notifications.length;
-      console.log(this.notifications);
     },
 
     logout() {

@@ -52,7 +52,6 @@ const io = new Server(server, {
   },
 });
 
-// OK
 function socketIdentification(socket) {
   const token = socket.handshake.auth.token.split(' ')[1];
   return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
@@ -66,14 +65,12 @@ function socketIdentification(socket) {
   });
 }
 
-// OK
 function emitNotifications(socketIds, notif) {
   socketIds.forEach(element => {
     io.to(element).emit('receiveNotification', notif);
   });
 }
 
-// OK
 function getSocketById(userId) {
   // const userIdInt = Number(userId);
   const socketList = users
@@ -83,7 +80,6 @@ function getSocketById(userId) {
   return socketList;
 }
 
-// OK
 function userIsBlocked(myId, targetId) {
   const myIdInt = Number(myId);
   const targetIdInt = Number(targetId);
@@ -98,7 +94,6 @@ function userIsBlocked(myId, targetId) {
     });
 }
 
-// OK
 async function sendNotification(myId, targetId, typeNotif) {
   const myIdInt = Number(myId);
   const targetIdInt = Number(targetId);
@@ -123,8 +118,7 @@ async function sendNotification(myId, targetId, typeNotif) {
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
-  // console.log(socket.handshake.auth.token); // parfois undefined TODO
-  if (socket.handshake.auth.token) {
+  if (socket.handshake.auth?.token) {
     const user = socketIdentification(socket);
     if (user) {
       users.push({
@@ -639,7 +633,6 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
   }
 });
 
-// OK
 app.get('/is-liked/:target_id', authenticateToken, async (req, res) => {
   const myIdInt = Number(req.user.user_id);
   const targetIdInt = Number(req.params.target_id);
@@ -1080,13 +1073,12 @@ async function postNotification(sender, receiver, type) {
     [sender, receiver, type]
   );
   const joinUserInfo = await db.any(
-    'SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
+    'SELECT notifications.*, users.user_name, users.created_on FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
     [notification.notification_id]
   );
   return joinUserInfo;
 }
 
-// OK
 app.post('/read-notifications', authenticateToken, async (req, res) => {
   try {
     await db.none(
@@ -1099,7 +1091,6 @@ app.post('/read-notifications', authenticateToken, async (req, res) => {
   }
 });
 
-// OK
 app.post('/read-notification', authenticateToken, async (req, res) => {
   try {
     await db.none(
@@ -1112,11 +1103,10 @@ app.post('/read-notification', authenticateToken, async (req, res) => {
   }
 });
 
-// OK
 app.get('/get-notifications', authenticateToken, async (req, res) => {
   try {
     const notifications = await db.manyOrNone(
-      `SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
+      `SELECT notifications.*, users.user_name, users.created_on FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
       [req.user.user_id]
     );
     return res.status(200).send(notifications);
@@ -1143,7 +1133,6 @@ async function recalculUserScore(myId) {
   } catch {}
 }
 
-// OK
 app.post('/like', authenticateToken, async (req, res) => {
   try {
     const targetIdInt = Number(req.body.targetId);
@@ -1169,7 +1158,6 @@ app.post('/like', authenticateToken, async (req, res) => {
   }
 });
 
-// OK
 app.post('/unlike', authenticateToken, async (req, res) => {
   try {
     const targetId = req.body.targetId;
