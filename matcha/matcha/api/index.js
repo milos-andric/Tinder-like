@@ -43,6 +43,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
+// if (process.env.NODE_ENV === 'production') {
+registerUsers();
+// }
+
 const users = [];
 const http = require('http');
 const { lookup } = require('geoip-lite');
@@ -79,11 +83,6 @@ function getSocketById(userId) {
     .filter(e => e.user_id === userId)
     .map(e => e.socket_id);
   return socketList;
-}
-
-function isConnected(userId) {
-  if (users.find(e => e.user_id === userId)) return true;
-  return false;
 }
 
 function userIsBlocked(myId, targetId) {
@@ -124,8 +123,7 @@ async function sendNotification(myId, targetId, typeNotif) {
 
 io.on('connection', socket => {
   console.log(`${socket.id} is connected to / by io !`);
-  // console.log(socket.handshake.auth.token); // parfois undefined TODO
-  if (socket.handshake.auth.token) {
+  if (socket.handshake.auth?.token) {
     const user = socketIdentification(socket);
     if (user) {
       users.push({
@@ -144,29 +142,24 @@ io.on('connection', socket => {
   }
 
   socket.on('disconnect', _reason => {
-    const userItem = users.find(e => e.socket_id === socket.id);
-    userItem.disconnectId = setTimeout(
+    const client = users.find(e => e.socket_id === socket.id);
+    client.disconnectId = setTimeout(
       function () {
-        if (
-          !users.find(
-            e => e.socket_id === userItem.socket_id && userItem.disconnectId
-          )
-        ) {
-          clearTimeout(userItem.disconnectId);
-        }
-        socket.disconnect(true);
-        users.splice(
-          users.findIndex(obj => obj.socket_id === socket.id),
-          1
+        const find = users.find(
+          e => e.socket_id === client.socket_id && client.disconnectId
         );
-        setLastConnexion(userItem.user_id);
+        if (!find) clearTimeout(client.disconnectId);
+        socket.disconnect(true);
+        const index = users.findIndex(obj => obj.socket_id === socket.id);
+        users.splice(index, 1);
+        setLastConnexion(client.user_id);
         io.emit(
           'online',
           users.map(e => e.user_id)
         );
       },
       2000,
-      userItem,
+      client,
       socket
     );
   });
@@ -178,6 +171,37 @@ server.listen(3001);
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 };
+
+async function registerUsers() {
+  try {
+    const factory = buildFactory();
+    const sql = await factory.attrsMany('User', 500).then(user => {
+      const ret = pgp.helpers.insert(
+        user,
+        [
+          'first_name',
+          'last_name',
+          'user_name',
+          'email',
+          'password',
+          'gender',
+          'score',
+          'bio',
+          'age',
+          'activation_code',
+          'orientation',
+          'latitude',
+          'longitude',
+        ],
+        'users'
+      );
+      return ret;
+    });
+    await db.any(sql);
+  } catch (e) {
+    throw new Error('Generator users has failed.');
+  }
+}
 
 const getUserTags = async id => {
   try {
@@ -195,20 +219,71 @@ const getUserTags = async id => {
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
-      'SELECT * FROM users WHERE user_id = $1',
+      `SELECT user_id,
+      first_name,
+      last_name,
+      user_name,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      latitude,
+      longitude,
+      last_connexion,
+      created_on FROM users WHERE user_id = $1`,
       id
     );
-    delete data.password;
-    // const data = await global.db.one(
-    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
-    //   id
-    // );
-    // sortir les tags sous forme de tableau dans data.tags
     data.tags = await getUserTags(data.user_id);
 
     if (data.profile_pic)
       data.profile_pic = await global.db.oneOrNone(
-        'SELECT * FROM images WHERE image_id = $1',
+        `SELECT
+        image_id,
+        url,
+        user_id,
+        created_on
+        FROM images WHERE image_id = $1`,
+        data.profile_pic
+      );
+    return data;
+  } catch (e) {
+    throw new Error('User is not found');
+  }
+};
+const getUserInfosMe = async id => {
+  try {
+    const data = await global.db.one(
+      `SELECT
+      user_id,
+      first_name,
+      last_name,
+      user_name,
+      email,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      latitude,
+      longitude,
+      last_connexion,
+      created_on
+      FROM users WHERE user_id = $1`,
+      id
+    );
+    data.tags = await getUserTags(data.user_id);
+
+    if (data.profile_pic)
+      data.profile_pic = await global.db.oneOrNone(
+        `SELECT
+        image_id,
+        url,
+        user_id,
+        created_on
+        FROM images WHERE image_id = $1`,
         data.profile_pic
       );
     return data;
@@ -219,7 +294,15 @@ const getUserInfos = async id => {
 
 const getUserImages = async id => {
   try {
-    return await global.db.any('SELECT * FROM images WHERE user_id = $1', id);
+    return await global.db.any(
+      `SELECT
+      image_id,
+      url,
+      user_id,
+      created_on
+      FROM images WHERE user_id = $1`,
+      id
+    );
   } catch (e) {
     throw new Error('Database error');
   }
@@ -310,7 +393,7 @@ app.post(
           };
           transporter.sendMail(mailOptions);
 
-          res.sendStatus(200);
+          return res.sendStatus(200);
         })
         .catch(() => res.status(400).json({ msg: 'User already exists' }));
     });
@@ -324,11 +407,11 @@ app.post('/activate', (req, res) => {
   )
     .then(data => {
       if (data.activation_code === 'activated')
-        res.status(200).send({ msg: 'Account activated' });
-      else res.status(403).send({ msg: 'User is not found' });
+        return res.status(200).send({ msg: 'Account activated' });
+      else return res.status(403).send({ msg: 'User is not found' });
     })
     .catch(e => {
-      res.status(403).send({ msg: 'User is not found' });
+      return res.status(403).send({ msg: 'User is not found' });
     });
 });
 
@@ -338,13 +421,16 @@ app.post('/login', (req, res) => {
       if (data.activation_code === 'activated') {
         bcrypt.compare(req.body.password, data.password, (_err, result) => {
           if (result === true)
-            res.send({ msg: 'Success', token: generateAccessToken(data) });
-          else res.status(403).send({ msg: 'Invalid password' });
+            return res.send({
+              msg: 'Success',
+              token: generateAccessToken(data),
+            });
+          else return res.status(403).send({ msg: 'Invalid password' });
         });
-      } else res.status(403).send({ msg: "Account isn't activated" });
+      } else return res.status(403).send({ msg: "Account isn't activated" });
     })
     .catch(_error => {
-      res.status(403).send({ msg: 'User is not found' });
+      return res.status(403).send({ msg: 'User is not found' });
     });
 });
 
@@ -369,8 +455,8 @@ app.post('/recover', validateEmail('email'), (req, res) => {
           };
           transporter.sendMail(mailOptions);
 
-          res.status(200).send({ msg: 'Success' });
-        } else res.status(403).send({ msg: 'User is not found' });
+          return res.status(200).send({ msg: 'Success' });
+        } else return res.status(403).send({ msg: 'User is not found' });
       })
       .catch(e => res.status(403).send({ msg: 'User is not found' }));
   });
@@ -513,7 +599,7 @@ app.post(
         .send({ msg: 'Password confirmation does not match password' });
 
     // Get and check current user's pass
-    db.one(`SELECT * FROM users WHERE user_id=$1`, req.user.user_id)
+    db.one(`SELECT password FROM users WHERE user_id=$1`, req.user.user_id)
       .then(data => {
         bcrypt.compare(req.body.oldPass, data.password, (_err, result) => {
           if (result === true) {
@@ -526,7 +612,8 @@ app.post(
                 .then(() => res.sendStatus(200))
                 .catch(() => res.status(400).json({ msg: 'Database error 2' }));
             });
-          } else res.status(403).json({ msg: 'Invalid current password' });
+          } else
+            return res.status(403).json({ msg: 'Invalid current password' });
         });
       })
       .catch(() => res.status(400).json({ msg: 'Database error 1' }));
@@ -578,9 +665,9 @@ app.post('/delete-image', authenticateToken, (req, res) => {
       [req.user.user_id, req.body.id]
     );
     fs.unlink('static' + req.body.url, () => {});
-    res.status(200).json({ msg: 'Success' });
+    return res.status(200).json({ msg: 'Success' });
   } catch (e) {
-    res.status(400).json({ msg: 'Image not found' });
+    return res.status(400).json({ msg: 'Image not found' });
   }
 });
 
@@ -590,9 +677,9 @@ app.post('/profile-image', authenticateToken, async (req, res) => {
       req.body.image ? req.body.image.image_id : null,
       req.user.user_id,
     ]);
-    res.status(200).json({ msg: 'Success' });
+    return res.status(200).json({ msg: 'Success' });
   } catch (e) {
-    res.status(400).json({ msg: 'Failure' });
+    return res.status(400).json({ msg: 'Failure' });
   }
 });
 
@@ -641,9 +728,9 @@ app.post('/user-block', authenticateToken, async (req, res) => {
       await db.none('DELETE FROM chats WHERE name=$1', [room.name]);
     }
 
-    res.status(200).json({ msg: 'Successfully blocked user' });
+    return res.status(200).json({ msg: 'Successfully blocked user' });
   } catch (e) {
-    res.status(400).json({ msg: "Couldn't block user" });
+    return res.status(400).json({ msg: "Couldn't block user" });
   }
 });
 
@@ -665,9 +752,9 @@ app.post('/user-report', authenticateToken, async (req, res) => {
       'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
       [sender, receiver]
     );
-    res.status(200).json({ msg: 'Successfully reported user' });
+    return res.status(200).json({ msg: 'Successfully reported user' });
   } catch (e) {
-    res.status(400).json({ msg: "Couldn't report user" });
+    return res.status(400).json({ msg: "Couldn't report user" });
   }
 });
 
@@ -708,13 +795,13 @@ function getLLFromCity(city) {
 app.get('/me', authenticateToken, async (req, res) => {
   const id = req.user.user_id;
   try {
-    const user = await getUserInfos(id);
+    const user = await getUserInfosMe(id);
     if (user.latitude && user.longitude) {
       user.ville = getCityFromLL(user.latitude, user.longitude);
     }
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (e) {
-    res.status(404).json({ msg: e });
+    return res.status(404).json({ msg: e });
   }
 });
 
@@ -727,19 +814,19 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
     user.last_connexion = timeDifference(user.last_connexion);
     await sendNotification(myId, targetId, 'view');
     await recalculUserScore(targetId);
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (e) {
-    res.status(404).json({ msg: e });
+    return res.status(404).json({ msg: e });
   }
 });
 
-app.get('/isliked/:target_id', authenticateToken, async (req, res) => {
-  const myId = req.user.user_id;
-  const targetId = req.params.target_id;
+app.get('/is-liked/:target_id', authenticateToken, async (req, res) => {
+  const myIdInt = Number(req.user.user_id);
+  const targetIdInt = Number(req.params.target_id);
   try {
     const liked = await db.manyOrNone(
       'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
-      [myId, targetId]
+      [myIdInt, targetIdInt]
     );
     if (liked && liked.length) return res.status(200).json(true);
     else return res.status(200).json(false);
@@ -754,9 +841,9 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
 
   try {
     const images = await getUserImages(id);
-    res.status(200).json(images);
+    return res.status(200).json(images);
   } catch (e) {
-    res.status(404).json({ msg: e });
+    return res.status(404).json({ msg: e });
   }
 });
 
@@ -777,16 +864,15 @@ const isIdInRoom = async (id, room) => {
 };
 
 app.post('/getRoomMessages', authenticateToken, async (req, res) => {
-  if (await isIdInRoom(req.user.user_id, req.body.room)) {
-    const sql =
-      'SELECT * FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on';
-    const messages = await db.manyOrNone(sql, [req.body.room]);
-
-    for (let i = 0; i < messages.length; i++) delete messages[i].password;
-
-    res.send(messages);
-  } else {
-    res.sendStatus(403);
+  try {
+    if (await isIdInRoom(req.user.user_id, req.body.room)) {
+      const sql = `SELECT messages.*,users.user_id,users.first_name,users.last_name,users.user_name,users.profile_pic,users.last_connexion
+     FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on`;
+      const messages = await db.manyOrNone(sql, [req.body.room]);
+      return res.send(messages);
+    } else return res.sendStatus(403);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
 });
 
@@ -805,44 +891,49 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   Number(names[0]) === req.user.user_id
     ? (senderId = names[0])
     : (senderId = names[1]);
-
   if ((await userIsBlocked(senderId, receiverId)) === true) return;
-
-  if (
-    (await isIdInRoom(req.user.user_id, req.body.room)) &&
-    req.body.message.length > 0
-  ) {
-    const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
-    await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
-    const data = {
-      sender_id: (await getUserInfos(req.user.user_id)).user_id,
-      user_name: (await getUserInfos(req.user.user_id)).user_name,
-      chat_id: req.body.room,
-      message: req.body.message,
-    };
-    sendMessage(senderId, receiverId, data);
-    res.send(data);
-  } else {
-    res.sendStatus(403);
+  try {
+    if (
+      (await isIdInRoom(req.user.user_id, req.body.room)) &&
+      req.body.message.length > 0
+    ) {
+      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
+      await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
+      const data = {
+        sender_id: (await getUserInfos(req.user.user_id)).user_id,
+        user_name: (await getUserInfos(req.user.user_id)).user_name,
+        chat_id: req.body.room,
+        message: req.body.message,
+      };
+      sendMessage(senderId, receiverId, data);
+      return res.send(data);
+    } else {
+      return res.sendStatus(403);
+    }
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
 });
 
 app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
-  const sql = 'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1';
-  const rooms = await db.manyOrNone(sql, [req.user.user_id]);
-  for (let i = 0; i < rooms.length; i++) {
-    if (rooms[i].first_id === req.user.user_id) {
-      rooms[i].pal_name = await idToUsername(rooms[i].second_id);
-      rooms[i].pal_id = rooms[i].second_id;
-      rooms[i].pal_img = (await getUserInfos(rooms[i].second_id)).profile_pic;
-    } else {
-      rooms[i].pal_name = await idToUsername(rooms[i].first_id);
-      rooms[i].pal_id = rooms[i].first_id;
-      rooms[i].pal_img = (await getUserInfos(rooms[i].first_id)).profile_pic;
+  try {
+    const sql = 'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1';
+    const rooms = await db.manyOrNone(sql, [req.user.user_id]);
+    for (let i = 0; i < rooms.length; i++) {
+      if (rooms[i].first_id === req.user.user_id) {
+        rooms[i].pal_name = await idToUsername(rooms[i].second_id);
+        rooms[i].pal_id = rooms[i].second_id;
+        rooms[i].pal_img = (await getUserInfos(rooms[i].second_id)).profile_pic;
+      } else {
+        rooms[i].pal_name = await idToUsername(rooms[i].first_id);
+        rooms[i].pal_id = rooms[i].first_id;
+        rooms[i].pal_img = (await getUserInfos(rooms[i].first_id)).profile_pic;
+      }
     }
-    console.log(rooms[i].pal_img);
+    return res.send(rooms);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(rooms);
 });
 
 function timeDifference(date) {
@@ -872,132 +963,147 @@ function timeDifference(date) {
 }
 
 app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
-  const sql =
-    'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.user.user_id]);
-  const myName = await idToUsername(req.user.user_id);
-  const data = [];
-  for (let i = 0; i < entries.length; i++) {
-    if (entries[i].liker_id === req.user.user_id) {
-      const tmp = await idToUsername(entries[i].target_id);
-      data.push(
-        `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
-      );
-    } else {
-      const tmp = await idToUsername(entries[i].liker_id);
-      data.push(
-        `${myName} got a like from ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
+  try {
+    const sql =
+      'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
+    const entries = await db.manyOrNone(sql, [req.user.user_id]);
+    const myName = await idToUsername(req.user.user_id);
+    const data = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].liker_id === req.user.user_id) {
+        const tmp = await idToUsername(entries[i].target_id);
+        data.push(
+          `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
+        );
+      } else {
+        const tmp = await idToUsername(entries[i].liker_id);
+        data.push(
+          `${myName} got a like from ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      }
     }
+    return res.send(data);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(data);
 });
 
 app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
-  const sql =
-    'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.user.user_id]);
-  const myName = await idToUsername(req.user.user_id);
-  const data = [];
-  for (let i = 0; i < entries.length; i++) {
-    if (entries[i].viewer_id === req.user.user_id) {
-      const tmp = await idToUsername(entries[i].target_id);
-      data.push(
-        `${myName} viewed ${tmp}'s profile ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
-    } else {
-      const tmp = await idToUsername(entries[i].viewer_id);
-      data.push(
-        `${myName} got a view from ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
+  try {
+    const sql =
+      'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
+    const entries = await db.manyOrNone(sql, [req.user.user_id]);
+    const myName = await idToUsername(req.user.user_id);
+    const data = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].viewer_id === req.user.user_id) {
+        const tmp = await idToUsername(entries[i].target_id);
+        data.push(
+          `${myName} viewed ${tmp}'s profile ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      } else {
+        const tmp = await idToUsername(entries[i].viewer_id);
+        data.push(
+          `${myName} got a view from ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      }
     }
+    return res.send(data);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(data);
 });
 
 app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
-  const sql =
-    'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.user.user_id]);
-  const myName = await idToUsername(req.user.user_id);
-  const data = [];
-  for (let i = 0; i < entries.length; i++) {
-    if (entries[i].first_id === req.user.user_id) {
-      const tmp = await idToUsername(entries[i].second_id);
-      data.push(
-        `${myName} got a match with ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
-    } else {
-      const tmp = await idToUsername(entries[i].first_id);
-      data.push(
-        `${myName} got a match with ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
+  try {
+    const sql =
+      'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
+    const entries = await db.manyOrNone(sql, [req.user.user_id]);
+    const myName = await idToUsername(req.user.user_id);
+    const data = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].first_id === req.user.user_id) {
+        const tmp = await idToUsername(entries[i].second_id);
+        data.push(
+          `${myName} got a match with ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      } else {
+        const tmp = await idToUsername(entries[i].first_id);
+        data.push(
+          `${myName} got a match with ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      }
     }
+    return res.send(data);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(data);
 });
 
 app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
-  const sql =
-    'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.user.user_id]);
-  const myName = await idToUsername(req.user.user_id);
-  const data = [];
-  for (let i = 0; i < entries.length; i++) {
-    if (entries[i].sender_id === req.user.user_id) {
-      const tmp = await idToUsername(entries[i].blocked_id);
-      data.push(
-        `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
-      );
-    } else {
-      const tmp = await idToUsername(entries[i].sender_id);
-      data.push(
-        `${myName} was blocked by ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
+  try {
+    const sql =
+      'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
+    const entries = await db.manyOrNone(sql, [req.user.user_id]);
+    const myName = await idToUsername(req.user.user_id);
+    const data = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].sender_id === req.user.user_id) {
+        const tmp = await idToUsername(entries[i].blocked_id);
+        data.push(
+          `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
+        );
+      } else {
+        const tmp = await idToUsername(entries[i].sender_id);
+        data.push(
+          `${myName} was blocked by ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      }
     }
+    return res.send(data);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(data);
 });
 
 app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
-  const sql =
-    'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
-  const entries = await db.manyOrNone(sql, [req.user.user_id]);
-  const myName = await idToUsername(req.user.user_id);
-  const data = [];
-  for (let i = 0; i < entries.length; i++) {
-    if (entries[i].sender_id === req.user.user_id) {
-      const tmp = await idToUsername(entries[i].reported_id);
-      data.push(
-        `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
-      );
-    } else {
-      const tmp = await idToUsername(entries[i].sender_id);
-      data.push(
-        `${myName} was reported by ${tmp} ${timeDifference(
-          entries[i].created_on
-        )}`
-      );
+  try {
+    const sql =
+      'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
+    const entries = await db.manyOrNone(sql, [req.user.user_id]);
+    const myName = await idToUsername(req.user.user_id);
+    const data = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].sender_id === req.user.user_id) {
+        const tmp = await idToUsername(entries[i].reported_id);
+        data.push(
+          `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
+        );
+      } else {
+        const tmp = await idToUsername(entries[i].sender_id);
+        data.push(
+          `${myName} was reported by ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`
+        );
+      }
     }
+    return res.send(data);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
   }
-  res.send(data);
-});
-
-app.get('/is-online/:target_id', authenticateToken, (req, res) => {
-  const id = Number(req.params.target_id);
-  return res.status(200).json(isConnected(id));
 });
 
 async function searchFilter(req, ids, ll) {
@@ -1063,13 +1169,14 @@ app.post('/search', authenticateToken, async (req, res) => {
   // verify no additional data
   // verify data type value
   // search db
-  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+  try {
+    if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
 
-  let ids = await db.any(`SELECT user_id FROM users`);
-  ids = ids.map(e => e.user_id);
-  const ll = getLL(req.user, req.body.search.ip);
-  ids = await searchFilter(req, ids, ll);
-  const sql = `SELECT *,distance FROM (SELECT *, (
+    let ids = await db.any(`SELECT user_id FROM users`);
+    ids = ids.map(e => e.user_id);
+    const ll = getLL(req.user, req.body.search.ip);
+    ids = await searchFilter(req, ids, ll);
+    const sql = `SELECT *,distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
@@ -1078,10 +1185,13 @@ app.post('/search', authenticateToken, async (req, res) => {
     sin(radians($2)) *
     sin(radians(users.latitude)))
     ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
-  if (ids.length) {
-    const find = await db.any(sql, [ids, ll[0], ll[1]]);
-    return res.status(200).send(find);
-  } else res.status(200).send([]);
+    if (ids.length) {
+      const find = await db.any(sql, [ids, ll[0], ll[1]]);
+      return res.status(200).send(find);
+    } else return res.status(200).send([]);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
+  }
 });
 
 app.post('/matchFilter', authenticateToken, async (req, res) => {
@@ -1152,33 +1262,11 @@ const updateManyTags = async () => {
 };
 
 app.post('/registerMany', async (req, res) => {
-  const factory = buildFactory();
-  const sql = await factory.attrsMany('User', 200).then(user => {
-    const ret = pgp.helpers.insert(
-      user,
-      [
-        'first_name',
-        'last_name',
-        'user_name',
-        'email',
-        'password',
-        'gender',
-        'score',
-        'bio',
-        'age',
-        'activation_code',
-        'orientation',
-        'latitude',
-        'longitude',
-      ],
-      'users'
-    );
-    return ret;
-  });
-  db.any(sql).then(async function (data) {
-    await updateManyTags();
-    res.sendStatus(200);
-  });
+  try {
+    await registerUsers();
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
+  }
 });
 
 // const newRoom = (roomName, id1, id2) => {};
@@ -1195,84 +1283,75 @@ const chatName = (id1, id2) => {
 };
 
 const matchDetector = async (myId, targetId) => {
-  try {
-    const like = await db.oneOrNone(
-      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-      [targetId, myId]
+  const like = await db.oneOrNone(
+    'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+    [targetId, myId]
+  );
+  if (like) {
+    const name = chatName(myId, targetId);
+    const alreadyExist = await db.oneOrNone(
+      'SELECT * FROM chats WHERE name=$1',
+      [name]
     );
-    if (like) {
-      const name = chatName(myId, targetId);
-      const alreadyExist = await db.oneOrNone(
-        'SELECT * FROM chats WHERE name=$1',
-        [name]
+    if (!alreadyExist) {
+      await db.any(
+        'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+        [myId, targetId, chatName(myId, targetId)]
       );
-      if (!alreadyExist) {
-        await db.any(
-          'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
-          [myId, targetId, chatName(myId, targetId)]
-        );
-        await sendNotification(myId, targetId, 'match');
-        await sendNotification(targetId, myId, 'match');
-        await recalculUserScore(myId);
-        await recalculUserScore(targetId);
-      }
+      await sendNotification(myId, targetId, 'match');
+      await sendNotification(targetId, myId, 'match');
+      await recalculUserScore(myId);
+      await recalculUserScore(targetId);
     }
-  } catch {}
+  }
 };
 
 async function postNotification(sender, receiver, type) {
-  try {
-    const data = await db.one(
-      'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING *',
-      [sender, receiver, type]
-    );
-    const join = await db.any(
-      'SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
-      data.notification_id
-    );
-    return join;
-  } catch (error) {
-    console.log(error);
-  }
+  const notification = await db.one(
+    'INSERT INTO notifications ( "user_id_send", "user_id_receiver", "type" ) VALUES ($1, $2, $3) RETURNING notification_id',
+    [sender, receiver, type]
+  );
+  const joinUserInfo = await db.any(
+    'SELECT notifications.*, users.user_name, users.created_on FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE notification_id=$1',
+    [notification.notification_id]
+  );
+  return joinUserInfo;
 }
 
-app.post('/read-notifications', authenticateToken, (req, res) => {
-  db.any(`UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`, [
-    true,
-    req.user.user_id,
-  ])
-    .then(function (data) {
-      res.status(200).json(data);
-    })
-    .catch(function (_error) {
-      res.status(403).send({ msg: 'User is not found' });
-    });
+app.post('/read-notifications', authenticateToken, async (req, res) => {
+  try {
+    await db.none(
+      `UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`,
+      [true, req.user.user_id]
+    );
+    return res.sendStatus(200);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
 });
 
-app.post('/read-notification', authenticateToken, (req, res) => {
-  db.any(
-    `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
-    [true, req.body.id, req.user.user_id]
-  )
-    .then(function (data) {
-      res.sendStatus(200);
-    })
-    .catch(function (error) {
-      res.status(403).send(error);
-    });
+app.post('/read-notification', authenticateToken, async (req, res) => {
+  try {
+    await db.none(
+      `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
+      [true, req.body.id, req.user.user_id]
+    );
+    return res.sendStatus(200);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
 });
 
-app.get('/get-notifications', authenticateToken, (req, res) => {
-  db.any(
-    `SELECT notifications.*, users.user_name FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
-    req.user.user_id
-  )
-    .then(function (data) {
-      res.status(200).json(data);
-    })
-    .catch(function (_error) {
-      res.status(403).send({ msg: 'User is not found' });
-    });
+app.get('/get-notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await db.manyOrNone(
+      `SELECT notifications.*, users.user_name, users.created_on FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
+      [req.user.user_id]
+    );
+    return res.status(200).send(notifications);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
 });
 
 async function recalculUserScore(myId) {
@@ -1295,28 +1374,26 @@ async function recalculUserScore(myId) {
 
 app.post('/like', authenticateToken, async (req, res) => {
   try {
-    const targetId = Number(req.body.targetId);
+    const targetIdInt = Number(req.body.targetId);
     const user = await getUserInfos(req.user.user_id);
-    if (user.user_id === targetId)
-      return res.status(400).json({ msg: 'You cannot like yourself' });
+    if (user.user_id === targetIdInt)
+      return res.status(200).json({ msg: 'You cannot like yourself' });
 
     const like = await db.any(
       'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-      [user.user_id, targetId]
+      [user.user_id, targetIdInt]
     );
     if (like.length !== 0)
       return res.status(200).json({ msg: 'User already liked' });
 
     const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-    await db.any(sql, [user.user_id, targetId]).catch(err => {
-      res.status(500).json(err);
-    });
-    await sendNotification(req.user.user_id, targetId, 'like');
-    await recalculUserScore(targetId);
-    matchDetector(user.user_id, targetId);
+    await db.any(sql, [user.user_id, targetIdInt]);
+    await sendNotification(req.user.user_id, targetIdInt, 'like');
+    await recalculUserScore(targetIdInt);
+    matchDetector(user.user_id, targetIdInt);
     return res.sendStatus(200);
-  } catch (_e) {
-    return res.status(500);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
   }
 });
 
@@ -1325,7 +1402,7 @@ app.post('/unlike', authenticateToken, async (req, res) => {
     const targetId = req.body.targetId;
     const user = await getUserInfos(req.user.user_id);
     if (user.user_id === targetId)
-      return res.status(400).json({ msg: 'You cannot unlike yourself' });
+      return res.status(403).json({ msg: 'You cannot unlike yourself' });
     await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
       user.user_id,
       targetId,
@@ -1334,33 +1411,37 @@ app.post('/unlike', authenticateToken, async (req, res) => {
     await recalculUserScore(targetId);
     return res.sendStatus(200);
   } catch (e) {
-    return res.status(500).json(e);
+    return res.status(500).json({ msg: e });
   }
 });
 
 app.post('/view', authenticateToken, async (req, res) => {
-  const user = await getUserInfos(req.user.user_id);
-  const targetId = req.body.targetId;
+  try {
+    const user = await getUserInfos(req.user.user_id);
+    const targetId = req.body.targetId;
 
-  // Check if not viewing yourself
-  if (user.user_id === targetId)
-    return res.status(200).json({ msg: 'You cannot view yourself' });
+    // Check if not viewing yourself
+    if (user.user_id === targetId)
+      return res.status(200).json({ msg: 'You cannot view yourself' });
 
-  // Get already viewed users
-  const data = await db.any(
-    'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
-    [user.user_id, targetId]
-  );
-
-  // View if not already did
-  if (data.length === 0) {
-    await db.any(
-      `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
+    // Get already viewed users
+    const data = await db.any(
+      'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
       [user.user_id, targetId]
     );
-  } else console.log('ALREADY SEEN');
 
-  res.sendStatus(200);
+    // View if not already did
+    if (data.length === 0) {
+      await db.any(
+        `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
+        [user.user_id, targetId]
+      );
+    }
+
+    return res.sendStatus(200);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
 });
 
 async function findPartnerFor(user, ip) {
@@ -1412,12 +1493,16 @@ function getLL(user, ip) {
 }
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
-  // console.log(req.body.ip);
-  // console.log(pos);
-  const user = await getUserInfos(req.user.user_id);
-  const partner = await findPartnerFor(user, req.body.ip);
+  try {
+    // console.log(req.body.ip);
+    // console.log(pos);
+    const user = await getUserInfos(req.user.user_id);
+    const partner = await findPartnerFor(user, req.body.ip);
 
-  res.status(200).json(partner);
+    return res.status(200).json(partner);
+  } catch (e) {
+    return res.sendStatus(500).json({ msg: e });
+  }
 });
 
 function getPosById(ip) {

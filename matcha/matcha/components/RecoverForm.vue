@@ -59,13 +59,13 @@ export default {
       try {
         await this.$axios.post('recover', {
           email: this.email,
-        })
-        this.successStatus = true
-        this.alertStatus = false
+        });
+        this.successStatus = true;
+        this.alertStatus = false;
       } catch (e) {
-        this.errorMsg = e.response.data.msg
-        this.alertStatus = true
-        this.successStatus = false
+        this.errorMsg = e.response.data.msg;
+        this.alertStatus = true;
+        this.successStatus = false;
       }
     },
   },

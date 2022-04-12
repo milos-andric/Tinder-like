@@ -1,7 +1,7 @@
 # Matcha
 
-
 Global :
+
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
 - [ ] mobile + small resolution
@@ -33,12 +33,12 @@ La mienne et celle des autres
 - [x] The gender
 - [x] Sexual preferences. (Default bi-sexual)
 - [x] A biography.
-- [ ] A list of interests with tags
+- [x] A list of interests with tags
 - [x] picture (max 5) avec une en profile
 - [x] last name,
 - [x] first name
 - [x] email (visible uniquement par lui-même)
-- [ ] statut online or last connection
+- [x] statut online or last connection
 
 ## section like
 
@@ -53,7 +53,7 @@ La mienne et celle des autres
 
 ## Suggestion page
 
-[x]  criteria exclusif: gender
+[x] criteria exclusif: gender
 
 [ ] criteria avec coef:
 
@@ -92,3 +92,21 @@ Par :
 - [x] The user received a message.
 - [x] “liked” user “liked” back.
 - [x] connected user “unliked” you.
+
+### pense bete
+
+- [ ] add init tags
+- [ ] block in match
+- [ ] filter sort match
+- [ ] home page
+- [x] message too big
+- [x] strip message
+
+- [x] Password (not send getUserInfos)
+- [x] email (not send getUserInfos + everywhere)
+
+- [ ] launch factory on init
+
+- [ ] age in search bad format
+
+- [ ] margin at right in chat

@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto col-10 h-100 text-center">
+  <div v-if="load" class="mx-auto col-10 h-100 text-center">
     <!-- Avatar -->
     <b-avatar
       v-if="profile_pic"
@@ -89,7 +89,7 @@
     <b-form-file
       class="mt-5"
       placeholder="Choose a file or drop it here..."
-      drop-placeholder="Drop file here..."
+      :no-drop="true"
       @change="changeImage($event)"
     ></b-form-file>
 
@@ -97,6 +97,13 @@
       {{ alertMsg }}
     </b-alert>
     <HistoryComponent />
+  </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
   </div>
 </template>
 
@@ -120,10 +127,13 @@ export default {
 
       alertStatus: false,
       alertMsg: '',
+
+      load: false,
     };
   },
-  beforeMount() {
-    this.getUserData();
+  async beforeMount() {
+    await this.getUserData();
+    this.load = true;
   },
   methods: {
     async getUserData() {

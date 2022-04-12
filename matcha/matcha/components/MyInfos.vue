@@ -1,5 +1,7 @@
 <template>
   <div class="mx-auto col-4 h-100" style="min-width: 300px">
+    <NuxtLink to="/user">Edit avatar</NuxtLink>
+
     <h2>Personal informations</h2>
 
     <form method="post" @submit.prevent="updateInfo">
@@ -173,7 +175,7 @@
         <label for="tags-basic" class="form-label">
           Type a new tag and press enter
         </label>
-        <TagSuggestions @loadTag="loadTag" numberOfTags="5" />
+        <TagSuggestions numberOfTags="5" @loadTag="loadTag" />
         <b-form-tags v-model="tags" input-id="tags-basic"></b-form-tags>
       </div>
 

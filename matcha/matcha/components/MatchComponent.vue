@@ -1,4 +1,5 @@
 <template>
+  <!-- <div v-if="load" id="matchContainer" class="col-10 m-auto d-flex flex-column"> -->
   <div id="matchContainer" class="col-10 m-auto d-flex flex-column">
     <div class="w-100 match100">
       <div class="swiper h-100">
@@ -96,6 +97,15 @@
       >
     </b-form-group>
   </div>
+  <!--
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
+  -->
 </template>
 
 <script>
@@ -111,6 +121,7 @@ export default {
       swiper: null,
       search: {},
       sort: 'location',
+      load: false,
     };
   },
   mounted() {
@@ -147,6 +158,7 @@ export default {
   },
   async beforeMount() {
     const res = await this.generateMatches();
+    this.load = true;
     this.users = res.data;
 
     if (this.users.length !== 0) await this.view();

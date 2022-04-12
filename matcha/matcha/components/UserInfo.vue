@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto col-10 h-100 text-center">
+  <div v-if="load" class="mx-auto col-10 h-100 text-center">
     <!-- User main info -->
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
@@ -187,6 +187,13 @@
     </b-alert>
     <HistoryComponent v-if="self_id === id" />
   </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
 </template>
 
 <script>
@@ -208,6 +215,7 @@ export default {
       online: true,
       last_connexion: '',
       profile_pic: '',
+      load: false,
 
       images: [],
 
@@ -222,9 +230,9 @@ export default {
     await this.$axios.get('/me').then(e => {
       this.self_id = e.data.user_id;
     });
-
     await this.getInfos();
-
+    this.load = true;
+    await this.isliked();
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
@@ -232,20 +240,13 @@ export default {
   mounted() {
     this.socket = this.$store.socket;
     this.socket.on('online', async usersOnline => {
-      console.log(usersOnline);
-      console.log(this.id);
-      console.log('socket: ', this.online);
       const found = usersOnline.find(e => Number(e) === this.id);
-      console.log(found);
       if (found) this.online = true;
       else {
         await this.getInfos();
         this.online = false;
       }
     });
-  },
-  updated() {
-    this.isliked();
   },
   methods: {
     async getInfos() {
@@ -289,9 +290,16 @@ export default {
     },
 
     async isliked() {
-      await this.$axios.get('/isliked/' + this.id).then(e => {
-        this.liked = e.data;
-      });
+      try {
+        await this.$axios.get('/is-liked/' + this.id).then(e => {
+          this.liked = e.data;
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
     },
 
     async like() {
