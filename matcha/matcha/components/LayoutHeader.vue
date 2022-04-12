@@ -22,9 +22,17 @@
           <font-awesome-icon color="white" icon="magnifying-glass" />
         </b-nav-item>
 
-        <!-- Notification dropdown -->
+        <!-- Notification dropdown style="position: absolute; left: 0.25rem; top: 0" -->
         <b-nav-item-dropdown right class="mx-1">
           <template #button-content>
+            <b-badge
+              v-if="length"
+              pill
+              variant="danger"
+              style="position: absolute; left: 0.25rem; top: 0"
+            >
+              {{ length }}
+            </b-badge>
             <font-awesome-icon color="white" icon="bell" />
           </template>
 
@@ -133,35 +141,29 @@ export default {
     async readNotification(notification) {
       const id = notification.notification_id;
       try {
-        await this.$axios.post('read-notification', { id });
+        await this.$axios.post('/read-notification', { id });
         this.notifications.splice(
-          this.notifications.findIndex(obj => obj.notification_id === id),
+          this.notifications.findIndex(e => e.notification_id === id),
           1
         );
         if (this.length) this.length -= 1;
         this.$router.push(notification.link);
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
     },
 
     async readNotifications() {
       try {
-        await this.$axios.post('read-notifications');
+        await this.$axios.post('/read-notifications');
         this.notifications = [];
         this.length = 0;
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
     },
 
     async getNotifications() {
       try {
-        const res = await this.$axios.get('get-notifications');
+        const res = await this.$axios.get('/get-notifications');
         this.manageNotifications(res.data);
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
     },
 
     lengthNotifications() {

@@ -57,9 +57,11 @@ export default {
     this.socket.on('online', data => (this.onlineUsers = data));
   },
   async beforeMount() {
-    const resp = await this.$axios.get('getAvailableRooms');
-    this.channels = resp.data;
-    this.changeActiveRoom(resp.data[0]);
+    try {
+      const resp = await this.$axios.get('getAvailableRooms');
+      this.channels = resp.data;
+      this.changeActiveRoom(resp.data[0]);
+    } catch (e) {}
   },
   methods: {
     changeActiveRoom(channel) {

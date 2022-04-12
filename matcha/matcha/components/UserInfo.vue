@@ -223,10 +223,9 @@ export default {
     await this.$axios.get('/me').then(e => {
       this.self_id = e.data.user_id;
     });
-
     await this.getInfos();
     this.load = true;
-
+    await this.isliked();
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
@@ -234,20 +233,13 @@ export default {
   mounted() {
     this.socket = this.$store.socket;
     this.socket.on('online', async usersOnline => {
-      console.log(usersOnline);
-      console.log(this.id);
-      console.log('socket: ', this.online);
       const found = usersOnline.find(e => Number(e) === this.id);
-      console.log(found);
       if (found) this.online = true;
       else {
         await this.getInfos();
         this.online = false;
       }
     });
-  },
-  updated() {
-    this.isliked();
   },
   methods: {
     async getInfos() {
@@ -291,9 +283,16 @@ export default {
     },
 
     async isliked() {
-      await this.$axios.get('/isliked/' + this.id).then(e => {
-        this.liked = e.data;
-      });
+      try {
+        await this.$axios.get('/is-liked/' + this.id).then(e => {
+          this.liked = e.data;
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
     },
 
     async like() {

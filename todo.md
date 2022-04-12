@@ -53,7 +53,7 @@ La mienne et celle des autres
 
 ## Suggestion page
 
-[x]  criteria exclusif: gender
+[x] criteria exclusif: gender
 
 [ ] criteria avec coef:
 
