@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto col-10 h-100 text-center">
+  <div v-if="load" class="mx-auto col-10 h-100 text-center">
     <!-- Avatar -->
     <b-avatar
       v-if="profile_pic"
@@ -98,6 +98,13 @@
     </b-alert>
     <HistoryComponent />
   </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
 </template>
 
 <script>
@@ -120,10 +127,13 @@ export default {
 
       alertStatus: false,
       alertMsg: '',
+
+      load: false,
     };
   },
-  beforeMount() {
-    this.getUserData();
+  async beforeMount() {
+    await this.getUserData();
+    this.load = true;
   },
   methods: {
     async getUserData() {

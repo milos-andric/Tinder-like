@@ -4,7 +4,7 @@ Global :
 
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
-- [ ] mobile + small resolution <!-- OK (1) -->
+- [ ] mobile + small resolution <!-- OK JB -->
 - [x] header + main + footer
 - [ ] form validator + security
   - [x] no plain password store
@@ -105,6 +105,8 @@ Par :
 - [x] Password (not send getUserInfos)
 - [x] email (not send getUserInfos + everywhere)
 
-- [ ] launch factory on init
+- [ ] launch factory on init <!-- DONE JB -->
 
 - [ ] age in search bad format
+
+- [ ] margin at right in chat

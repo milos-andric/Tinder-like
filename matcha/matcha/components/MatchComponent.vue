@@ -1,4 +1,5 @@
 <template>
+  <!-- <div v-if="load" id="matchContainer" class="col-10 m-auto d-flex flex-column"> -->
   <div id="matchContainer" class="col-10 m-auto d-flex flex-column">
     <div class="w-100 match100">
       <div class="swiper h-100">
@@ -58,6 +59,15 @@
       <h1>No users to show you yet</h1>
     </div>
   </div>
+  <!--
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
+  -->
 </template>
 
 <script>
@@ -71,6 +81,7 @@ export default {
       selected: 0,
       ip: null,
       swiper: null,
+      load: false,
     };
   },
   mounted() {
@@ -108,6 +119,7 @@ export default {
       order: null,
       ip: this.ip,
     });
+    this.load = true;
     this.users = res.data;
 
     if (this.users.length !== 0) await this.view();
