@@ -105,4 +105,4 @@ Par :
 - [ ] Password (not send getUserInfos)
 - [ ] email (not send getUserInfos + everywhere)
 
-- launch factory on init
+- [ ] launch factory on init
