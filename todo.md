@@ -4,7 +4,7 @@ Global :
 
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
-- [ ] mobile + small resolution
+- [x] mobile + small resolution
 - [x] header + main + footer
 - [ ] form validator + security
   - [x] no plain password store
@@ -58,9 +58,9 @@ La mienne et celle des autres
 [ ] criteria avec coef:
 
 - [x] location
-- [ ] tag
+- [x] tag
 - [x] fame
-- [ ] block
+- [x] block
 - [x] like
 - [x] view
 
@@ -96,8 +96,8 @@ Par :
 ### pense bete
 
 - [ ] add init tags
-- [ ] block in match
-- [ ] filter sort match
+- [x] block in match
+- [x] filter sort match
 - [ ] home page
 - [x] message too big
 - [x] strip message
@@ -105,7 +105,7 @@ Par :
 - [x] Password (not send getUserInfos)
 - [x] email (not send getUserInfos + everywhere)
 
-- [ ] launch factory on init
+- [x] launch factory on init
 
 - [ ] age in search bad format
 
