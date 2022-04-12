@@ -4,7 +4,7 @@ Global :
 
 - [x] Author file
 - [x] doit marcher sur Firefox (>= 41) et Chrome (>= 46).
-- [ ] mobile + small resolution
+- [ ] mobile + small resolution <!-- OK (1) -->
 - [x] header + main + footer
 - [ ] form validator + security
   - [x] no plain password store

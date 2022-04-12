@@ -43,6 +43,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
+// if (process.env.NODE_ENV === 'production') {
+registerUsers();
+// }
+
 const users = [];
 const http = require('http');
 const { lookup } = require('geoip-lite');
@@ -167,6 +171,37 @@ server.listen(3001);
 const generateAccessToken = user => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1y' });
 };
+
+async function registerUsers() {
+  try {
+    const factory = buildFactory();
+    const sql = await factory.attrsMany('User', 500).then(user => {
+      const ret = pgp.helpers.insert(
+        user,
+        [
+          'first_name',
+          'last_name',
+          'user_name',
+          'email',
+          'password',
+          'gender',
+          'score',
+          'bio',
+          'age',
+          'activation_code',
+          'orientation',
+          'latitude',
+          'longitude',
+        ],
+        'users'
+      );
+      return ret;
+    });
+    await db.any(sql);
+  } catch (e) {
+    throw new Error('Generator users has failed.');
+  }
+}
 
 const getUserTags = async id => {
   try {
@@ -1171,32 +1206,7 @@ app.post('/search', authenticateToken, async (req, res) => {
 
 app.post('/registerMany', async (req, res) => {
   try {
-    const factory = buildFactory();
-    const sql = await factory.attrsMany('User', 200).then(user => {
-      const ret = pgp.helpers.insert(
-        user,
-        [
-          'first_name',
-          'last_name',
-          'user_name',
-          'email',
-          'password',
-          'gender',
-          'score',
-          'bio',
-          'age',
-          'activation_code',
-          'orientation',
-          'latitude',
-          'longitude',
-        ],
-        'users'
-      );
-      return ret;
-    });
-    db.any(sql).then(function (data) {
-      return res.sendStatus(200);
-    });
+    await registerUsers();
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
   }
