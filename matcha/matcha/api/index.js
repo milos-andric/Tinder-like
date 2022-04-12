@@ -171,7 +171,7 @@ io.on('connection', socket => {
     );
   });
 });
-// server.listen(3001);
+server.listen(3001);
 
 // Functions
 
@@ -195,22 +195,22 @@ const getUserTags = async id => {
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
-      `SELECT 
-      user_id, 
-      first_name, 
-      last_name, 
-      user_name, 
-      email, 
-      age, 
-      gender, 
-      orientation, 
-      bio, 
-      profile_pic, 
-      score, 
-      activation_code, 
-      latitude, 
-      longitude, 
-      last_connexion, 
+      `SELECT
+      user_id,
+      first_name,
+      last_name,
+      user_name,
+      email,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      activation_code,
+      latitude,
+      longitude,
+      last_connexion,
       created_on
       FROM users WHERE user_id = $1`,
       id
