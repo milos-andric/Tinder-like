@@ -429,14 +429,14 @@ const updateTags = async (userId, tags) => {
   const toDeleteTags = currentTags.filter(x => !tagsId.includes(x));
   const toAddTags = tagsId.filter(x => !currentTags.includes(x));
 
-   await Promise.all(
-      toDeleteTags.map(async tag => {
-        await db.none(`DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`, [
-          tag,
-          userId,
-        ]);
-      })
-    );
+  await Promise.all(
+    toDeleteTags.map(async tag => {
+      await db.none(
+        `DELETE FROM user_tags WHERE tag_id = $1 AND user_id = $2`,
+        [tag, userId]
+      );
+    })
+  );
 
   await Promise.all(
     toAddTags.map(async tag => {
@@ -686,13 +686,11 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
 
 function getCityFromLL(latitude, longitude) {
   const query = { latitude, longitude };
-  console.log(query);
   try {
     const cities = nearbyCities(query);
     if (!cities) {
       return undefined;
     } else if (cities.length) {
-      console.log(cities[0]);
       return cities[0].name;
     }
   } catch (error) {
@@ -1002,17 +1000,8 @@ app.get('/is-online/:target_id', authenticateToken, (req, res) => {
   return res.status(200).json(isConnected(id));
 });
 
-app.post('/search', authenticateToken, async (req, res) => {
-  // sanitize all inputs.
-  // verify no additional data
-  // verify data type value
-  // search db
-  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-
+async function searchFilter(req, ids, ll) {
   let sql;
-  let ids = await db.any(`SELECT user_id FROM users`);
-  ids = ids.map(e => e.user_id);
-  const ll = getLL(req.user, req.body.search.ip);
   if (req.body.search.distance && ids.length) {
     sql = `SELECT * FROM (SELECT user_id, (
       6371 *
@@ -1066,7 +1055,21 @@ app.post('/search', authenticateToken, async (req, res) => {
       ids = ids.map(e => e.user_id);
     }
   }
-  sql = `SELECT *,distance FROM (SELECT *, (
+  return ids;
+}
+
+app.post('/search', authenticateToken, async (req, res) => {
+  // sanitize all inputs.
+  // verify no additional data
+  // verify data type value
+  // search db
+  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+
+  let ids = await db.any(`SELECT user_id FROM users`);
+  ids = ids.map(e => e.user_id);
+  const ll = getLL(req.user, req.body.search.ip);
+  ids = await searchFilter(req, ids, ll);
+  const sql = `SELECT *,distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
@@ -1077,6 +1080,38 @@ app.post('/search', authenticateToken, async (req, res) => {
     ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
   if (ids.length) {
     const find = await db.any(sql, [ids, ll[0], ll[1]]);
+    return res.status(200).send(find);
+  } else res.status(200).send([]);
+});
+
+app.post('/matchFilter', authenticateToken, async (req, res) => {
+  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+  let ids = await db.any(
+    `SELECT *
+      FROM users u
+      WHERE u.user_id != $1
+      AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
+      AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = u.user_id)
+      AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`,
+    req.user.user_id
+  );
+  ids = ids.map(e => e.user_id);
+  const ll = getLL(req.user, req.body.search.ip);
+  ids = await searchFilter(req, ids, ll);
+  const sql = `SELECT *,distance FROM (SELECT *, (
+    6371 *
+    acos(cos(radians($2)) *
+    cos(radians(users.latitude)) *
+    cos(radians(users.longitude) -
+    radians($3)) +
+    sin(radians($2)) *
+    sin(radians(users.latitude)))
+    ) AS distance FROM users) al WHERE user_id IN ($1:csv) LIMIT 10`;
+  if (ids.length) {
+    const find = await db.any(sql, [ids, ll[0], ll[1]]);
+    find.forEach(u => {
+      u.ville = getCityFromLL(u.latitude, u.longitude);
+    });
     return res.status(200).send(find);
   } else res.status(200).send([]);
 });

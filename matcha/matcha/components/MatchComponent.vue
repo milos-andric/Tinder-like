@@ -15,10 +15,10 @@
               class="position-absolute d-flex justify-content-between align-items-end"
             >
               <div>
-                <h2>
+                <h2 class="nameAge">
                   {{ user.first_name + getAge(user) }}
                 </h2>
-                <h3>
+                <h3 class="location">
                   {{ getDistance(user) + ' (' + user.ville + ')' }}
                 </h3>
               </div>
@@ -57,6 +57,7 @@
     <div v-else class="col-10 m-auto text-center">
       <h1>No users to show you yet</h1>
     </div>
+    <MatchSearch @updateList="updateList" />
   </div>
 </template>
 
@@ -71,6 +72,7 @@ export default {
       selected: 0,
       ip: null,
       swiper: null,
+      search: {},
     };
   },
   mounted() {
@@ -98,16 +100,15 @@ export default {
       await this.view();
 
       // Generate new recommandation when no left
-      if (e.activeIndex + 1 === this.users.length) this.generateNewMatches();
+      if (e.activeIndex + 1 === this.users.length) {
+        const res = await this.generateMatches();
+        this.users = [...this.users, ...res.data];
+        this.$nextTick(() => this.swiper.update());
+      }
     });
   },
   async beforeMount() {
-    const resultIp = await this.$axios.get('/getIP');
-    this.ip = resultIp.data.ip;
-    const res = await this.$axios.post('getRecommandation', {
-      order: null,
-      ip: this.ip,
-    });
+    const res = await this.generateMatches();
     this.users = res.data;
 
     if (this.users.length !== 0) await this.view();
@@ -124,14 +125,10 @@ export default {
         targetId: this.users[this.selected].user_id,
       });
     },
-    async generateNewMatches() {
-      const res = await this.$axios.post('getRecommandation', {
-        order: null,
-        ip: this.ip,
-      });
-
-      this.users = [...this.users, ...res.data];
-      this.$nextTick(() => this.swiper.update());
+    async generateMatches() {
+      const search = this.search;
+      const res = await this.$axios.post('matchFilter', { search });
+      return res;
     },
     dislike() {
       this.swiper.slideNext();
@@ -152,13 +149,19 @@ export default {
         );
       else return '';
     },
+    async updateList(search) {
+      this.search = search;
+      const res = await this.generateMatches();
+      this.users = res.data;
+
+      this.$nextTick(() => this.swiper.update());
+    },
   },
 };
 </script>
 
 <style>
 #matchContainer {
-  height: calc(100vh - 6rem - 250px);
   max-width: 750px;
 }
 .match100 {
@@ -174,8 +177,11 @@ export default {
   color: white;
   padding: 3%;
 }
-#profile-info h2 {
-  font-size: 3vw;
+.nameAge {
+  font-size: 2rem;
+}
+.location {
+  font-size: 1.5rem;
 }
 
 @media (min-width: 1600px) {
@@ -183,11 +189,7 @@ export default {
     font-size: 75px;
     padding: 3%;
   }
-  #profile-info h2 {
-    font-size: 50px;
-  }
 }
-
 #profile-image {
   box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
   height: 100%;
@@ -208,5 +210,9 @@ export default {
   max-width: 100px;
   cursor: pointer;
   color: rgb(255, 85, 47);
+}
+.image {
+  min-height: 100px;
+  min-width: 100px;
 }
 </style>
