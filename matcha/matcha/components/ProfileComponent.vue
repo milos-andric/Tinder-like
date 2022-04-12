@@ -89,7 +89,7 @@
     <b-form-file
       class="mt-5"
       placeholder="Choose a file or drop it here..."
-      drop-placeholder="Drop file here..."
+      :no-drop="true"
       @change="changeImage($event)"
     ></b-form-file>
 
