@@ -184,14 +184,22 @@ const getUserTags = async id => {
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
-      `SELECT * FROM users WHERE user_id = $1`,
+      `SELECT user_id,
+      first_name,
+      last_name,
+      user_name,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      latitude,
+      longitude,
+      last_connexion,
+      created_on FROM users WHERE user_id = $1`,
       id
     );
-    // const data = await global.db.one(
-    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
-    //   id
-    // );
-    // sortir les tags sous forme de tableau dans data.tags
     data.tags = await getUserTags(data.user_id);
 
     if (data.profile_pic)
@@ -231,12 +239,6 @@ const getUserInfosMe = async id => {
       FROM users WHERE user_id = $1`,
       id
     );
-    delete data.password;
-    // const data = await global.db.one(
-    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
-    //   id
-    // );
-    // sortir les tags sous forme de tableau dans data.tags
     data.tags = await getUserTags(data.user_id);
 
     if (data.profile_pic)
