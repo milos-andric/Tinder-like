@@ -1098,7 +1098,7 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
   ids = ids.map(e => e.user_id);
   const ll = getLL(req.user, req.body.search.ip);
   ids = await searchFilter(req, ids, ll);
-  const sql = `SELECT *,distance FROM (SELECT *, (
+  let sql = `SELECT *,distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
@@ -1106,7 +1106,29 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     radians($3)) +
     sin(radians($2)) *
     sin(radians(users.latitude)))
-    ) AS distance FROM users) al WHERE user_id IN ($1:csv) LIMIT 10`;
+    ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
+  if (req.body.search.order && ids.length) {
+    if (req.body.search.order === 'location') {
+      sql += ' ORDER BY distance';
+    } else if (req.body.search.order === 'fame') {
+      sql += ' ORDER BY score DESC';
+    } else if (req.body.search.order === 'age') {
+      sql += ' ORDER BY age DESC';
+    } else if (req.body.search.order === 'tags') {
+      let mytagsId = await db.any(
+        `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
+        req.user.user_id
+      );
+      mytagsId = mytagsId.map(e => e.user_tag_id);
+      ids = await db.any(
+        `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+        WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
+        [mytagsId, ids]
+      );
+      ids = ids.map(e => e.user_id);
+    }
+  }
+  sql += ' LIMIT 10';
   if (ids.length) {
     const find = await db.any(sql, [ids, ll[0], ll[1]]);
     find.forEach(u => {

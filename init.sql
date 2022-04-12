@@ -176,7 +176,34 @@ INSERT into "messages"
 INSERT into "tags"
     ("label")
     VALUES ('chien');
+INSERT into "tags"
+    ("label")
+    VALUES ('chat');
+INSERT into "tags"
+    ("label")
+    VALUES ('musique');
+INSERT into "tags"
+    ("label")
+    VALUES ('nature');
+INSERT into "tags"
+    ("label")
+    VALUES ('tatoo');
+INSERT into "tags"
+    ("label")
+    VALUES ('filme');
 
 INSERT INTO "user_tags" 
     ("tag_id", "user_id") 
     VALUES (1, 1);
+INSERT INTO "user_tags" 
+    ("tag_id", "user_id") 
+    VALUES (1, 2);
+INSERT INTO "user_tags" 
+    ("tag_id", "user_id") 
+    VALUES (1, 3);
+INSERT INTO "user_tags" 
+    ("tag_id", "user_id") 
+    VALUES (2, 1);
+INSERT INTO "user_tags" 
+    ("tag_id", "user_id") 
+    VALUES (2, 2);

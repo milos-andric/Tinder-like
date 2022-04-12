@@ -58,6 +58,43 @@
       <h1>No users to show you yet</h1>
     </div>
     <MatchSearch @updateList="updateList" />
+    <b-form-group v-slot="{ ariaDescribedby }" label="Sorting">
+      <b-form-radio
+        v-model="sort"
+        :aria-describedby="ariaDescribedby"
+        name="some-radios"
+        class="unselectable"
+        value="location"
+        checked
+        >Sort by location</b-form-radio
+      >
+      <b-form-radio
+        v-model="sort"
+        :aria-describedby="ariaDescribedby"
+        name="some-radios"
+        class="unselectable"
+        value="age"
+        >Sort by Age</b-form-radio
+      >
+      <b-form-radio
+        v-model="sort"
+        :aria-describedby="ariaDescribedby"
+        name="some-radios"
+        class="unselectable"
+        value="fame"
+      >
+        Sort by Fame</b-form-radio
+      >
+      <b-form-radio
+        v-model="sort"
+        :aria-describedby="ariaDescribedby"
+        name="some-radios"
+        class="unselectable"
+        value="tags"
+      >
+        Sort by Tags</b-form-radio
+      >
+    </b-form-group>
   </div>
 </template>
 
@@ -73,6 +110,7 @@ export default {
       ip: null,
       swiper: null,
       search: {},
+      sort: 'location',
     };
   },
   mounted() {
@@ -127,6 +165,7 @@ export default {
     },
     async generateMatches() {
       const search = this.search;
+      search.order = this.sort;
       const res = await this.$axios.post('matchFilter', { search });
       return res;
     },
@@ -214,5 +253,13 @@ export default {
 .image {
   min-height: 100px;
   min-width: 100px;
+}
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 </style>
