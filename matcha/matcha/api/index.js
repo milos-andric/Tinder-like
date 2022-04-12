@@ -44,7 +44,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
 // if (process.env.NODE_ENV === 'production') {
-registerUsers();
+// registerUsers();
 // }
 
 const users = [];
@@ -1249,21 +1249,25 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
 });
 
 const updateManyTags = async () => {
-  await updateTags(5, ['chat']);
-  await updateTags(6, ['musique', 'chien']);
-  await updateTags(7, ['nature', 'randonné']);
-  await updateTags(8, ['chien', 'chat', 'tarantule']);
-  await updateTags(9, ['licorne', 'homo sapiens', 'filme']);
-  await updateTags(10, ['licorne', 'homo sapiens', 'filme']);
-  await updateTags(11, ['licorne', 'homo sapiens', 'filme', 'Calcutta']);
-  await updateTags(12, ['carambar', 'math', 'filme']);
-  await updateTags(13, ['caribou', 'livre', 'comédie romantique', 'UNESCO']);
-  await updateTags(14, ['voyage', 'série TV', 'filme']);
+  await Promise.all([
+    updateTags(5, ['chat']),
+    updateTags(6, ['musique', 'chien']),
+    updateTags(7, ['nature', 'randonné']),
+    updateTags(8, ['chien', 'chat', 'tarantule']),
+    updateTags(9, ['licorne', 'homo sapiens', 'filme']),
+    updateTags(10, ['licorne', 'homo sapiens', 'filme']),
+    updateTags(11, ['licorne', 'homo sapiens', 'filme', 'Calcutta']),
+    updateTags(12, ['carambar', 'math', 'filme']),
+    updateTags(13, ['caribou', 'livre', 'comédie', 'UNESCO']),
+    updateTags(14, ['voyage', 'série TV', 'filme']),
+  ]);
 };
 
 app.post('/registerMany', async (req, res) => {
   try {
     await registerUsers();
+    await updateManyTags();
+    return res.sendStatus(200);
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
   }
