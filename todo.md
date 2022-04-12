@@ -33,12 +33,12 @@ La mienne et celle des autres
 - [x] The gender
 - [x] Sexual preferences. (Default bi-sexual)
 - [x] A biography.
-- [ ] A list of interests with tags
+- [x] A list of interests with tags
 - [x] picture (max 5) avec une en profile
 - [x] last name,
 - [x] first name
 - [x] email (visible uniquement par lui-même)
-- [ ] statut online or last connection
+- [x] statut online or last connection
 
 ## section like
 
@@ -99,10 +99,12 @@ Par :
 - [ ] block in match
 - [ ] filter sort match
 - [ ] home page
-- [ ] message too big
-- [ ] strip message
+- [x] message too big
+- [x] strip message
 
-- [ ] Password (not send getUserInfos)
-- [ ] email (not send getUserInfos + everywhere)
+- [x] Password (not send getUserInfos)
+- [x] email (not send getUserInfos + everywhere)
 
 - [ ] launch factory on init
+
+- [ ] age in search bad format

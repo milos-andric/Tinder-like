@@ -77,6 +77,7 @@ export default {
       this.scrollToLast();
     },
     async sendMessage() {
+      this.input = this.input.trim();
       if (this.input.length > 0) {
         await this.$axios.post('sendRoomMessages', {
           room: this.room,
@@ -127,6 +128,8 @@ export default {
   border-radius: 1rem;
   padding: 1rem;
   margin: 0rem 1rem 1rem 1rem;
+  overflow-wrap: break-word;
+  max-width: 50%;
 }
 
 .message p {

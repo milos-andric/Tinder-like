@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto col-10 h-100 text-center">
+  <div v-if="load" class="mx-auto col-10 h-100 text-center">
     <!-- User main info -->
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
@@ -208,6 +208,7 @@ export default {
       online: true,
       last_connexion: '',
       profile_pic: '',
+      load: false,
 
       images: [],
 
@@ -224,6 +225,7 @@ export default {
     });
 
     await this.getInfos();
+    this.load = true;
 
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
