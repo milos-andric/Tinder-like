@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column">
+  <div v-if="load" class="d-flex flex-column">
     <div class="d-flex w-100" style="height: calc(100vh - 280px)">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
@@ -36,6 +36,13 @@
       </b-input-group>
     </div>
   </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
 </template>
 
 <script>
@@ -46,11 +53,13 @@ export default {
       room: '',
       input: '',
       messages: [],
+      load: false,
     };
   },
   async mounted() {
     const me = await this.$axios.get('/me');
     this.self_id = me.data.user_id;
+    this.load = true;
 
     this.socket = this.$nuxtSocket({
       name: 'chat',

@@ -187,6 +187,13 @@
     </b-alert>
     <HistoryComponent v-if="self_id === id" />
   </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
 </template>
 
 <script>

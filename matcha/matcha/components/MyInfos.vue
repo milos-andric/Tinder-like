@@ -1,5 +1,7 @@
 <template>
   <div class="mx-auto col-4 h-100" style="min-width: 300px">
+    <NuxtLink to="/user">Edit avatar</NuxtLink>
+
     <h2>Personal informations</h2>
 
     <form method="post" @submit.prevent="updateInfo">

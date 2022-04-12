@@ -108,3 +108,5 @@ Par :
 - [ ] launch factory on init
 
 - [ ] age in search bad format
+
+- [ ] margin at right in chat
