@@ -1138,6 +1138,19 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
   } else res.status(200).send([]);
 });
 
+const updateManyTags = async () => {
+  await updateTags(5, ['chat']);
+  await updateTags(6, ['musique', 'chien']);
+  await updateTags(7, ['nature', 'randonné']);
+  await updateTags(8, ['chien', 'chat', 'tarantule']);
+  await updateTags(9, ['licorne', 'homo sapiens', 'filme']);
+  await updateTags(10, ['licorne', 'homo sapiens', 'filme']);
+  await updateTags(11, ['licorne', 'homo sapiens', 'filme', 'Calcutta']);
+  await updateTags(12, ['carambar', 'math', 'filme']);
+  await updateTags(13, ['caribou', 'livre', 'comédie romantique', 'UNESCO']);
+  await updateTags(14, ['voyage', 'série TV', 'filme']);
+};
+
 app.post('/registerMany', async (req, res) => {
   const factory = buildFactory();
   const sql = await factory.attrsMany('User', 200).then(user => {
@@ -1162,7 +1175,8 @@ app.post('/registerMany', async (req, res) => {
     );
     return ret;
   });
-  db.any(sql).then(function (data) {
+  db.any(sql).then(async function (data) {
+    await updateManyTags();
     res.sendStatus(200);
   });
 });
