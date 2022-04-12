@@ -195,6 +195,34 @@ const getUserTags = async id => {
 const getUserInfos = async id => {
   try {
     const data = await global.db.one(
+      `SELECT * FROM users WHERE user_id = $1`,
+      id
+    );
+    // const data = await global.db.one(
+    //   'FROM user JOIN tags_user ON users.users_id=tags_users.users_id JOIN tags ON tags.tags_id=tags_users.tags_id'
+    //   id
+    // );
+    // sortir les tags sous forme de tableau dans data.tags
+    data.tags = await getUserTags(data.user_id);
+
+    if (data.profile_pic)
+      data.profile_pic = await global.db.oneOrNone(
+        `SELECT
+        image_id,
+        url,
+        user_id,
+        created_on
+        FROM images WHERE image_id = $1`,
+        data.profile_pic
+      );
+    return data;
+  } catch (e) {
+    throw new Error('User is not found');
+  }
+};
+const getUserInfosMe = async id => {
+  try {
+    const data = await global.db.one(
       `SELECT
       user_id,
       first_name,
@@ -207,7 +235,6 @@ const getUserInfos = async id => {
       bio,
       profile_pic,
       score,
-      activation_code,
       latitude,
       longitude,
       last_connexion,
@@ -740,7 +767,7 @@ function getLLFromCity(city) {
 app.get('/me', authenticateToken, async (req, res) => {
   const id = req.user.user_id;
   try {
-    const user = await getUserInfos(id);
+    const user = await getUserInfosMe(id);
     if (user.latitude && user.longitude) {
       user.ville = getCityFromLL(user.latitude, user.longitude);
     }
@@ -810,8 +837,8 @@ const isIdInRoom = async (id, room) => {
 
 app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   if (await isIdInRoom(req.user.user_id, req.body.room)) {
-    const sql =
-      'SELECT * FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on';
+    const sql = `SELECT messages.*,users.user_id,users.first_name,users.last_name,users.user_name,users.profile_pic,users.last_connexion
+     FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on`;
     const messages = await db.manyOrNone(sql, [req.body.room]);
 
     for (let i = 0; i < messages.length; i++) delete messages[i].password;
@@ -1096,7 +1123,21 @@ app.post('/search', authenticateToken, async (req, res) => {
       ids = ids.map(e => e.user_id);
     }
   }
-  sql = `SELECT *,distance FROM (SELECT *, (
+  sql = `SELECT user_id,
+    first_name,
+    last_name,
+    user_name,
+    age,
+    gender,
+    orientation,
+    bio,
+    profile_pic,
+    score,
+    activation_code,
+    latitude,
+    longitude,
+    last_connexion,
+  created_on,distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
