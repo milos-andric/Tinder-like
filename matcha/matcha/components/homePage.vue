@@ -1,8 +1,62 @@
 <template>
-  <div>
-    <p>Hello</p>
-    <p class="small fw-bold mt-2 pt-1 mb-0">
-      Don't have an account? <nuxt-link to="/register">Register</nuxt-link>
+  <div v-if="true && user_name" class="mx-auto col-4 h-100" style="min-width: 300px">
+    <h2 class="mt-3 text-center">Hello {{ user_name }} 😉</h2>
+    <p class="mt-3">Welcome to Matcha, the best place for online dating 🔥</p>
+    <p>
+      To help you get more dates🗓️  think about uploading an attractive
+      <nuxt-link to="/user">profile picture</nuxt-link> 😎
+    </p>
+    <p class="mt-3">
+      You may also want to tell us more about you and what you're looking for on 
+      <nuxt-link to="/me">your profile</nuxt-link> ✔️
+    </p>
+    </br>
+    <p>
+      Once your profile is completed, you may either :
+      <br>
+      ❤️ try to
+      <nuxt-link to="/match">match</nuxt-link>
+      with random people
+      <br>
+      🔍 try to
+      <nuxt-link to="/search">search</nuxt-link> by criteria and see targeted user's profile.
+    </p>
+    <p>
+      When you match with people, feel free to <nuxt-link to="/chat">chat</nuxt-link> with them 💬
     </p>
   </div>
+  <div v-else class="text-center">
+    <b-spinner
+      variant="primary"
+      style="width: 5rem; height: 5rem"
+      label="Large Spinner Text Centered"
+    ></b-spinner>
+  </div>
 </template>
+
+<script>
+export default {
+  data() {
+    return {
+      id: Number(this.$route.params.id),
+      user_name: '',
+      load: false,
+    };
+  },
+
+  async beforeMount() {
+    await this.getUserInfo();
+  },
+
+  methods: {
+    async getUserInfo() {
+      try {
+        const user = await this.$axios.get('/me');
+        this.user_name = user.data.user_name;
+        this.laod = true;
+      } catch (e) {
+      }
+    },
+  },
+};
+</script>
