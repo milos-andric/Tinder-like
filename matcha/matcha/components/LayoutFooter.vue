@@ -27,7 +27,4 @@
   flex-flow: row wrap;
   justify-content: space-around;
 }
-.channel:hover {
-  background-color: #00000014;
-}
 </style>

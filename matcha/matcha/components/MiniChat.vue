@@ -232,3 +232,10 @@ export default {
   },
 };
 </script>
+
+
+<style scoped>
+.channel:hover {
+  background-color: #00000014;
+}
+</style>
