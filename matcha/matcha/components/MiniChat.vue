@@ -130,11 +130,11 @@
             </div>
           </div>
         </div>
+        <div v-else id="no-chat">You have no available chat</div>
       </b-collapse>
     </div>
   </div>
 </template>
-
 
 <script>
 export default {
@@ -233,9 +233,11 @@ export default {
 };
 </script>
 
-
 <style scoped>
 .channel:hover {
   background-color: #00000014;
+}
+#no-chat {
+  background-color: rgb(206, 105, 105);
 }
 </style>
