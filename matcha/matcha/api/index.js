@@ -85,18 +85,17 @@ function getSocketById(userId) {
   return socketList;
 }
 
-function userIsBlocked(myId, targetId) {
+async function userIsBlocked(myId, targetId) {
   const myIdInt = Number(myId);
   const targetIdInt = Number(targetId);
-  return db
-    .manyOrNone(`SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`, [
-      targetIdInt,
-      myIdInt,
-    ])
-    .then(data => {
-      if (data.length > 0) return true;
-      return false;
-    });
+  const data = await db.manyOrNone(
+    `SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`,
+    [targetIdInt, myIdInt]
+  );
+  if (data.length > 0) {
+    return true;
+  }
+  return false;
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
