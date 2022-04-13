@@ -100,24 +100,28 @@ function userIsBlocked(myId, targetId) {
 }
 
 async function sendNotification(myId, targetId, typeNotif) {
-  const myIdInt = Number(myId);
-  const targetIdInt = Number(targetId);
-  const typeNotifString = String(typeNotif);
-  if ((await userIsBlocked(myIdInt, targetIdInt)) === true) return;
-  const alreadyNotified = await db.oneOrNone(
-    `SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4`,
-    [typeNotifString, myIdInt, targetIdInt, false]
-  );
-  if (!alreadyNotified) {
-    if (targetIdInt !== myIdInt) {
-      const socketList = getSocketById(targetIdInt);
-      const data = await postNotification(
-        myIdInt,
-        targetIdInt,
-        typeNotifString
-      );
-      emitNotifications(socketList, data);
+  try {
+    const myIdInt = Number(myId);
+    const targetIdInt = Number(targetId);
+    const typeNotifString = String(typeNotif);
+    if ((await userIsBlocked(myIdInt, targetIdInt)) === true) return;
+    const alreadyNotified = await db.oneOrNone(
+      `SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4`,
+      [typeNotifString, myIdInt, targetIdInt, false]
+    );
+    if (!alreadyNotified) {
+      if (targetIdInt !== myIdInt) {
+        const socketList = getSocketById(targetIdInt);
+        const data = await postNotification(
+          myIdInt,
+          targetIdInt,
+          typeNotifString
+        );
+        emitNotifications(socketList, data);
+      }
     }
+  } catch {
+    throw new Error('notification fail');
   }
 }
 
