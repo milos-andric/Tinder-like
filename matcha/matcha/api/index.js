@@ -1148,7 +1148,7 @@ async function searchFilter(req, ids, ll) {
     ids = await db.any(sql, [ids, minDate, maxDate]);
     ids = ids.map(e => e.user_id);
   }
-  if (req.body.search.fame) {
+  if (req.body.search.fame && ids.length) {
     sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score > $2';
     ids = await db.any(sql, [ids, req.body.search.fame]);
     ids = ids.map(e => e.user_id);
