@@ -82,7 +82,7 @@ export default {
 .channel {
   padding: 1rem;
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.281);
+  border: 1px solid #dee2e6;
 }
 .active {
   background-color: rgba(0, 0, 0, 0.856);

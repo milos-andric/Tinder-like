@@ -112,6 +112,9 @@ export default {
 </script>
 
 <style>
+#message-box {
+  background: white;
+}
 .chat-list {
   height: 100%;
   display: inline-flex;
