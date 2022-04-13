@@ -46,7 +46,7 @@
 
     <div
       v-if="users.length"
-      class="d-flex justify-content-around align-items-end mt-4"
+      class="d-flex justify-content-around align-items-center mt-4"
     >
       <font-awesome-icon
         id="icon-match-dislike"
@@ -58,44 +58,47 @@
     <div v-else class="col-10 m-auto text-center">
       <h1>No users to show you yet</h1>
     </div>
-    <MatchSearch @updateList="updateList" />
-    <b-form-group v-slot="{ ariaDescribedby }" label="Sorting">
-      <b-form-radio
-        v-model="sort"
-        :aria-describedby="ariaDescribedby"
-        name="some-radios"
-        class="unselectable"
-        value="location"
-        checked
-        >Sort by location</b-form-radio
-      >
-      <b-form-radio
-        v-model="sort"
-        :aria-describedby="ariaDescribedby"
-        name="some-radios"
-        class="unselectable"
-        value="age"
-        >Sort by Age</b-form-radio
-      >
-      <b-form-radio
-        v-model="sort"
-        :aria-describedby="ariaDescribedby"
-        name="some-radios"
-        class="unselectable"
-        value="fame"
-      >
-        Sort by Fame</b-form-radio
-      >
-      <b-form-radio
-        v-model="sort"
-        :aria-describedby="ariaDescribedby"
-        name="some-radios"
-        class="unselectable"
-        value="tags"
-      >
-        Sort by Tags</b-form-radio
-      >
-    </b-form-group>
+    <div id="sort-filter-match">
+      <MatchSearch @updateList="updateList" />
+      <b-form-group id="sort-group" v-slot="{ ariaDescribedby }">
+        <b-form-radio
+          v-model="sort"
+          :aria-describedby="ariaDescribedby"
+          name="some-radios"
+          class="unselectable radio-sort-match btn btn-secondary"
+          value="location"
+          checked
+          buttons
+          >Sort by location</b-form-radio
+        >
+        <b-form-radio
+          v-model="sort"
+          :aria-describedby="ariaDescribedby"
+          name="some-radios"
+          class="unselectable radio-sort-match btn btn-secondary"
+          value="age"
+          >Sort by Age</b-form-radio
+        >
+        <b-form-radio
+          v-model="sort"
+          :aria-describedby="ariaDescribedby"
+          name="some-radios"
+          class="unselectable radio-sort-match btn btn-secondary"
+          value="fame"
+        >
+          Sort by Fame</b-form-radio
+        >
+        <b-form-radio
+          v-model="sort"
+          :aria-describedby="ariaDescribedby"
+          name="some-radios"
+          class="unselectable radio-sort-match btn btn-secondary"
+          value="tags"
+        >
+          Sort by Tags</b-form-radio
+        >
+      </b-form-group>
+    </div>
   </div>
   <!--
   <div v-else class="text-center">
@@ -273,5 +276,28 @@ export default {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+#sort-filter-match {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-around;
+
+  margin-top: 2vh;
+  padding-top: 2vh;
+  border-top: solid rgba(0, 0, 0, 0.171) 2px;
+}
+#sort-group {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+}
+.radio-sort-match {
+  margin-bottom: 0.5vh;
+  margin-right: 0.5vh;
+  padding-left: 30px;
+  align-content: flex-start;
+}
+.radio-sort-match:hover {
+  cursor: pointer;
 }
 </style>
