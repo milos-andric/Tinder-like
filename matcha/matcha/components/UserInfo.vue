@@ -38,6 +38,13 @@
       </b-badge>
     </h4>
 
+    <!-- Privilege action -->
+    <div v-if="id !== self_id && seld_privilege === true" class="mt-3 mb-3">
+      <b-button variant="outline-danger" @click="devilMatch()">
+        Devil Match !
+      </b-button>
+    </div>
+
     <!-- User links -->
     <div v-if="id === self_id">
       <b-link class="mr-3" to="/me">Edit personal info</b-link>
@@ -201,6 +208,7 @@ export default {
   data() {
     return {
       self_id: 0,
+      seld_privilege: false,
 
       id: Number(this.$route.params.id),
       first_name: '',
@@ -228,6 +236,7 @@ export default {
   },
   async beforeMount() {
     await this.$axios.get('/me').then(e => {
+      this.seld_privilege = e.data.privilege;
       this.self_id = e.data.user_id;
     });
     await this.getInfos();
@@ -260,6 +269,7 @@ export default {
         this.tags = e.data.tags;
         this.last_connexion = e.data.last_connexion;
         this.profile_pic = e.data.profile_pic;
+        this.privilege = e.data.privilege;
         if (e.data.age) this.birth_date = new Date(e.data.age);
       });
     },
@@ -328,6 +338,19 @@ export default {
         this.alertStatus = true;
       }
       this.isliked();
+    },
+
+    async devilMatch() {
+      try {
+        await this.$axios.post('devil-match', {
+          targetId: this.id,
+        });
+        this.alertStatus = false;
+      } catch (e) {
+        this.alertMsg = e.response.data.msg;
+        this.alertVariant = 'danger';
+        this.alertStatus = true;
+      }
     },
 
     goToProfile() {

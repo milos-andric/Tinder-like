@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "activation_code" VARCHAR ( 512 ) NOT NULL,
     "latitude" FLOAT,
     "longitude" FLOAT,
+    "privilege" BOOLEAN NOT NULL DEFAULT false,
     "last_connexion" TIMESTAMP NOT NULL DEFAULT now(),
     "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS "user_tags" (
 );
 
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")
-    VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', NOW());
+    VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', true, NOW());
 
     -- code Toto123456789
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")

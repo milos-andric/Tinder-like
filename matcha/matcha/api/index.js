@@ -234,6 +234,7 @@ const getUserInfos = async id => {
       score,
       latitude,
       longitude,
+      privilege,
       last_connexion,
       created_on FROM users WHERE user_id = $1`,
       id
@@ -255,6 +256,7 @@ const getUserInfos = async id => {
     throw new Error('User is not found');
   }
 };
+
 const getUserInfosMe = async id => {
   try {
     const data = await global.db.one(
@@ -272,6 +274,7 @@ const getUserInfosMe = async id => {
       score,
       latitude,
       longitude,
+      privilege,
       last_connexion,
       created_on
       FROM users WHERE user_id = $1`,
@@ -1445,6 +1448,59 @@ app.post('/view', authenticateToken, async (req, res) => {
       );
     }
 
+    return res.sendStatus(200);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
+});
+
+// JB
+app.post('/devil', authenticateToken, async (req, res) => {
+  // TODO check if pass by devil picture ??
+  try {
+    const user = await getUserInfos(req.user.user_id);
+    const myIdInt = Number(user.user_id);
+    if (user.privilege)
+      return res.status(200).json({ msg: 'You have alredy devil' });
+    await db.none('UPDATE users SET privilege=$1 WHERE user_id=$2', [
+      true,
+      myIdInt,
+    ]);
+    return res.sendStatus(200);
+  } catch (e) {
+    return res.status(500).json({ msg: e });
+  }
+});
+
+app.post('/devil-match', authenticateToken, async (req, res) => {
+  // TODO req.user contient toutes les infos ??
+  // console.log(req.user);
+  try {
+    const user = await getUserInfos(req.user.user_id);
+    const myIdInt = Number(user.user_id);
+    const targetIdInt = Number(req.body.targetId);
+    if (user.privilege === false)
+      return res
+        .status(403)
+        .json({ msg: "You don't have the Devil privilege" });
+    if (myIdInt === targetIdInt)
+      return res.status(200).json({ msg: 'You cannot match yourself' });
+    const name = chatName(myIdInt, targetIdInt);
+    const alreadyExist = await db.oneOrNone(
+      'SELECT * FROM chats WHERE name=$1',
+      [name]
+    );
+    if (!alreadyExist) {
+      await db.any(
+        'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+        [myIdInt, targetIdInt, chatName(myIdInt, targetIdInt)]
+      );
+      await sendNotification(myIdInt, targetIdInt, 'like');
+      await sendNotification(myIdInt, targetIdInt, 'match');
+      await sendNotification(targetIdInt, myIdInt, 'like');
+      await sendNotification(targetIdInt, myIdInt, 'match');
+      await recalculUserScore(myIdInt);
+    }
     return res.sendStatus(200);
   } catch (e) {
     return res.status(500).json({ msg: e });
