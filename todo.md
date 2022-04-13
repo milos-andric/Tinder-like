@@ -64,7 +64,7 @@ La mienne et celle des autres
 - [x] like
 - [x] view
 
-[ ] filtrable + triable
+[x] filtrable + triable
 
 ## Research page
 
@@ -95,7 +95,7 @@ Par :
 
 ### pense bete
 
-- [ ] add init tags
+- [x] add init tags
 - [x] block in match
 - [x] filter sort match
 - [ ] home page

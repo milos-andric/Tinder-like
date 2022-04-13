@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS "messages" (
     "sender_id" INT NOT NULL,
     "chat_id" VARCHAR(16) NOT NULL,
     "message" TEXT,
+    "type" INT NOT NULL DEFAULT 1,
     "created_on" TIMESTAMP NOT NULL DEFAULT now(),
 
     CONSTRAINT "fk_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id")
@@ -117,6 +118,17 @@ CREATE TABLE IF NOT EXISTS "user_tags" (
 
     CONSTRAINT "fk_tags_user_id" FOREIGN KEY("user_id") REFERENCES "users"("user_id"),
     CONSTRAINT "fk_tags_tag_id" FOREIGN KEY("tag_id") REFERENCES "tags"("tag_id")
+);
+
+CREATE TABLE IF NOT EXISTS "mail_dates" ( 
+    "mail_date_id" serial PRIMARY KEY,
+    "sender_id" INT NOT NULL,
+    "receiver_id"  INT NOT NULL,
+    "text" TEXT NOT NULL,
+    "send_date" TIMESTAMP NOT NULL,
+
+    CONSTRAINT "fk_mail_date_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_mail_date_receiver_id" FOREIGN KEY("receiver_id") REFERENCES "users"("user_id")
 );
 
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")

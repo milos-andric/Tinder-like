@@ -11,8 +11,25 @@
             :class="item.sender_id === self_id ? 'myself' : 'other'"
             class="message"
           >
-            <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
-            <p>{{ item.message }}</p>
+            <div v-if="item.type !== 2">
+              <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
+              <p>{{ item.message }}</p>
+            </div>
+            <div v-else-if="item.type === 2 && item.sender_id === self_id">
+              <p>Vous avez envoyer une invitation</p>
+            </div>
+            <div v-else-if="item.type === 2 && item.sender_id !== self_id">
+              <p>Vous avez reçu une invitation de {{ item.user_name }}:</p>
+              <p>
+                {{ item.message }}
+              </p>
+              <button class="btn btn-primary" @click="accept(item)">
+                Accepter
+              </button>
+              <button class="btn btn-primary" @click="refuse(item)">
+                Refuser
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -29,11 +46,26 @@
         />
 
         <template #append>
-          <button class="btn btn-primary" type="submit" @click="sendMessage()">
+          <button class="btn btn-primary" type="submit" @click="sendMessage">
             <font-awesome-icon color="white" icon="paper-plane" />
           </button>
         </template>
       </b-input-group>
+    </div>
+    <div>
+      <button class="btn btn-primary" @click="sendDate">Send date ?</button>
+      <b-form-datepicker
+        id="date"
+        v-model="date"
+        class="mb-2"
+        locale="fr"
+      ></b-form-datepicker>
+      <b-form-timepicker
+        id="hour_date"
+        v-model="dateHour"
+        class="mb-2"
+        locale="fr"
+      ></b-form-timepicker>
     </div>
   </div>
   <div v-else class="text-center">
@@ -54,6 +86,8 @@ export default {
       input: '',
       messages: [],
       load: false,
+      date: '',
+      dateHour: '',
     };
   },
   async mounted() {
@@ -71,7 +105,9 @@ export default {
     });
 
     this.socket.on('receiveChatMessage', data => {
+      console.log(data);
       if (data.chat_id === this.room) {
+        console.log(data);
         this.messages.push(data);
         this.scrollToLast();
       }
@@ -106,6 +142,30 @@ export default {
         const target = box.lastElementChild;
         target.scrollIntoView();
       }, 10);
+    },
+    async sendDate() {
+      await this.$axios.post('/proposeDate', {
+        target: 1,
+        date: this.date,
+        hour: this.dateHour,
+        room: this.room,
+      });
+    },
+    async accept(msg) {
+      console.log('accept');
+      console.log(msg);
+      await this.$axios.post('acceptDate', {
+        room: msg,
+        resp: true,
+      });
+    },
+    async refuse(msg) {
+      console.log('refuse');
+      console.log(msg);
+      await this.$axios.post('acceptDate', {
+        message: msg,
+        resp: false,
+      });
     },
   },
 };

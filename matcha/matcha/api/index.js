@@ -56,6 +56,10 @@ const io = new Server(server, {
     origin: '*',
   },
 });
+const cron = require('node-cron');
+// cron.schedule('* * * * *', () => {
+//   console.log('running a task every minute');
+// });
 
 function socketIdentification(socket) {
   const token = socket.handshake.auth.token.split(' ')[1];
@@ -79,8 +83,7 @@ function emitNotifications(socketIds, notif) {
 function getSocketById(userId) {
   // const userIdInt = Number(userId);
   const socketList = users
-    // .filter(e => e.user_id === userIdInt)
-    .filter(e => e.user_id === userId)
+    .filter(e => Number(e.user_id) === Number(userId))
     .map(e => e.socket_id);
   return socketList;
 }
@@ -881,7 +884,16 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
 
 const sendMessage = async (myId, targetId, data) => {
   await sendNotification(myId, targetId, 'message');
-  io.to(getSocketById(targetId)).emit('receiveChatMessage', data);
+  console.log(myId);
+  console.log(targetId);
+  console.log('here');
+  console.log(getSocketById(targetId));
+  const temp = getSocketById(targetId);
+  if (temp.length) {
+    io.to(temp).emit('receiveChatMessage', data); // send to self and targetId
+  } else {
+    console.log('error socket');
+  }
 };
 
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
@@ -909,6 +921,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
         message: req.body.message,
       };
       sendMessage(senderId, receiverId, data);
+      sendMessage(receiverId, senderId, data);
       return res.send(data);
     } else {
       return res.sendStatus(403);
@@ -1515,6 +1528,40 @@ app.post('/getRecommandation', authenticateToken, async (req, res) => {
 function getPosById(ip) {
   return lookup(ip)?.ll;
 }
+
+app.post('/proposeDate', authenticateToken, async (req, res) => {
+  try {
+    console.log(req.body);
+    // isnotFormiden =
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + 1);
+    const text = 'vous avez une date avec XXX in ' + date;
+    await db.none(
+      `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date) VALUES ( $1, $2, $3, $4 )`,
+      [1, 2, text, date]
+    );
+    if (await isIdInRoom(req.user.user_id, req.body.room)) {
+      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW())`;
+      await db.any(sql, [req.user.user_id, req.body.room, text]);
+      const data = {
+        sender_id: (await getUserInfos(req.user.user_id)).user_id,
+        user_name: (await getUserInfos(req.user.user_id)).user_name,
+        chat_id: req.body.room,
+        type: 2,
+        message: text,
+      };
+      sendMessage(1, 2, data);
+      sendMessage(2, 1, data);
+    }
+    res.sendStatus(200);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
+app.post('/acceptDate', authenticateToken, async (req, res) => {
+  res.sendStatus(200);
+});
 export default {
   path: '/api',
   handler: app,
