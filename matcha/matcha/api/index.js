@@ -1461,30 +1461,28 @@ app.post('/devil', authenticateToken, async (req, res) => {
     const user = await getUserInfos(req.user.user_id);
     const myIdInt = Number(user.user_id);
     if (user.privilege)
-      return res.status(200).json({ msg: 'You have alredy devil' });
+      return res.status(200).json({ msg: 'You have alredy Devil privilege' });
     await db.none('UPDATE users SET privilege=$1 WHERE user_id=$2', [
       true,
       myIdInt,
     ]);
-    return res.sendStatus(200);
+    return res.status(200).json({ msg: 'You are now Devil privilege' });
   } catch (e) {
     return res.status(500).json({ msg: e });
   }
 });
 
 app.post('/devil-match', authenticateToken, async (req, res) => {
-  // TODO req.user contient toutes les infos ??
-  // console.log(req.user);
   try {
     const user = await getUserInfos(req.user.user_id);
     const myIdInt = Number(user.user_id);
     const targetIdInt = Number(req.body.targetId);
     if (user.privilege === false)
-      return res
-        .status(403)
-        .json({ msg: "You don't have the Devil privilege" });
+      return res.status(403).json({ msg: "You haven't the Devil privilege" });
     if (myIdInt === targetIdInt)
       return res.status(200).json({ msg: 'You cannot match yourself' });
+    if ((await userIsBlocked(myIdInt, targetIdInt)) === true)
+      return res.status(403).json({ msg: "It's harssment ?" });
     const name = chatName(myIdInt, targetIdInt);
     const alreadyExist = await db.oneOrNone(
       'SELECT * FROM chats WHERE name=$1',
@@ -1500,8 +1498,9 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
       await sendNotification(targetIdInt, myIdInt, 'like');
       await sendNotification(targetIdInt, myIdInt, 'match');
       await recalculUserScore(myIdInt);
+      return res.status(200).json({ msg: 'Successfully Devil Matched' });
     }
-    return res.sendStatus(200);
+    return res.status(200).json({ msg: 'You have already Devil Matched' });
   } catch (e) {
     return res.status(500).json({ msg: e });
   }

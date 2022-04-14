@@ -342,10 +342,12 @@ export default {
 
     async devilMatch() {
       try {
-        await this.$axios.post('devil-match', {
+        const res = await this.$axios.post('devil-match', {
           targetId: this.id,
         });
-        this.alertStatus = false;
+        this.alertMsg = res.data.msg;
+        this.alertVariant = 'success';
+        this.alertStatus = true;
       } catch (e) {
         this.alertMsg = e.response.data.msg;
         this.alertVariant = 'danger';

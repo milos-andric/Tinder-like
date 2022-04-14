@@ -101,10 +101,12 @@ export default {
 
     async devilMode() {
       try {
-        await this.$axios.post('/devil', {
+        const res = await this.$axios.post('/devil', {
           user_id: this.id,
         });
-        this.alertStatus = false;
+        this.alertMsg = res.data.msg;
+        this.alertVariant = 'success';
+        this.alertStatus = true;
       } catch (e) {
         this.alertMsg = e.response.data.msg;
         this.alertVariant = 'danger';
