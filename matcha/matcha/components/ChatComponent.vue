@@ -4,7 +4,11 @@
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
       <div class="w-100" style="flex-grow: 1">
-        <div id="message-box" class="w-100 chat-list pt-4">
+        <div
+          v-if="messages.length"
+          id="message-box"
+          class="w-100 chat-list pt-4"
+        >
           <div
             v-for="item in messages"
             :key="item.messages"
@@ -13,6 +17,27 @@
           >
             <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
             <p>{{ item.message }}</p>
+          </div>
+        </div>
+        <!--
+        -->
+        <div v-else class="mx-auto col-sm-12 col-lg-8 h-100">
+          <div class="bg-primary text-white rounded m-3 p-2 text-center">
+            <span class="badge bg-light text-dark">3</span>
+            suggestions
+          </div>
+          <div
+            v-for="item in suggestions"
+            :key="item.suggestions"
+            class="text-center"
+            @click="sendSuggestion(item)"
+          >
+            <button
+              type="button"
+              class="btn btn-secondary m-1 col-8 text-break"
+            >
+              {{ item }}
+            </button>
           </div>
         </div>
       </div>
@@ -53,6 +78,11 @@ export default {
       room: '',
       input: '',
       messages: [],
+      suggestions: [
+        "Hey whats'up ",
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      ],
       load: false,
     };
   },
@@ -106,6 +136,11 @@ export default {
         const target = box.lastElementChild;
         target.scrollIntoView();
       }, 10);
+    },
+
+    async sendSuggestion(message) {
+      this.input = message;
+      await this.sendMessage();
     },
   },
 };
