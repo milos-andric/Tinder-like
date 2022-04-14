@@ -19,8 +19,6 @@
             <p>{{ item.message }}</p>
           </div>
         </div>
-        <!--
-        -->
         <div v-else class="mx-auto col-sm-12 col-lg-8 h-100">
           <div class="bg-primary text-white rounded m-3 p-2 text-center">
             <span class="badge bg-light text-dark">3</span>
