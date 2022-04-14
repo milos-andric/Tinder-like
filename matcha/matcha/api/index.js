@@ -56,10 +56,6 @@ const io = new Server(server, {
     origin: '*',
   },
 });
-const cron = require('node-cron');
-// cron.schedule('* * * * *', () => {
-//   console.log('running a task every minute');
-// });
 
 function socketIdentification(socket) {
   const token = socket.handshake.auth.token.split(' ')[1];
@@ -884,20 +880,16 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
 
 const sendMessage = async (myId, targetId, data) => {
   await sendNotification(myId, targetId, 'message');
-  console.log(myId);
-  console.log(targetId);
-  console.log('here');
-  console.log(getSocketById(targetId));
-  const temp = getSocketById(targetId);
-  if (temp.length) {
-    io.to(temp).emit('receiveChatMessage', data); // send to self and targetId
+  const listSocket = getSocketById(targetId);
+  if (listSocket.length) {
+    io.to(listSocket).emit('receiveChatMessage', data); // send to self and targetId
   } else {
     console.log('error socket');
   }
 };
 
-app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
-  const names = req.body.room.split('-');
+function attributionRoomMessage(req, roomname) {
+  const names = roomname.split('-');
   let receiverId = '0';
   let senderId = '0';
   Number(names[0]) !== req.user.user_id
@@ -906,8 +898,15 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   Number(names[0]) === req.user.user_id
     ? (senderId = names[0])
     : (senderId = names[1]);
-  if ((await userIsBlocked(senderId, receiverId)) === true) return;
+  return [senderId, receiverId];
+}
+app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
+  if (!req.body.room || !req.body.message) {
+    res.sendStatus(400);
+  }
   try {
+    const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
+    if ((await userIsBlocked(senderId, receiverId)) === true) return;
     if (
       (await isIdInRoom(req.user.user_id, req.body.room)) &&
       req.body.message.length > 0
@@ -919,6 +918,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
         user_name: (await getUserInfos(req.user.user_id)).user_name,
         chat_id: req.body.room,
         message: req.body.message,
+        type: 1,
       };
       sendMessage(senderId, receiverId, data);
       sendMessage(receiverId, senderId, data);
@@ -1530,28 +1530,37 @@ function getPosById(ip) {
 }
 
 app.post('/proposeDate', authenticateToken, async (req, res) => {
+  if (
+    !req.body.room &&
+    !req.body.date &&
+    !req.body.hour &&
+    !req.body.location
+  ) {
+    res.sendStatus(400);
+  }
   try {
     console.log(req.body);
-    // isnotFormiden =
+    // eslint-disable-next-line no-unused-vars
+    const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
     const date = new Date();
-    date.setMinutes(date.getMinutes() + 1);
-    const text = 'vous avez une date avec XXX in ' + date;
-    await db.none(
-      `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date) VALUES ( $1, $2, $3, $4 )`,
-      [1, 2, text, date]
-    );
+    date.setMinutes(date.getMinutes() + 2);
+    const text =
+      'vous avez une date le ' +
+      date +
+      " à l'endroit nommée : " +
+      req.body.location;
     if (await isIdInRoom(req.user.user_id, req.body.room)) {
-      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW())`;
-      await db.any(sql, [req.user.user_id, req.body.room, text]);
-      const data = {
-        sender_id: (await getUserInfos(req.user.user_id)).user_id,
-        user_name: (await getUserInfos(req.user.user_id)).user_name,
-        chat_id: req.body.room,
-        type: 2,
-        message: text,
-      };
-      sendMessage(1, 2, data);
-      sendMessage(2, 1, data);
+      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW()) RETURNING *`;
+      const msgId = await db.one(sql, [req.user.user_id, req.body.room, text]);
+      msgId.user_name = (await getUserInfos(req.user.user_id)).user_name;
+      await db.none(
+        `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
+        [req.user.user_id, 2, text, date, msgId.msg_id]
+      );
+      sendMessage(req.user.user_id, receiverId, msgId);
+      sendMessage(receiverId, req.user.user_id, msgId);
+    } else {
+      res.sendStatus(403);
     }
     res.sendStatus(200);
   } catch (error) {
@@ -1559,8 +1568,96 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     res.sendStatus(500);
   }
 });
+async function updateDate(receiverId, msg, resp, newMsg) {
+  const date = await db.one(
+    `SELECT * FROM mail_dates WHERE sender_id=$1 AND msg_id=$2`,
+    [receiverId, msg.msg_id]
+  );
+  const verifMsg = await db.one(
+    `SELECT * FROM messages WHERE msg_id=$1 AND chat_id=$2`,
+    [msg.msg_id, msg.chat_id]
+  );
+  if (date && verifMsg) {
+    await db.any(`UPDATE mail_dates SET accept=$1 WHERE mail_date_id=$2`, [
+      resp,
+      date.mail_date_id,
+    ]);
+    await db.any(`UPDATE messages SET type=1,message=$1 WHERE msg_id=$2`, [
+      newMsg,
+      msg.msg_id,
+    ]);
+    return date;
+  }
+}
+async function getEmailid(id) {
+  const email = await db.one('SELECT email FROM users WHERE user_id=$1', [id]);
+  return email.email;
+}
+function sendDateEmail(email, date) {
+  const mailOptions = {
+    from: 'Matcha <camagru.tmarcon@gmail.com>',
+    to: email,
+    subject: 'Date',
+    html: '<p>' + date.text + '</p>',
+  };
+  transporter.sendMail(mailOptions);
+}
 app.post('/acceptDate', authenticateToken, async (req, res) => {
-  res.sendStatus(200);
+  if (!req.body.message && !req.body.resp && !req.body.message.chat_id) {
+    res.sendStatus(400);
+  }
+  try {
+    // eslint-disable-next-line no-unused-vars
+    const [senderId, receiverId] = attributionRoomMessage(
+      req,
+      req.body.message.chat_id
+    );
+
+    let text = '';
+    if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
+      if (req.body.resp) {
+        text =
+          req.user.user_name +
+          ' à accepter la proposition de date. Vous recevrez un email juste avant le date';
+        const date = await updateDate(
+          receiverId,
+          req.body.message,
+          req.body.resp,
+          text
+        );
+        // https://github.com/node-schedule/node-schedule
+        const schedule = require('node-schedule');
+        const time = new Date();
+        time.setMinutes(time.getMinutes() + 1);
+        const email1 = await getEmailid(senderId);
+        const email2 = await getEmailid(receiverId);
+        const job = schedule.scheduleJob(
+          time,
+          function (email1, email2, date) {
+            sendDateEmail(email1, date);
+            sendDateEmail(email2, date);
+          }.bind(null, email1, email2, date)
+        );
+      } else {
+        text = req.user.user_name + ' à refuser la proposition de date.';
+        await updateDate(receiverId, req.body.message, req.body.resp, text);
+      }
+      const data = {
+        sender_id: (await getUserInfos(req.user.user_id)).user_id,
+        user_name: (await getUserInfos(req.user.user_id)).user_name,
+        chat_id: req.body.message.chat_id,
+        type: 3,
+        message: text,
+      };
+      sendMessage(req.user.user_id, receiverId, data);
+      sendMessage(receiverId, req.user.user_id, data);
+      res.sendStatus(200);
+    } else {
+      res.sendStatus(403);
+    }
+  } catch (error) {
+    res.sendStatus(500);
+  }
 });
 export default {
   path: '/api',

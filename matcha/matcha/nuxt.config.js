@@ -56,6 +56,7 @@ export default {
         'faPaperPlane',
         'faAngleRight',
         'faArrowRotateRight',
+        'faMartiniGlass',
       ],
     },
   },

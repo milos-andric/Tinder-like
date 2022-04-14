@@ -124,11 +124,14 @@ CREATE TABLE IF NOT EXISTS "mail_dates" (
     "mail_date_id" serial PRIMARY KEY,
     "sender_id" INT NOT NULL,
     "receiver_id"  INT NOT NULL,
+    "msg_id"  INT NOT NULL,
     "text" TEXT NOT NULL,
     "send_date" TIMESTAMP NOT NULL,
+    "accept" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "fk_mail_date_sender_id" FOREIGN KEY("sender_id") REFERENCES "users"("user_id"),
-    CONSTRAINT "fk_mail_date_receiver_id" FOREIGN KEY("receiver_id") REFERENCES "users"("user_id")
+    CONSTRAINT "fk_mail_date_receiver_id" FOREIGN KEY("receiver_id") REFERENCES "users"("user_id"),
+    CONSTRAINT "fk_mail_date_msg_id" FOREIGN KEY("msg_id") REFERENCES "messages"("msg_id")
 );
 
 INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "created_on")

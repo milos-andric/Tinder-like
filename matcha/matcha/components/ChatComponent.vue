@@ -11,12 +11,13 @@
             :class="item.sender_id === self_id ? 'myself' : 'other'"
             class="message"
           >
-            <div v-if="item.type !== 2">
+            <div v-if="item.type === 1">
               <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
               <p>{{ item.message }}</p>
             </div>
             <div v-else-if="item.type === 2 && item.sender_id === self_id">
-              <p>Vous avez envoyer une invitation</p>
+              <p>Vous avez envoyer une invitation à {{ otherUserName }}</p>
+              {{ item }}
             </div>
             <div v-else-if="item.type === 2 && item.sender_id !== self_id">
               <p>Vous avez reçu une invitation de {{ item.user_name }}:</p>
@@ -29,6 +30,9 @@
               <button class="btn btn-primary" @click="refuse(item)">
                 Refuser
               </button>
+            </div>
+            <div v-else-if="item.type === 3">
+              <p>{{ item.message }}</p>
             </div>
           </div>
         </div>
@@ -49,23 +53,44 @@
           <button class="btn btn-primary" type="submit" @click="sendMessage">
             <font-awesome-icon color="white" icon="paper-plane" />
           </button>
+          <b-button v-b-modal.modal-1 class="btn btn-primary"
+            ><font-awesome-icon icon="martini-glass"
+          /></b-button>
         </template>
       </b-input-group>
     </div>
     <div>
-      <button class="btn btn-primary" @click="sendDate">Send date ?</button>
-      <b-form-datepicker
-        id="date"
-        v-model="date"
-        class="mb-2"
-        locale="fr"
-      ></b-form-datepicker>
-      <b-form-timepicker
-        id="hour_date"
-        v-model="dateHour"
-        class="mb-2"
-        locale="fr"
-      ></b-form-timepicker>
+      <b-modal id="modal-1" hide-footer title="Date Form">
+        <b-form-datepicker
+          id="date"
+          v-model="date"
+          class="mb-2"
+          locale="fr"
+          today-button
+          reset-button
+          close-button
+        ></b-form-datepicker>
+        <b-form-timepicker
+          id="hour_date"
+          v-model="dateHour"
+          class="mb-2"
+          locale="fr"
+          now-button
+          reset-button
+          close-button
+        ></b-form-timepicker>
+        <b-form-textarea
+          id="textarea"
+          v-model="dateLocation"
+          placeholder="Enter Location"
+          rows="3"
+          max-rows="6"
+        ></b-form-textarea>
+        <b-button class="mt-2" @click="abortDate">Cancel</b-button>
+        <b-button variant="primary" class="mt-2" @click="sendDate"
+          >Send date</b-button
+        >
+      </b-modal>
     </div>
   </div>
   <div v-else class="text-center">
@@ -83,11 +108,13 @@ export default {
     return {
       self_id: null,
       room: '',
+      otherUserName: '',
       input: '',
       messages: [],
       load: false,
-      date: '',
-      dateHour: '',
+      date: undefined,
+      dateHour: undefined,
+      dateLocation: undefined,
     };
   },
   async mounted() {
@@ -105,11 +132,13 @@ export default {
     });
 
     this.socket.on('receiveChatMessage', data => {
-      console.log(data);
       if (data.chat_id === this.room) {
-        console.log(data);
-        this.messages.push(data);
-        this.scrollToLast();
+        if (data.type === 3) {
+          this.getMessage(this.room);
+        } else {
+          this.messages.push(data);
+          this.scrollToLast();
+        }
       }
     });
   },
@@ -132,8 +161,9 @@ export default {
 
       this.input = '';
     },
-    async onChangeActiveRoom(newRoom) {
+    async onChangeActiveRoom(newRoom, otherUserName) {
       this.room = newRoom;
+      this.otherUserName = otherUserName;
       await this.getMessage(newRoom);
     },
     scrollToLast() {
@@ -144,28 +174,43 @@ export default {
       }, 10);
     },
     async sendDate() {
-      await this.$axios.post('/proposeDate', {
-        target: 1,
-        date: this.date,
-        hour: this.dateHour,
-        room: this.room,
-      });
+      const val = await this.$bvModal.msgBoxConfirm(
+        'Are you sure to send date to ' + this.otherUserName + '  ?'
+      );
+      if (val && this.date && this.dateHour && this.dateLocation) {
+        this.$bvModal.hide('modal-1');
+        await this.$axios.post('/proposeDate', {
+          date: this.date,
+          hour: this.dateHour,
+          location: this.dateLocation,
+          room: this.room,
+        });
+        this.date = '';
+        this.dateHour = '';
+        this.dateLocation = '';
+      } else if (val) {
+        this.$bvModal.msgBoxOk('Bad input', {
+          contentClass: 'textRed',
+          okVariant: 'warning',
+        });
+      }
+    },
+    abortDate() {
+      this.$bvModal.hide('modal-1');
     },
     async accept(msg) {
-      console.log('accept');
-      console.log(msg);
       await this.$axios.post('acceptDate', {
-        room: msg,
+        message: msg,
         resp: true,
       });
+      this.getMessage(this.room);
     },
     async refuse(msg) {
-      console.log('refuse');
-      console.log(msg);
       await this.$axios.post('acceptDate', {
         message: msg,
         resp: false,
       });
+      this.getMessage(this.room);
     },
   },
 };
@@ -212,5 +257,8 @@ export default {
 
 .other {
   background-color: rgba(0, 110, 255, 0.438);
+}
+.textRed {
+  color: red;
 }
 </style>

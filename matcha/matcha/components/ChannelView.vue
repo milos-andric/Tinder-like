@@ -66,7 +66,7 @@ export default {
   methods: {
     changeActiveRoom(channel) {
       if (channel) {
-        this.$emit('changeActiveRoom', channel.name);
+        this.$emit('changeActiveRoom', channel.name, channel.pal_name);
       }
     },
   },
