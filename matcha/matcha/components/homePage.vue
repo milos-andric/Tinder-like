@@ -73,10 +73,6 @@ export default {
       document.addEventListener('keydown', this.konamiCode);
   },
 
-  unmounted() {
-    document.removeEventListener('keydown', this.konamiCode);  // TODO delete eventListener no works
-  },
-
   methods: {
     async getUserInfo() {
       try {
@@ -84,13 +80,14 @@ export default {
         this.id = user.data.user_id;
         this.user_name = user.data.user_name;
         this.laod = true;
-      } catch (e) {
-      }
+      } catch (e) {}
     },
 
-    konamiCode() {
+    konamiCode(event) {
       const pattern = ['b', 'a', 't', 'm', 'a', 'n', 'e', 't'];
-      if (!event && event.key && pattern.includes(event.key) < 0 || event.key !== pattern[this.current]) {
+      if (!event || !event.key)
+        return;
+      if (!pattern.includes(event.key) || event.key !== pattern[this.current]) {
         this.current = 0;
         return;
 	    }
@@ -98,6 +95,7 @@ export default {
       if (pattern.length === this.current) {
         this.current = 0;
         this.konami = true;
+        document.removeEventListener('keydown', this.konamiCode);
       }
     },
 
