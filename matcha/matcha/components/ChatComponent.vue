@@ -40,7 +40,10 @@
             </div>
           </div>
         </div>
-        <div v-else class="mx-auto col-sm-12 col-lg-8 h-100 overflow-auto">
+        <div
+          v-else-if="room"
+          class="mx-auto col-sm-12 col-lg-8 h-100 overflow-auto"
+        >
           <div class="bg-primary text-white rounded m-3 p-2 text-center">
             <span class="badge bg-light text-dark">
               {{ suggestions.length }}

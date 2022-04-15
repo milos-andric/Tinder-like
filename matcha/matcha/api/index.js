@@ -84,12 +84,12 @@ function getSocketById(userId) {
   return socketList;
 }
 
-async function userIsBlocked(myId, targetId) {
-  const myIdInt = Number(myId);
-  const targetIdInt = Number(targetId);
+async function userIsBlocked(senderId, blockedId) {
+  const senderIdInt = Number(senderId);
+  const blockedIdInt = Number(blockedId);
   const data = await db.manyOrNone(
     `SELECT * FROM blocks WHERE sender_id=$1 AND blocked_id=$2`,
-    [targetIdInt, myIdInt]
+    [senderIdInt, blockedIdInt]
   );
   if (data.length > 0) {
     return true;
@@ -102,7 +102,7 @@ async function sendNotification(myId, targetId, typeNotif) {
     const myIdInt = Number(myId);
     const targetIdInt = Number(targetId);
     const typeNotifString = String(typeNotif);
-    if ((await userIsBlocked(myIdInt, targetIdInt)) === true) return;
+    if ((await userIsBlocked(targetIdInt, myIdInt)) === true) return;
     const alreadyNotified = await db.oneOrNone(
       `SELECT * FROM notifications WHERE type=$1 AND user_id_send=$2 AND user_id_receiver=$3 AND watched=$4`,
       [typeNotifString, myIdInt, targetIdInt, false]
@@ -905,11 +905,12 @@ function attributionRoomMessage(req, roomname) {
 }
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   if (!req.body.room || !req.body.message) {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   }
   try {
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
-    if ((await userIsBlocked(senderId, receiverId)) === true) return;
+    if ((await userIsBlocked(receiverId, senderId)) === true)
+      return res.sendStatus(200);
     if (
       (await isIdInRoom(req.user.user_id, req.body.room)) &&
       req.body.message.length > 0
@@ -1494,7 +1495,7 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
       return res.status(403).json({ msg: "You haven't the Devil privilege" });
     if (myIdInt === targetIdInt)
       return res.status(200).json({ msg: 'You cannot match yourself' });
-    if ((await userIsBlocked(myIdInt, targetIdInt)) === true)
+    if ((await userIsBlocked(targetIdInt, myIdInt)) === true)
       return res.status(403).json({ msg: "It's harssment ?" });
     const name = chatName(myIdInt, targetIdInt);
     const alreadyExist = await db.oneOrNone(
