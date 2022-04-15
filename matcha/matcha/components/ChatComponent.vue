@@ -19,7 +19,7 @@
             <p>{{ item.message }}</p>
           </div>
         </div>
-        <div v-else class="mx-auto col-sm-12 col-lg-8 h-100">
+        <div v-else class="mx-auto col-sm-12 col-lg-8 h-100 overflow-auto">
           <div class="bg-primary text-white rounded m-3 p-2 text-center">
             <span class="badge bg-light text-dark">3</span>
             suggestions
@@ -34,6 +34,7 @@
               type="button"
               class="btn btn-secondary m-1 col-8 text-break"
             >
+              <h6><span class="badge bg-light text-dark">Envoyer:</span></h6>
               {{ item }}
             </button>
           </div>
@@ -77,9 +78,9 @@ export default {
       input: '',
       messages: [],
       suggestions: [
-        "Hey whats'up ",
-        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-        'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        'Hello, beautifull picture ! I love your interests 🤩 , tell me more ! 👂',
+        'Hey 👋 ! Nice to met you, Matcha Corp. organize a party 🥳 , I hope to see you there !',
+        "Hi, excuse me but my phone have a problem 😱 ... He dosen't have you number ❤️ , give me your 555 ! 🎯",
       ],
       load: false,
     };
