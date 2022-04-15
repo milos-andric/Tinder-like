@@ -41,23 +41,38 @@
             :key="x.notification_id"
             @click="readNotification(x)"
           >
-            {{ x.message }}
+            <div class="p-0">
+              <div class="rounded p-1 bg-light d-flex">
+                <div class="text-left">
+                  <div class="text-truncate text-wrap" style="width: 6rem">
+                    {{ x.user_name }}
+                  </div>
+                  <div class="small">
+                    {{ x.message }}
+                  </div>
+                </div>
+                <div class="text-right text-muted ml-auto mb-auto small">
+                  {{ dateFormat(x.created_on) }}
+                </div>
+              </div>
+            </div>
           </b-dropdown-item>
 
           <b-dropdown-text v-if="length === 0">
             no notification
           </b-dropdown-text>
 
-          <b-button
-            v-if="length !== 0"
-            block
-            variant="outline-primary"
-            class="m1"
-            size="sm"
-            @click="readNotifications"
-          >
-            All as read
-          </b-button>
+          <div class="text-center">
+            <b-button
+              v-if="length !== 0"
+              class="mt-2"
+              variant="outline-primary"
+              size="sm"
+              @click="readNotifications"
+            >
+              All as read
+            </b-button>
+          </div>
         </b-nav-item-dropdown>
 
         <!-- Account button -->
@@ -88,11 +103,13 @@
 
 <script>
 const typesNotifications = Object.freeze({
-  view: 'You have a visit from ',
-  like: 'You have a like from ',
-  unlike: 'You have a unlike from ',
-  match: 'You have a match with ',
-  message: 'You have a message from ',
+  view: 'visited your profile.',
+  like: 'liked your profile.',
+  unlike: 'unliked your profile.',
+  match: 'has matched with you.',
+  message: 'sent you a message',
+  invit: 'sent you a date',
+  date: 'answered your invitation',
 });
 export default {
   data() {
@@ -129,9 +146,14 @@ export default {
       if (notif) {
         const message = typesNotifications[notif.type];
         if (message) {
-          notif.message = message + notif.user_name;
+          notif.message = message;
           notif.link = '/user/' + notif.user_id_send;
-          if (notif.type === 'message' || notif.type === 'match')
+          if (
+            notif.type === 'message' ||
+            notif.type === 'match' ||
+            notif.type === 'invit' ||
+            notif.type === 'date'
+          )
             notif.link = '/chat';
           this.notifications.push(notif);
         }
@@ -168,6 +190,11 @@ export default {
 
     lengthNotifications() {
       this.length = this.notifications.length;
+    },
+
+    dateFormat(date) {
+      const format = new Date(Date.parse(date));
+      return format.toISOString().split('T')[0];
     },
 
     logout() {

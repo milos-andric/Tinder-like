@@ -77,7 +77,6 @@ function emitNotifications(socketIds, notif) {
 }
 
 function getSocketById(userId) {
-  // const userIdInt = Number(userId);
   const socketList = users
     .filter(e => Number(e.user_id) === Number(userId))
     .map(e => e.socket_id);
@@ -881,13 +880,25 @@ app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   }
 });
 
-const sendMessage = async (myId, targetId, data) => {
-  await sendNotification(myId, targetId, 'message');
-  const listSocket = getSocketById(targetId);
-  if (listSocket.length) {
-    io.to(listSocket).emit('receiveChatMessage', data); // send to self and targetId
+function emitMessages(socketIds, mess) {
+  // require because old way to emit works for "individual socket" and no all socket for one user
+  socketIds.forEach(element => {
+    io.to(element).emit('receiveChatMessage', mess);
+  });
+}
+
+const sendMessage = (myId, targetId, data) => {
+  const senderListSocket = getSocketById(myId);
+  const receiverListSocket = getSocketById(targetId);
+  if (senderListSocket.length) {
+    emitMessages(senderListSocket, data);
   } else {
-    console.log('error socket');
+    console.log('error sender socket');
+  }
+  if (receiverListSocket.length) {
+    emitMessages(receiverListSocket, data);
+  } else {
+    console.log('error receiver socket');
   }
 };
 
@@ -903,6 +914,7 @@ function attributionRoomMessage(req, roomname) {
     : (senderId = names[1]);
   return [senderId, receiverId];
 }
+
 app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   if (!req.body.room || !req.body.message) {
     return res.sendStatus(400);
@@ -924,8 +936,8 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
         message: req.body.message,
         type: 1,
       };
+      await sendNotification(senderId, receiverId, 'message');
       sendMessage(senderId, receiverId, data);
-      sendMessage(receiverId, senderId, data);
       return res.send(data);
     } else {
       return res.sendStatus(403);
@@ -1468,7 +1480,6 @@ app.post('/view', authenticateToken, async (req, res) => {
   }
 });
 
-// JB
 app.post('/devil', authenticateToken, async (req, res) => {
   // TODO check if pass by devil picture ??
   try {
@@ -1613,8 +1624,8 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
         `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
         [req.user.user_id, 2, text, date, msgId.msg_id]
       );
+      await sendNotification(senderId, receiverId, 'invit');
       sendMessage(req.user.user_id, receiverId, msgId);
-      sendMessage(receiverId, req.user.user_id, msgId);
     } else {
       res.sendStatus(403);
     }
@@ -1705,8 +1716,8 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
         type: 3,
         message: text,
       };
+      await sendNotification(senderId, receiverId, 'date');
       sendMessage(req.user.user_id, receiverId, data);
-      sendMessage(receiverId, req.user.user_id, data);
       res.sendStatus(200);
     } else {
       res.sendStatus(403);

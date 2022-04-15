@@ -1,5 +1,5 @@
 <template>
-  <div v-if="load" class="d-flex flex-column">
+  <div v-if="loadInfos" class="d-flex flex-column">
     <div class="d-flex w-100" style="height: calc(100vh - 280px)">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div
-          v-else-if="room"
+          v-else-if="room && loadMessages"
           class="mx-auto col-sm-12 col-lg-8 h-100 overflow-auto"
         >
           <div class="bg-primary text-white rounded m-3 p-2 text-center">
@@ -145,7 +145,8 @@ export default {
         'Hey 👋 ! Nice to met you, Matcha Corp. organize a party 🥳 , I hope to see you there !',
         "Hi, excuse me but my phone have a problem 😱 ... He dosen't have you number ❤️ , give me your 555 ! 🎯",
       ],
-      load: false,
+      loadInfos: false,
+      loadMessages: false,
       date: undefined,
       dateHour: undefined,
       dateLocation: undefined,
@@ -154,7 +155,7 @@ export default {
   async mounted() {
     const me = await this.$axios.get('/me');
     this.self_id = me.data.user_id;
-    this.load = true;
+    this.loadInfos = true;
 
     this.socket = this.$nuxtSocket({
       name: 'chat',
@@ -182,6 +183,7 @@ export default {
         room,
       });
       this.messages = resp.data;
+      this.loadMessages = true;
       this.scrollToLast();
     },
     async sendMessage() {

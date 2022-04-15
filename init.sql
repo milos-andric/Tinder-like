@@ -1,4 +1,4 @@
-CREATE TYPE enum_types_notifs AS ENUM ('view', 'like', 'unlike', 'match', 'message');
+CREATE TYPE enum_types_notifs AS ENUM ('view', 'like', 'unlike', 'match', 'message', 'invit', 'date');
 
 CREATE TABLE IF NOT EXISTS "users" (
     "user_id" serial PRIMARY KEY,

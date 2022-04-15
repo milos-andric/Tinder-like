@@ -9,7 +9,7 @@
     ></b-avatar>
     <b-avatar v-else size="15vw" to="avatar"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4>{{ '@' + user_name }}</h4>
+    <h4>{{ email }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -114,6 +114,7 @@ export default {
       first_name: '',
       last_name: '',
       user_name: '',
+      email: '',
       birth_date: null,
       gender: 0,
       orientation: 2,
@@ -141,6 +142,7 @@ export default {
         this.first_name = e.data.first_name;
         this.last_name = e.data.last_name;
         this.user_name = e.data.user_name;
+        this.email = e.data.email;
         this.gender = e.data.gender;
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;

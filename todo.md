@@ -110,3 +110,5 @@ Par :
 - [ ] age in search bad format
 
 - [ ] margin at right in chat
+
+- [ ] taille du pseudo dans le frontend ? (16 x W)
