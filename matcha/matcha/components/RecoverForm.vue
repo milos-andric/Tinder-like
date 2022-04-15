@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto col-4 h-100">
+  <div class="mx-auto col-sm-6 col-lg-4 h-100">
     <h2>Recover password</h2>
 
     <form method="post" @submit.prevent="recover">
