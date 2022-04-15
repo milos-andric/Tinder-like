@@ -4,7 +4,11 @@
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
       <div class="w-100" style="flex-grow: 1">
-        <div id="message-box" class="w-100 chat-list pt-4">
+        <div
+          v-if="messages.length"
+          id="message-box"
+          class="w-100 chat-list pt-4"
+        >
           <div
             v-for="item in messages"
             :key="item.messages"
@@ -34,6 +38,28 @@
             <div v-else-if="item.type === 3">
               <p>{{ item.message }}</p>
             </div>
+          </div>
+        </div>
+        <div v-else class="mx-auto col-sm-12 col-lg-8 h-100 overflow-auto">
+          <div class="bg-primary text-white rounded m-3 p-2 text-center">
+            <span class="badge bg-light text-dark">
+              {{ suggestions.length }}
+            </span>
+            suggestions
+          </div>
+          <div
+            v-for="item in suggestions"
+            :key="item.suggestions"
+            class="text-center"
+            @click="sendSuggestion(item)"
+          >
+            <button
+              type="button"
+              class="btn btn-secondary m-1 col-8 text-break"
+            >
+              <h6><span class="badge bg-light text-dark">Envoyer:</span></h6>
+              {{ item }}
+            </button>
           </div>
         </div>
       </div>
@@ -111,6 +137,11 @@ export default {
       otherUserName: '',
       input: '',
       messages: [],
+      suggestions: [
+        'Hello, beautifull picture ! I love your interests 🤩 , tell me more ! 👂',
+        'Hey 👋 ! Nice to met you, Matcha Corp. organize a party 🥳 , I hope to see you there !',
+        "Hi, excuse me but my phone have a problem 😱 ... He dosen't have you number ❤️ , give me your 555 ! 🎯",
+      ],
       load: false,
       date: undefined,
       dateHour: undefined,
@@ -211,6 +242,10 @@ export default {
         resp: false,
       });
       this.getMessage(this.room);
+    },
+    async sendSuggestion(message) {
+      this.input = message;
+      await this.sendMessage();
     },
   },
 };
