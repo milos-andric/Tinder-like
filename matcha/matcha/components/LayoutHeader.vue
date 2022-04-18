@@ -16,11 +16,11 @@
       </b-navbar-nav>
 
       <!-- Report modals -->
-      <b-modal id="generate" title="Generate new users" @ok="build(200)">
+      <b-modal id="generate" title="Generate new users" @ok="build(500)">
         <p class="text-center my-4">
           <font-awesome-icon icon="robot" style="font-size: 2em" />
         </p>
-        <p class="text-center my-4">Generate 200 bot users ?</p>
+        <p class="text-center my-4">Generate 500 bot users ?</p>
       </b-modal>
 
       <!-- Right aligned nav items -->
