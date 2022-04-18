@@ -184,7 +184,9 @@ export default {
       });
       this.messages = resp.data;
       this.loadMessages = true;
-      this.scrollToLast();
+      if (this.messages.length) {
+        this.scrollToLast();
+      }
     },
     async sendMessage() {
       this.input = this.input.trim();

@@ -60,10 +60,22 @@ export default {
     try {
       const resp = await this.$axios.get('getAvailableRooms');
       this.channels = resp.data;
-      this.changeActiveRoom(resp.data[0]);
+      if (this.$route.params.chatName) {
+        this.changeActiveRoomByName(this.$route.params.chatName);
+      } else {
+        this.changeActiveRoom(resp.data[0]);
+      }
     } catch (e) {}
   },
   methods: {
+    changeActiveRoomByName(channelName) {
+      const c = this.channels.filter(e => e.name === channelName);
+      if (c.length === 1) {
+        this.changeActiveRoom(c[0]);
+      } else {
+        this.changeActiveRoom(this.channels[0]);
+      }
+    },
     changeActiveRoom(channel) {
       if (channel) {
         this.$emit('changeActiveRoom', channel.name, channel.pal_name);
