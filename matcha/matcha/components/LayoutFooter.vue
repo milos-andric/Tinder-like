@@ -1,6 +1,6 @@
 <template>
   <div class="position-relative">
-    <MiniChat />
+    <MiniChat v-if="$route.name !== 'chat'" />
 
     <div class="bg-primary text-white text-center text-lg-start mt-auto">
       <div class="container p-4">

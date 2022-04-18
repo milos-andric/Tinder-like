@@ -1,6 +1,6 @@
 <template>
   <div v-if="loadInfos" class="d-flex flex-column">
-    <div class="d-flex w-100" style="height: calc(100vh - 280px)">
+    <div class="d-flex w-100" style="height: calc(100vh - 300px)">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
       <div class="w-100" style="flex-grow: 1">

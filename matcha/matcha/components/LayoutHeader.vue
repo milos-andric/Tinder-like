@@ -10,10 +10,18 @@
     <b-collapse id="nav-collapse" is-nav>
       <!-- Left aligned nav items -->
       <b-navbar-nav>
-        <b-nav-item class="mx-1" to="/match">Match</b-nav-item>
-        <b-nav-item class="mx-1" to="/generate">GeneratePerson</b-nav-item>
-        <b-nav-item class="mx-1" to="/chat">Chat</b-nav-item>
+        <b-nav-item class="mx-1 font-weight-bold" style="color: white !important" to="/match">Match</b-nav-item>
+        <b-nav-item class="mx-1 font-weight-bold" style="color: white !important" to="/chat">Chat</b-nav-item>
+        <b-nav-item v-b-modal.generate class="mx-1">Generate users</b-nav-item>
       </b-navbar-nav>
+
+      <!-- Report modals -->
+      <b-modal id="generate" title="Generate new users" @ok="build(200)">
+        <p class="text-center my-4">
+          <font-awesome-icon icon="robot" style="font-size: 2em" />
+        </p>
+        <p class="text-center my-4">Generate 200 bot users ?</p>
+      </b-modal>
 
       <!-- Right aligned nav items -->
       <b-navbar-nav v-if="$auth.$state.loggedIn" class="ml-auto">
@@ -135,6 +143,9 @@ export default {
   },
 
   methods: {
+    async build(number) {
+      await this.$axios.post('registerMany', number);
+    },
     manageNotifications(data) {
       data.forEach(e => {
         this.manageNotification(e);

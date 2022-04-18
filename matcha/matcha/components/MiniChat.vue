@@ -1,9 +1,11 @@
 <template>
   <div class="d-flex">
+
+    <!-- Chat box -->
     <div
       v-if="chatToggled"
       class="position-absolute w-50 mr-4 border bg-white"
-      style="bottom: 192px; right: 20%; z-index: 0"
+      style="bottom: 192px; right: 20%; z-index: 99"
     >
       <b-button
         class="d-flex justify-content-between align-items-center px-3"
@@ -86,9 +88,10 @@
       </div>
     </div>
 
+    <!-- Room selector -->
     <div
       class="position-absolute"
-      style="bottom: 191px; right: 0; width: 20%; z-index: 0"
+      style="bottom: 191px; right: 0; width: 20%; z-index: 99; background: white"
     >
       <b-button
         v-b-toggle.chatBox
@@ -225,7 +228,7 @@ export default {
         const box = document.getElementById('message-box');
         if (box) {
           const target = box.lastElementChild;
-          target.scrollIntoView();
+          if (target) target.scrollIntoView();
         }
       }, 10);
     },
