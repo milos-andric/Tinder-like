@@ -45,7 +45,9 @@
     </div>
     <div v-if="history.length" id="v-for-object" class="history-list">
       <div v-for="item in history" :key="item.history" class="history-entries">
-        {{ item }}
+        <nuxt-link :to="item.userid" class="link-to-users-in-history">{{
+          item.message
+        }}</nuxt-link>
       </div>
     </div>
     <div v-else class="history-list">No history for this user</div>
@@ -174,5 +176,8 @@ export default {
 }
 .active {
   color: #dc3545;
+}
+.link-to-users-in-history {
+  color: rgba(0, 0, 0, 0.767);
 }
 </style>

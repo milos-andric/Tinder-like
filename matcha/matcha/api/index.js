@@ -1004,18 +1004,23 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].liker_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].target_id);
-        data.push(
-          `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} liked ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].target_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].liker_id);
-        data.push(
-          `${myName} got a like from ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a like from ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].liker_id,
+        });
       }
     }
+    console.log(data);
     return res.send(data);
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
@@ -1032,18 +1037,20 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].viewer_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].target_id);
-        data.push(
-          `${myName} viewed ${tmp}'s profile ${timeDifference(
+        data.push({
+          message: `${myName} viewed ${tmp}'s profile ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].target_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].viewer_id);
-        data.push(
-          `${myName} got a view from ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a view from ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].viewer_id,
+        });
       }
     }
     return res.send(data);
@@ -1062,18 +1069,20 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].first_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].second_id);
-        data.push(
-          `${myName} got a match with ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a match with ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].second_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].first_id);
-        data.push(
-          `${myName} got a match with ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a match with ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].first_id,
+        });
       }
     }
     return res.send(data);
@@ -1092,16 +1101,20 @@ app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].sender_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].blocked_id);
-        data.push(
-          `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} blocked ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].blocked_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].sender_id);
-        data.push(
-          `${myName} was blocked by ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} was blocked by ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].sender_id,
+        });
       }
     }
     return res.send(data);
@@ -1120,16 +1133,20 @@ app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].sender_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].reported_id);
-        data.push(
-          `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} reported ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].reported_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].sender_id);
-        data.push(
-          `${myName} was reported by ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} was reported by ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].sender_id,
+        });
       }
     }
     return res.send(data);
@@ -1230,6 +1247,41 @@ app.post('/search', authenticateToken, async (req, res) => {
   }
 });
 
+const calculatePonderation = async (req, ids, ll) => {
+  const sql = `SELECT *,distance,(1000 - distance) * (score / 10) AS orderScore FROM (SELECT users.score, users.user_id, (
+      6371 *
+      acos(cos(radians($2)) *
+      cos(radians(users.latitude)) *
+      cos(radians(users.longitude) -
+      radians($3)) +
+      sin(radians($2)) *
+      sin(radians(users.latitude)))
+      ) AS distance FROM users WHERE users.user_id IN ($1:csv) ) al`;
+  const resp = await db.manyOrNone(sql, [ids, ll[0], ll[1]]);
+
+  let mytagsId = await db.any(
+    `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
+    req.user.user_id
+  );
+  mytagsId = mytagsId.map(e => e.user_tag_id);
+  const idsTags = await db.any(
+    `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+    WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
+    [mytagsId, ids]
+  );
+  idsTags.forEach(e => {
+    const coef = Number(e.count);
+    for (let i = 0; i < resp.length; i++) {
+      if (resp[i].user_id === e.user_id) {
+        resp[i].orderscore *= coef + 1;
+        break;
+      }
+    }
+  });
+  resp.sort((a, b) => (a.orderscore < b.orderscore ? 1 : -1));
+  return resp;
+};
+
 app.post('/matchFilter', authenticateToken, async (req, res) => {
   if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
   let ids = await db.any(
@@ -1244,7 +1296,23 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
   ids = ids.map(e => e.user_id);
   const ll = getLL(req.user, req.body.search.ip);
   ids = await searchFilter(req, ids, ll);
-  let sql = `SELECT *,distance FROM (SELECT *, (
+  if (ids.length === 0) {
+    return res.status(200).send([]);
+  }
+
+  let sql = `SELECT user_id,
+    first_name,
+    last_name,
+    user_name,
+    age,
+    gender,
+    orientation,
+    bio,
+    profile_pic,
+    score,
+    latitude,
+    longitude,
+    distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
@@ -1253,7 +1321,38 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     sin(radians($2)) *
     sin(radians(users.latitude)))
     ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
-  if (req.body.search.order && ids.length) {
+  if (req.body.search.order === 'algorithm') {
+    ids = await calculatePonderation(req, ids, ll);
+    ids = ids.map(e => e.user_id);
+    const sqltest = `SELECT user_id,
+      first_name,
+      last_name,
+      user_name,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      latitude,
+      longitude,
+      distance FROM (SELECT *, (
+        6371 *
+        acos(cos(radians($2)) *
+        cos(radians(users.latitude)) *
+        cos(radians(users.longitude) -
+        radians($3)) +
+        sin(radians($2)) *
+        sin(radians(users.latitude)))
+        ) AS distance FROM users) AS al
+      JOIN   unnest(ARRAY[$1:list]) WITH ORDINALITY t(user_id, ord) USING (user_id)
+      ORDER  BY t.ord LIMIT 10`;
+    const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
+    r.forEach(u => {
+      u.ville = getCityFromLL(u.latitude, u.longitude);
+    });
+    return res.status(200).send(r);
+  } else if (req.body.search.order && ids.length) {
     if (req.body.search.order === 'location') {
       sql += ' ORDER BY distance';
     } else if (req.body.search.order === 'fame') {
@@ -1305,7 +1404,7 @@ app.post('/registerMany', async (req, res) => {
     await updateManyTags();
     return res.sendStatus(200);
   } catch (e) {
-    return res.sendStatus(500).json({ msg: e });
+    return res.sendStatus(500);
   }
 });
 
@@ -1489,12 +1588,12 @@ app.post('/devil', authenticateToken, async (req, res) => {
     const user = await getUserInfos(req.user.user_id);
     const myIdInt = Number(user.user_id);
     if (user.privilege)
-      return res.status(200).json({ msg: 'You have alredy Devil privilege' });
+      return res.status(200).json({ msg: 'You have already Devil privileges' });
     await db.none('UPDATE users SET privilege=$1 WHERE user_id=$2', [
       true,
       myIdInt,
     ]);
-    return res.status(200).json({ msg: 'You are now Devil privilege' });
+    return res.status(200).json({ msg: 'You now have Devil privilege' });
   } catch (e) {
     return res.status(500).json({ msg: e });
   }
@@ -1701,7 +1800,7 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
         time.setMinutes(time.getMinutes() + 1);
         const email1 = await getEmailid(senderId);
         const email2 = await getEmailid(receiverId);
-        const job = schedule.scheduleJob(
+        schedule.scheduleJob(
           time,
           function (email1, email2, date) {
             sendDateEmail(email1, date);

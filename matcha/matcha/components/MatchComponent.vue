@@ -66,6 +66,16 @@
           :aria-describedby="ariaDescribedby"
           name="some-radios"
           class="unselectable radio-sort-match btn btn-secondary"
+          value="algorithm"
+          checked
+          buttons
+          >Sort by Secret algorithm</b-form-radio
+        >
+        <b-form-radio
+          v-model="sort"
+          :aria-describedby="ariaDescribedby"
+          name="some-radios"
+          class="unselectable radio-sort-match btn btn-secondary"
           value="location"
           checked
           buttons
@@ -123,7 +133,7 @@ export default {
       ip: null,
       swiper: null,
       search: {},
-      sort: 'location',
+      sort: 'algorithm',
       load: false,
     };
   },
