@@ -1004,18 +1004,23 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].liker_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].target_id);
-        data.push(
-          `${myName} liked ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} liked ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].target_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].liker_id);
-        data.push(
-          `${myName} got a like from ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a like from ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].liker_id,
+        });
       }
     }
+    console.log(data);
     return res.send(data);
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
@@ -1032,18 +1037,20 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].viewer_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].target_id);
-        data.push(
-          `${myName} viewed ${tmp}'s profile ${timeDifference(
+        data.push({
+          message: `${myName} viewed ${tmp}'s profile ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].target_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].viewer_id);
-        data.push(
-          `${myName} got a view from ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a view from ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].viewer_id,
+        });
       }
     }
     return res.send(data);
@@ -1062,18 +1069,20 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].first_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].second_id);
-        data.push(
-          `${myName} got a match with ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a match with ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].second_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].first_id);
-        data.push(
-          `${myName} got a match with ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} got a match with ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].first_id,
+        });
       }
     }
     return res.send(data);
@@ -1092,16 +1101,20 @@ app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].sender_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].blocked_id);
-        data.push(
-          `${myName} blocked ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} blocked ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].blocked_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].sender_id);
-        data.push(
-          `${myName} was blocked by ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} was blocked by ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].sender_id,
+        });
       }
     }
     return res.send(data);
@@ -1120,16 +1133,20 @@ app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
     for (let i = 0; i < entries.length; i++) {
       if (entries[i].sender_id === req.user.user_id) {
         const tmp = await idToUsername(entries[i].reported_id);
-        data.push(
-          `${myName} reported ${tmp} ${timeDifference(entries[i].created_on)}`
-        );
+        data.push({
+          message: `${myName} reported ${tmp} ${timeDifference(
+            entries[i].created_on
+          )}`,
+          userid: '/user/' + entries[i].reported_id,
+        });
       } else {
         const tmp = await idToUsername(entries[i].sender_id);
-        data.push(
-          `${myName} was reported by ${tmp} ${timeDifference(
+        data.push({
+          message: `${myName} was reported by ${tmp} ${timeDifference(
             entries[i].created_on
-          )}`
-        );
+          )}`,
+          userid: '/user/' + entries[i].sender_id,
+        });
       }
     }
     return res.send(data);

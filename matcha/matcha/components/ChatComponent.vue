@@ -141,9 +141,9 @@ export default {
       input: '',
       messages: [],
       suggestions: [
-        'Hello, beautifull picture ! I love your interests 🤩 , tell me more ! 👂',
-        'Hey 👋 ! Nice to met you, Matcha Corp. organize a party 🥳 , I hope to see you there !',
-        "Hi, excuse me but my phone have a problem 😱 ... He dosen't have you number ❤️ , give me your 555 ! 🎯",
+        'Hello ! Your pictures are beautiful 🥵🥵 ! I love your interests too 🤩 , tell me more about it ! 👂',
+        'Hey 👋 ! Nice to meet you ! Matcha Corp. organizes a party 🥳 and I need a +1 ! are you intrested 😉 ?',
+        "Hi, excuse me but my phone has a huge problem 😱 ... It dosen't have you number ❤️ , give me your 06 ! 🎯",
       ],
       loadInfos: false,
       loadMessages: false,
