@@ -1,5 +1,5 @@
 <template>
-  <div v-if="load" class="mx-auto col-10 h-100 text-center">
+  <div v-if="loadUser" class="mx-auto col-10 h-100 text-center">
     <!-- User main info -->
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
@@ -8,6 +8,25 @@
       Connected
     </h4>
     <h4 v-else-if="user_name !== ''">Last connexion: {{ last_connexion }}</h4>
+
+    <div v-if="loadLike" v-b-tooltip.hover title="This user has liked you">
+      <font-awesome-icon
+        v-if="likedback"
+        icon="thumbs-up"
+        style="font-size: 1.5em"
+      />
+    </div>
+    <div
+      v-if="loadLike"
+      v-b-tooltip.hover
+      title="You have matched with this user"
+    >
+      <font-awesome-icon
+        v-if="matched"
+        icon="handshake-simple"
+        style="font-size: 1.5em"
+      />
+    </div>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
@@ -39,8 +58,23 @@
     </h4>
 
     <!-- Privilege action -->
-    <div v-if="id !== self_id && seld_privilege === true" class="mt-3 mb-3">
-      <b-button variant="outline-danger" @click="devilMatch()">
+    <!-- SUJET FR != SUJET EN >> condition si utilisateur a une photo OU si target a une photo
+    v-if="self_profile_pic !== null && profile_pic !== null && liked === false"
+    -->
+    <div
+      v-if="
+        loadLike &&
+        id !== self_id &&
+        profile_pic !== null &&
+        seld_privilege === true
+      "
+      class="mt-3 mb-3"
+    >
+      <b-button
+        v-if="id !== self_id && likedback === false && matched === false"
+        variant="outline-danger"
+        @click="devilMatch()"
+      >
         Devil Match !
       </b-button>
     </div>
@@ -98,8 +132,11 @@
       </b-button>
 
       <!-- Like button -->
+      <!-- SUJET FR != SUJET EN >> condition si utilisateur a une photo OU si target a une photo
+      v-if="self_profile_pic !== null && profile_pic !== null && liked === false"
+      -->
       <b-button
-        v-if="images.length !== 0 && liked === false"
+        v-if="profile_pic !== null && liked === false"
         v-b-tooltip.hover.top="'Like user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -114,7 +151,9 @@
       </b-button>
 
       <b-button
-        v-else-if="images.length !== 0 && liked === true"
+        v-else-if="
+          profile_pic !== null && profile_pic !== null && liked === true
+        "
         v-b-tooltip.hover.top="'Unlike user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -208,7 +247,10 @@ export default {
   data() {
     return {
       self_id: 0,
+      self_profile_pic: null,
       seld_privilege: false,
+      likedback: false,
+      matched: false,
 
       id: Number(this.$route.params.id),
       first_name: '',
@@ -222,8 +264,10 @@ export default {
       score: 0,
       online: true,
       last_connexion: '',
-      profile_pic: '',
-      load: false,
+      profile_pic: null,
+
+      loadUser: false,
+      loadLike: false,
 
       images: [],
 
@@ -236,17 +280,19 @@ export default {
   },
   async beforeMount() {
     await this.$axios.get('/me').then(e => {
-      this.seld_privilege = e.data.privilege;
       this.self_id = e.data.user_id;
+      this.self_profile_pic = e.data.profile_pic;
+      this.seld_privilege = e.data.privilege;
     });
     await this.getInfos();
-    this.load = true;
+    this.loadUser = true;
     await this.isliked();
     await this.$axios.get('/user-images/' + this.id).then(e => {
       this.images = e.data;
     });
+    await this.additionalInfos();
   },
-  mounted() {
+  async mounted() {
     this.socket = this.$store.socket;
     this.socket.on('online', async usersOnline => {
       const found = usersOnline.find(e => Number(e) === this.id);
@@ -256,7 +302,9 @@ export default {
         this.online = false;
       }
     });
+    await this.$axios.post('/view', { targetId: this.id });
   },
+
   methods: {
     async getInfos() {
       await this.$axios.get('/user/' + this.id).then(e => {
@@ -296,6 +344,19 @@ export default {
         this.alertMsg = e.response.data.msg;
         this.alertVariant = 'danger';
         this.alertStatus = true;
+      }
+    },
+
+    async additionalInfos() {
+      try {
+        const res = await this.$axios.get('/user-informations/' + this.id);
+        if (res.data?.liked) {
+          this.likedback = res.data.liked;
+          this.matched = res.data.matched;
+        }
+        this.loadLike = true;
+      } catch (e) {
+        this.likedback = false;
       }
     },
 

@@ -58,6 +58,8 @@ export default {
         'faAngleUp',
         'faArrowRotateRight',
         'faMartiniGlass',
+        'faThumbsUp',
+        'faHandshakeSimple',
       ],
     },
   },
