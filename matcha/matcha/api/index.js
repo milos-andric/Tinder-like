@@ -1343,7 +1343,7 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
         ) AS distance FROM users) AS al
       JOIN   unnest(ARRAY[$1:list]) WITH ORDINALITY t(user_id, ord) USING (user_id)
       ORDER  BY t.ord LIMIT 10`;
-    let r = await db.any(sqltest, [ids, ll[0], ll[1]]);
+    const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
     r.forEach(u => {
       u.ville = getCityFromLL(u.latitude, u.longitude);
     });
@@ -1797,7 +1797,7 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
         time.setMinutes(time.getMinutes() + 1);
         const email1 = await getEmailid(senderId);
         const email2 = await getEmailid(receiverId);
-        const job = schedule.scheduleJob(
+        schedule.scheduleJob(
           time,
           function (email1, email2, date) {
             sendDateEmail(email1, date);
