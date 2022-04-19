@@ -97,7 +97,7 @@
         block
         variant="secondary"
       >
-        Fame (superieur à)
+        Fame
       </b-button>
       <b-collapse
         id="fame-accordion"
@@ -189,7 +189,8 @@ export default {
       max: 1000,
     },
     fameSlider: {
-      value: 20,
+      value: [20,200],
+      max: 500,
     },
     tagsValue: [],
 
@@ -207,7 +208,7 @@ export default {
       { field: 'last_name', sortable: true, filter: true },
       { field: 'age', sortable: true, filter: true },
       { headerName: 'Fame', field: 'score', sortable: true, filter: true },
-      { field: 'distance', sortable: true, filter: true },
+      { headerName: 'Distance (km)', field: 'distance', sortable: true, filter: true },
     ];
   },
   methods: {

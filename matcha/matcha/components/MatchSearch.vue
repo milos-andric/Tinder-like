@@ -51,7 +51,7 @@
         block
         variant="secondary"
       >
-        Fame (superieur à)
+        Fame
       </b-button>
       <b-collapse
         id="fame-accordion"
@@ -132,7 +132,8 @@ export default {
       max: 1000,
     },
     fameSlider: {
-      value: 20,
+      value: [20,200],
+      max:500,
     },
     tagsValue: [],
 

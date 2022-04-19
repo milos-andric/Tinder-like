@@ -1178,8 +1178,8 @@ async function searchFilter(req, ids, ll) {
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.fame && ids.length) {
-    sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score > $2';
-    ids = await db.any(sql, [ids, req.body.search.fame]);
+    sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
+    ids = await db.any(sql, [ids, req.body.search.fame[0],req.body.search.fame[1]]);
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.tags && ids.length) {
@@ -1204,7 +1204,11 @@ app.post('/search', authenticateToken, async (req, res) => {
   try {
     if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
 
-    let ids = await db.any(`SELECT user_id FROM users`);
+    let ids = await db.any(
+      `SELECT user_id FROM users
+      WHERE users.user_id != $1
+      AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = users.user_id)`,
+      req.user.user_id);
     ids = ids.map(e => e.user_id);
     const ll = getLL(req.user, req.body.search.ip);
     ids = await searchFilter(req, ids, ll);
@@ -1465,7 +1469,6 @@ app.post('/view', authenticateToken, async (req, res) => {
       'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
       [user.user_id, targetId]
     );
-
     // View if not already did
     if (data.length === 0) {
       await db.any(
