@@ -98,7 +98,7 @@ Par :
 - [x] add init tags
 - [x] block in match
 - [x] filter sort match
-- [ ] home page
+- [x] home page
 - [x] message too big
 - [x] strip message
 
@@ -112,3 +112,13 @@ Par :
 - [ ] margin at right in chat
 
 - [ ] taille du pseudo dans le frontend ? (16 x W)
+
+- [x] reparer le mini chat 
+- [ ] redirection dans l'history
+- [x] pouvoir mettre un nom de room dans l'url de chat pour s'y faire rediriger
+- [ ] historique des personne qui t'on visité
+- [ ] geolocalisation plus précice
+- [ ] faire un intervalle de score de pop
+- [ ] devil like ne devrai s'afficher que si pas like
+- [ ] dans les recherche enlevé les bloquer
+- [ ] like que si photo de profil set et pas que si il y a des photo
