@@ -1503,12 +1503,12 @@ app.post('/devil', authenticateToken, async (req, res) => {
     const user = await getUserInfos(req.user.user_id);
     const myIdInt = Number(user.user_id);
     if (user.privilege)
-      return res.status(200).json({ msg: 'You have alredy Devil privilege' });
+      return res.status(200).json({ msg: 'You have already Devil privileges' });
     await db.none('UPDATE users SET privilege=$1 WHERE user_id=$2', [
       true,
       myIdInt,
     ]);
-    return res.status(200).json({ msg: 'You are now Devil privilege' });
+    return res.status(200).json({ msg: 'You now have Devil privilege' });
   } catch (e) {
     return res.status(500).json({ msg: e });
   }
