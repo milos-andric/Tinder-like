@@ -193,6 +193,7 @@ async function registerUsers() {
           'orientation',
           'latitude',
           'longitude',
+          'profile_pic',
         ],
         'users'
       );
@@ -1047,7 +1048,6 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
         });
       }
     }
-    console.log(data);
     return res.send(data);
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
@@ -1222,8 +1222,13 @@ async function searchFilter(req, ids, ll) {
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.fame && ids.length) {
-    sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
-    ids = await db.any(sql, [ids, req.body.search.fame[0],req.body.search.fame[1]]);
+    sql =
+      'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
+    ids = await db.any(sql, [
+      ids,
+      req.body.search.fame[0],
+      req.body.search.fame[1],
+    ]);
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.tags && ids.length) {
@@ -1252,7 +1257,8 @@ app.post('/search', authenticateToken, async (req, res) => {
       `SELECT user_id FROM users
       WHERE users.user_id != $1
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = users.user_id)`,
-      req.user.user_id);
+      req.user.user_id
+    );
     ids = ids.map(e => e.user_id);
     const ll = getLL(req.user, req.body.search.ip);
     ids = await searchFilter(req, ids, ll);
@@ -1310,24 +1316,25 @@ const calculatePonderation = async (req, ids, ll) => {
 };
 
 app.post('/matchFilter', authenticateToken, async (req, res) => {
-  if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-  let ids = await db.any(
-    `SELECT *
+  try {
+    if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
+    let ids = await db.any(
+      `SELECT *
       FROM users u
       WHERE u.user_id != $1
       AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`,
-    req.user.user_id
-  );
-  ids = ids.map(e => e.user_id);
-  const ll = getLL(req.user, req.body.search.ip);
-  ids = await searchFilter(req, ids, ll);
-  if (ids.length === 0) {
-    return res.status(200).send([]);
-  }
+      req.user.user_id
+    );
+    ids = ids.map(e => e.user_id);
+    const ll = getLL(req.user, req.body.search.ip);
+    ids = await searchFilter(req, ids, ll);
+    if (ids.length === 0) {
+      return res.status(200).send([]);
+    }
 
-  let sql = `SELECT user_id,
+    let sql = `SELECT user_id,
     first_name,
     last_name,
     user_name,
@@ -1348,21 +1355,21 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     sin(radians($2)) *
     sin(radians(users.latitude)))
     ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
-  if (req.body.search.order === 'algorithm') {
-    ids = await calculatePonderation(req, ids, ll);
-    ids = ids.map(e => e.user_id);
-    const sqltest = `SELECT user_id,
-      first_name,
-      last_name,
-      user_name,
-      age,
-      gender,
-      orientation,
-      bio,
-      profile_pic,
-      score,
-      latitude,
-      longitude,
+    if (req.body.search.order === 'algorithm') {
+      ids = await calculatePonderation(req, ids, ll);
+      ids = ids.map(e => e.user_id);
+      const sqltest = `SELECT b.user_id,
+        first_name,
+        last_name,
+        user_name,
+        age,
+        gender,
+        orientation,
+        bio,
+        profile_pic,
+        score,
+        latitude,
+    longitude,b.*,url FROM (SELECT *,
       distance FROM (SELECT *, (
         6371 *
         acos(cos(radians($2)) *
@@ -1373,41 +1380,44 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
         sin(radians(users.latitude)))
         ) AS distance FROM users) AS al
       JOIN   unnest(ARRAY[$1:list]) WITH ORDINALITY t(user_id, ord) USING (user_id)
-      ORDER  BY t.ord LIMIT 10`;
-    const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
-    r.forEach(u => {
-      u.ville = getCityFromLL(u.latitude, u.longitude);
-    });
-    return res.status(200).send(r);
-  } else if (req.body.search.order && ids.length) {
-    if (req.body.search.order === 'location') {
-      sql += ' ORDER BY distance';
-    } else if (req.body.search.order === 'fame') {
-      sql += ' ORDER BY score DESC';
-    } else if (req.body.search.order === 'age') {
-      sql += ' ORDER BY age DESC';
-    } else if (req.body.search.order === 'tags') {
-      let mytagsId = await db.any(
-        `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
-        req.user.user_id
-      );
-      mytagsId = mytagsId.map(e => e.user_tag_id);
-      ids = await db.any(
-        `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+      ORDER  BY t.ord LIMIT 10) b JOIN images ON images.image_id = b.profile_pic ORDER BY ord`;
+      const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
+      r.forEach(u => {
+        u.ville = getCityFromLL(u.latitude, u.longitude);
+      });
+      return res.status(200).send(r);
+    } else if (req.body.search.order && ids.length) {
+      if (req.body.search.order === 'location') {
+        sql += ' ORDER BY distance';
+      } else if (req.body.search.order === 'fame') {
+        sql += ' ORDER BY score DESC';
+      } else if (req.body.search.order === 'age') {
+        sql += ' ORDER BY age DESC';
+      } else if (req.body.search.order === 'tags') {
+        let mytagsId = await db.any(
+          `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
+          req.user.user_id
+        );
+        mytagsId = mytagsId.map(e => e.user_tag_id);
+        ids = await db.any(
+          `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
         WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
-        [mytagsId, ids]
-      );
-      ids = ids.map(e => e.user_id);
+          [mytagsId, ids]
+        );
+        ids = ids.map(e => e.user_id);
+      }
     }
+    sql += ' LIMIT 10';
+    if (ids.length) {
+      const find = await db.any(sql, [ids, ll[0], ll[1]]);
+      find.forEach(u => {
+        u.ville = getCityFromLL(u.latitude, u.longitude);
+      });
+      return res.status(200).send(find);
+    } else res.status(200).send([]);
+  } catch (error) {
+    res.sendStatus(500);
   }
-  sql += ' LIMIT 10';
-  if (ids.length) {
-    const find = await db.any(sql, [ids, ll[0], ll[1]]);
-    find.forEach(u => {
-      u.ville = getCityFromLL(u.latitude, u.longitude);
-    });
-    return res.status(200).send(find);
-  } else res.status(200).send([]);
 });
 
 const updateManyTags = async () => {

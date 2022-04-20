@@ -44,7 +44,6 @@ export default {
         number: this.numberOfTags,
       });
       this.tags = resp.data.tags;
-      console.log(this.tags, this.numberOfTags);
     },
     sendTag(tag) {
       this.$emit('loadTag', tag);

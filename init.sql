@@ -24,10 +24,9 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "images" (
     "image_id" serial PRIMARY KEY,
     "url" VARCHAR(255) NOT NULL,
-    "user_id" INT NOT NULL,
-    "created_on" TIMESTAMP NOT NULL DEFAULT now(),
-    
-    CONSTRAINT "fk_user" FOREIGN KEY("user_id") REFERENCES "users"("user_id")
+    "user_id" INT,
+    "protected" BOOLEAN NOT NULL DEFAULT false,
+    "created_on" TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS "likes" (
@@ -223,3 +222,16 @@ INSERT INTO "user_tags"
 INSERT INTO "user_tags" 
     ("tag_id", "user_id") 
     VALUES (2, 2);
+
+INSERT INTO "images" 
+    ( "url", "protected" ) 
+    VALUES ('/assets/image1.jpg', true);
+INSERT INTO "images" 
+    ( "url", "protected" ) 
+    VALUES ('/assets/image2.jpg', true);
+INSERT INTO "images" 
+    ( "url", "protected" ) 
+    VALUES ('/assets/image3.jpg', true);
+INSERT INTO "images" 
+    ( "url", "protected" ) 
+    VALUES ('/assets/image4.jpg', true);

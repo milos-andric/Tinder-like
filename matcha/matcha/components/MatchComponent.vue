@@ -27,12 +27,8 @@
                 <font-awesome-icon icon="circle-info" color="white" />
               </b-link>
             </div>
-
             <img
-              :src="
-                user.profile_pic ||
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg/260px-Reuni%C3%A3o_com_o_ator_norte-americano_Keanu_Reeves_%2846806576944%29_%28cropped%29.jpg'
-              "
+              :src="user.url"
               class="swiper-lazy h-100 w-100"
               style="object-fit: cover"
               alt="Responsive image"

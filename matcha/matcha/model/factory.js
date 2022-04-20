@@ -18,6 +18,7 @@ function buildFactory() {
       orientation: factory.chance('integer', { min: 0, max: 2 }),
       latitude: factory.chance('latitude', { min: 41, max: 51 }),
       longitude: factory.chance('longitude', { min: -5, max: 8 }),
+      profile_pic: factory.chance('integer', { min: 1, max: 4 }),
     });
     return factory;
   } catch {

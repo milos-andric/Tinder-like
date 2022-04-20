@@ -237,7 +237,6 @@ export default {
     },
     dateFormat(data)
     {
-      console.log(data);
       if (data.value)
         return new Date().getFullYear() - new Date(data.value).getFullYear()
        else {
