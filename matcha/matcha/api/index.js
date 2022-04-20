@@ -1316,20 +1316,22 @@ const calculatePonderation = async (req, ids, ll) => {
     req.user.user_id
   );
   mytagsId = mytagsId.map(e => e.user_tag_id);
-  const idsTags = await db.any(
-    `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
-    WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
-    [mytagsId, ids]
-  );
-  idsTags.forEach(e => {
-    const coef = Number(e.count);
-    for (let i = 0; i < resp.length; i++) {
-      if (resp[i].user_id === e.user_id) {
-        resp[i].orderscore *= coef + 1;
-        break;
+  if (mytagsId.length) {
+    const idsTags = await db.any(
+      `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+      WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
+      [mytagsId, ids]
+    );
+    idsTags.forEach(e => {
+      const coef = Number(e.count);
+      for (let i = 0; i < resp.length; i++) {
+        if (resp[i].user_id === e.user_id) {
+          resp[i].orderscore *= coef + 1;
+          break;
+        }
       }
-    }
-  });
+    });
+  }
   resp.sort((a, b) => (a.orderscore < b.orderscore ? 1 : -1));
   return resp;
 };
