@@ -206,7 +206,7 @@ export default {
         onCellClicked: e => this.$router.push('/user/' + e.data.user_id),
       },
       { field: 'last_name', sortable: true, filter: true },
-      { field: 'age', sortable: true, filter: true },
+      { field: 'age',valueFormatter: this.dateFormat,sortable: true, filter: true },
       { headerName: 'Fame', field: 'score', sortable: true, filter: true },
       { headerName: 'Distance (km)', field: 'distance', sortable: true, filter: true },
     ];
@@ -235,6 +235,15 @@ export default {
     loadTag(tag) {
       this.tagsValue.push(tag);
     },
+    dateFormat(data)
+    {
+      console.log(data);
+      if (data.value)
+        return new Date().getFullYear() - new Date(data.value).getFullYear()
+       else {
+         return ""
+       }
+    }
   },
 };
 </script>

@@ -55,7 +55,7 @@ La mienne et celle des autres
 
 [x] criteria exclusif: gender
 
-[ ] criteria avec coef:
+[x] criteria avec coef:
 
 - [x] location
 - [x] tag
@@ -73,7 +73,7 @@ Par :
 - [x] age
 - [x] fame
 - [x] location
-- [ ] tag
+- [x] tag
 
 [x] filtrable + triable
 
@@ -107,18 +107,18 @@ Par :
 
 - [x] launch factory on init
 
-- [ ] age in search bad format
+- [x] age in search bad format
 
 - [ ] margin at right in chat
 
-- [ ] taille du pseudo dans le frontend ? (16 x W)
+- [x] taille du pseudo dans le frontend ? (16 x W)
 
-- [x] reparer le mini chat 
-- [ ] redirection dans l'history
+- [x] reparer le mini chats
+- [x] redirection dans l'history
 - [x] pouvoir mettre un nom de room dans l'url de chat pour s'y faire rediriger
-- [ ] historique des personne qui t'on visité
+- [x] historique des personne qui t'on visités
 - [ ] geolocalisation plus précice
-- [ ] faire un intervalle de score de pop
-- [ ] devil like ne devrai s'afficher que si pas like
-- [ ] dans les recherche enlevé les bloquer
-- [ ] like que si photo de profil set et pas que si il y a des photo
+- [x] faire un intervalle de score de pop
+- [x] devil like ne devrai s'afficher que si pas like
+- [x] dans les recherche enlevé les bloquer
+- [x] like que si photo de profil set et pas que si il y a des photo
