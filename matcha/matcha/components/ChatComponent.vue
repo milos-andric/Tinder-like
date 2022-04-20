@@ -20,7 +20,7 @@
               <p>{{ item.message }}</p>
             </div>
             <div v-else-if="item.type === 2 && item.sender_id === self_id">
-              <p>Vous avez envoyer une invitation à {{ otherUserName }}</p>
+              <p>Vous avez envoyer une invitation à {{ otherUserName }}:</p>
               {{ item.message }}
             </div>
             <div v-else-if="item.type === 2 && item.sender_id !== self_id">

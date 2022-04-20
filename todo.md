@@ -122,3 +122,10 @@ Par :
 - [x] devil like ne devrai s'afficher que si pas like
 - [x] dans les recherche enlevé les bloquer
 - [x] like que si photo de profil set et pas que si il y a des photo
+
+### BONUS:
+- Date
+- suggestion text
+- konami code
+- chat partout
+- suggestion tags
