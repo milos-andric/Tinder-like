@@ -60,6 +60,7 @@ export default {
         'faMartiniGlass',
         'faThumbsUp',
         'faHandshakeSimple',
+        'faLocationDot',
       ],
     },
   },

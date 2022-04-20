@@ -243,6 +243,10 @@ export default {
         this.user_name = e.data.user_name;
         this.email = e.data.email;
         this.gender = e.data.gender;
+        if (e.data.age) {
+          const format = new Date(Date.parse(e.data.age));
+          this.birth_date = format.toISOString().split('T')[0];
+        }
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;

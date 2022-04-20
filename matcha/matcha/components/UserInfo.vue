@@ -41,6 +41,10 @@
       <b-badge class="py-2 px-3" variant="dark">
         <font-awesome-icon icon="star" /> {{ score }}
       </b-badge>
+      <b-badge v-if="ville" class="py-2 px-3" variant="dark">
+        <font-awesome-icon icon="location-dot" />
+        {{ ville }}
+      </b-badge>
       <b-badge v-if="birth_date" class="py-2 px-3" variant="dark">
         <font-awesome-icon icon="cake-candles" />
         {{ new Date().getFullYear() - birth_date.getFullYear() }}
@@ -274,6 +278,7 @@ export default {
       last_name: '',
       user_name: '',
       birth_date: null,
+      ville: null,
       gender: 0,
       orientation: 2,
       bio: '',
@@ -329,6 +334,7 @@ export default {
         this.last_name = e.data.last_name;
         this.user_name = e.data.user_name;
         this.gender = e.data.gender;
+        this.ville = e.data.ville;
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;

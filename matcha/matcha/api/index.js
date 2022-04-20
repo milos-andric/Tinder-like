@@ -827,6 +827,7 @@ app.get('/user/:user_id', authenticateToken, async (req, res) => {
     user.last_connexion = timeDifference(user.last_connexion);
     await sendNotification(myId, targetId, 'view');
     await recalculUserScore(targetId);
+    [user.ville, user.zip] = await getCityFromLL(user.latitude, user.longitude);
     return res.status(200).json(user);
   } catch (e) {
     return res.status(404).json({ msg: e });
