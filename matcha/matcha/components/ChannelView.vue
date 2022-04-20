@@ -21,7 +21,7 @@
             class="mr-3"
           ></b-avatar>
           <div>
-            <p id="pseudonyme" class="mb-1 font-weight-bold">
+            <p id="pseudo-overflow" class="mb-1 font-weight-bold">
               {{ channel.pal_name }}
             </p>
             <p
@@ -105,7 +105,7 @@ export default {
 .channel:hover {
   cursor: pointer;
 }
-#pseudonyme {
+#pseudo-overflow {
   overflow-wrap: break-word;
   width: 170px;
 }
