@@ -1,7 +1,10 @@
 <template>
   <!-- // TODO true ?? -->
   <div v-if="true && user_name" class="mx-auto col-4 h-100" style="min-width: 300px">
-    <h2 class="mt-3 text-center">Hello {{ user_name }} 😉</h2>
+    <h3 class="mt-3 text-center">Hello</h3>
+    <!-- // TODO -->
+    <h2 class="mt-3 text-center text-truncate text-wrap" style="width: 100%">{{ user_name }}</h2>
+    <h3 class="mt-3 text-center">😉</h3>
     <div v-if="konami === true" class="mx-auto mt-5 mb-5 h-100 text-center">
         <b-img rounded alt="Circle image" src="../assets/surprise.png" class="mb-5" size="15rem">No image</b-img>
       <div>

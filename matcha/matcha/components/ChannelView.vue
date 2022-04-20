@@ -21,7 +21,13 @@
             class="mr-3"
           ></b-avatar>
           <div>
-            <p class="mb-1 font-weight-bold">{{ channel.pal_name }}</p>
+            <!-- // TODO -->
+            <p
+              class="mb-1 font-weight-bold text-truncate text-wrap"
+              style="width: 10rem"
+            >
+              {{ channel.pal_name }}
+            </p>
             <p
               v-if="onlineUsers.find(e => e === channel.pal_id)"
               class="mb-1 text-success"

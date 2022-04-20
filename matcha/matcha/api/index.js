@@ -582,9 +582,9 @@ app.post(
 
       await updateTags(req.user.user_id, req.body.tags);
 
-      res.status(200).json(data);
+      return res.status(200).json(data);
     } catch (e) {
-      res.status(500).json({ msg: 'Database error' });
+      return res.status(500).json({ msg: 'Username or email already exists' });
     }
   }
 );
@@ -758,7 +758,7 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
     const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
     const tags = await db.manyOrNone(sql, [req.body.number]);
     if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
-    res.status(200).json({ tags });
+    return res.status(200).json({ tags });
   } catch (_e) {
     return res.status(500);
   }
@@ -1222,8 +1222,13 @@ async function searchFilter(req, ids, ll) {
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.fame && ids.length) {
-    sql = 'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
-    ids = await db.any(sql, [ids, req.body.search.fame[0],req.body.search.fame[1]]);
+    sql =
+      'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
+    ids = await db.any(sql, [
+      ids,
+      req.body.search.fame[0],
+      req.body.search.fame[1],
+    ]);
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.tags && ids.length) {
@@ -1252,7 +1257,8 @@ app.post('/search', authenticateToken, async (req, res) => {
       `SELECT user_id FROM users
       WHERE users.user_id != $1
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = users.user_id)`,
-      req.user.user_id);
+      req.user.user_id
+    );
     ids = ids.map(e => e.user_id);
     const ll = getLL(req.user, req.body.search.ip);
     ids = await searchFilter(req, ids, ll);
@@ -1758,7 +1764,7 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     !req.body.hour &&
     !req.body.location
   ) {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   }
   try {
     console.log(req.body);
@@ -1786,12 +1792,12 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
       await sendNotification(senderId, receiverId, 'invit');
       sendMessage(req.user.user_id, receiverId, msgId);
     } else {
-      res.sendStatus(403);
+      return res.sendStatus(403);
     }
-    res.sendStatus(200);
+    return res.sendStatus(200);
   } catch (error) {
     console.log(error);
-    res.sendStatus(500);
+    return res.sendStatus(500);
   }
 });
 
@@ -1834,7 +1840,7 @@ function sendDateEmail(email, date) {
 
 app.post('/acceptDate', authenticateToken, async (req, res) => {
   if (!req.body.message && !req.body.resp && !req.body.message.chat_id) {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   }
   try {
     // eslint-disable-next-line no-unused-vars
@@ -1884,12 +1890,12 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
       };
       await sendNotification(senderId, receiverId, 'date');
       sendMessage(req.user.user_id, receiverId, data);
-      res.sendStatus(200);
+      return res.sendStatus(200);
     } else {
-      res.sendStatus(403);
+      return res.sendStatus(403);
     }
   } catch (error) {
-    res.sendStatus(500);
+    return res.sendStatus(500);
   }
 });
 export default {
