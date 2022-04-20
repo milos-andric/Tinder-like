@@ -1369,7 +1369,7 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
       return res.status(200).send([]);
     }
 
-    let sql = `SELECT user_id,
+    let sql = `SELECT al.user_id,
     first_name,
     last_name,
     user_name,
@@ -1381,6 +1381,7 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     score,
     latitude,
     longitude,
+    url,
     distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
@@ -1389,7 +1390,7 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     radians($3)) +
     sin(radians($2)) *
     sin(radians(users.latitude)))
-    ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
+    ) AS distance FROM users) al JOIN images ON images.image_id = al.profile_pic WHERE al.user_id IN ($1:csv) `;
     if (req.body.search.order === 'algorithm') {
       ids = await calculatePonderation(req, ids, ll);
       ids = ids.map(e => e.user_id);

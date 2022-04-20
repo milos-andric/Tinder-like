@@ -28,7 +28,7 @@
               </b-link>
             </div>
             <img
-              :src="user.url"
+              :src="user.url || '/assets/ombre.jpeg'"
               class="swiper-lazy h-100 w-100 bg-primary"
               style="object-fit: scale-down; max-height: 40vh"
               alt="Responsive image"
