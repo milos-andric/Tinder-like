@@ -10,7 +10,6 @@ import * as bcrypt from 'bcrypt';
 
 // Location
 import nearbyCities from 'nearby-cities';
-import WorldCities from 'worldcities';
 
 // Core
 import * as nodemailer from 'nodemailer';
@@ -468,10 +467,10 @@ app.post('/recover', validateEmail('email'), (req, res) => {
 });
 
 function validateLocation() {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const input = req.body.ville;
     if (input) {
-      const ll = getLLFromCity(input);
+      const ll = await getLLFromCity(input);
       if (!ll) {
         return res.status(400).json({ msg: 'City not found' });
       } else {
@@ -767,22 +766,28 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
 
 // GET routes
 
-function getCityFromLL(latitude, longitude) {
-  const query = { latitude, longitude };
+async function getCityFromLL(latitude, longitude) {
+  const query = { lat: latitude, lon: longitude };
   try {
-    const cities = nearbyCities(query);
+    let cities = await geocoder.reverse(query);
+    const zip = cities[0].zipcode;
+    cities = cities[0].city;
     if (!cities) {
-      return undefined;
-    } else if (cities.length) {
-      return cities[0].name;
+      const citiesAlt = nearbyCities({
+        latitude,
+        longitude,
+      });
+
+      return [citiesAlt[0].name, ''];
+    } else {
+      return [cities, zip];
     }
   } catch (error) {
-    console.log(error);
+    return ['', ''];
   }
 }
-function getLLFromCity(city) {
-  let res = WorldCities.getAllByName(city);
-  res = res.sort((a, b) => b.population - a.population);
+async function getLLFromCity(city) {
+  const res = await geocoder.geocode(city);
   if (res.length) {
     return [res[0].latitude, res[0].longitude];
   }
@@ -793,7 +798,10 @@ app.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await getUserInfosMe(id);
     if (user.latitude && user.longitude) {
-      user.ville = getCityFromLL(user.latitude, user.longitude);
+      [user.ville, user.zip] = await getCityFromLL(
+        user.latitude,
+        user.longitude
+      );
     }
     return res.status(200).json(user);
   } catch (e) {
@@ -1021,6 +1029,17 @@ function timeDifference(date) {
     return `${secondsDifference} second(s) ago`;
   }
 }
+
+const NodeGeocoder = require('node-geocoder');
+
+const options = {
+  provider: 'google',
+
+  // Optional depending on the providers
+  apiKey: 'AIzaSyDzoGOgtiXMtz1XaSZi2ai2LFQYHIiPTfQ', // for Mapquest, OpenCage, Google Premier
+};
+
+const geocoder = NodeGeocoder(options);
 
 app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
   try {
@@ -1382,9 +1401,11 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
       JOIN   unnest(ARRAY[$1:list]) WITH ORDINALITY t(user_id, ord) USING (user_id)
       ORDER  BY t.ord LIMIT 10) b JOIN images ON images.image_id = b.profile_pic ORDER BY ord`;
       const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
-      r.forEach(u => {
-        u.ville = getCityFromLL(u.latitude, u.longitude);
-      });
+      await Promise.all(
+        r.map(async e => {
+          [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
+        })
+      );
       return res.status(200).send(r);
     } else if (req.body.search.order && ids.length) {
       if (req.body.search.order === 'location') {
@@ -1410,9 +1431,11 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     sql += ' LIMIT 10';
     if (ids.length) {
       const find = await db.any(sql, [ids, ll[0], ll[1]]);
-      find.forEach(u => {
-        u.ville = getCityFromLL(u.latitude, u.longitude);
-      });
+      await Promise.all(
+        find.map(async e => {
+          [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
+        })
+      );
       return res.status(200).send(find);
     } else res.status(200).send([]);
   } catch (error) {
@@ -1724,10 +1747,12 @@ async function findPartnerFor(user, ip) {
   }
   sql += ` ORDER BY distance LIMIT 10`;
   const res = await db.any(sql, data);
-  res.forEach(reco => {
-    reco.ville = getCityFromLL(reco.latitude, reco.longitude);
-    delete reco.password;
-  });
+  await Promise.all(
+    res.map(async e => {
+      [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
+      delete e.password;
+    })
+  );
   return res;
 }
 
@@ -1746,8 +1771,6 @@ function getLL(user, ip) {
 
 app.post('/getRecommandation', authenticateToken, async (req, res) => {
   try {
-    // console.log(req.body.ip);
-    // console.log(pos);
     const user = await getUserInfos(req.user.user_id);
     const partner = await findPartnerFor(user, req.body.ip);
 
@@ -1771,7 +1794,6 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     res.sendStatus(400);
   }
   try {
-    console.log(req.body);
     // eslint-disable-next-line no-unused-vars
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
     if ((await userIsBlocked(receiverId, senderId)) === true)
@@ -1800,7 +1822,6 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     }
     res.sendStatus(200);
   } catch (error) {
-    console.log(error);
     res.sendStatus(500);
   }
 });

@@ -246,7 +246,7 @@ export default {
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;
-        this.ville = e.data.ville;
+        this.ville = e.data.ville + ' ' + e.data.zip;
         this.latitude = e.data.latitude;
         this.longitude = e.data.longitude;
         if (e.data.latitude) {
