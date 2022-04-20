@@ -148,6 +148,7 @@ export default {
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;
+        this.score = e.data.score;
 
         this.profile_pic = e.data.profile_pic;
 
