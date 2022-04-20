@@ -12,6 +12,7 @@
     <div v-if="loadLike" v-b-tooltip.hover title="This user has liked you">
       <font-awesome-icon
         v-if="likedback"
+        id="icon-liked"
         icon="thumbs-up"
         style="font-size: 1.5em"
       />
@@ -23,6 +24,7 @@
     >
       <font-awesome-icon
         v-if="matched"
+        id="icon-matched"
         icon="handshake-simple"
         style="font-size: 1.5em"
       />
@@ -70,8 +72,22 @@
       "
       class="mt-3 mb-3"
     >
+      <!-- SUJET FR != SUJET EN >> condition si utilisateur a une photo OU si target a une photo
+      v-if="
+          id !== self_id &&
+          self_profile_pic !== null &&
+          profile_pic !== null &&
+          likedback === false &&
+          matched === false
+        "
+      -->
       <b-button
-        v-if="id !== self_id && likedback === false && matched === false"
+        v-if="
+          id !== self_id &&
+          profile_pic !== null &&
+          likedback === false &&
+          matched === false
+        "
         variant="outline-danger"
         @click="devilMatch()"
       >
@@ -422,3 +438,14 @@ export default {
   },
 };
 </script>
+
+<style>
+#icon-matched {
+  cursor: pointer;
+  color: greenyellow;
+}
+#icon-liked {
+  cursor: pointer;
+  color: rgb(255, 85, 47);
+}
+</style>

@@ -947,8 +947,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   try {
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
     if ((await userIsBlocked(receiverId, senderId)) === true)
-      return res.status(403).json({ msg: 'This user has blocked you' });
-    // return res.sendStatus(200);
+      return res.sendStatus(200);
     if ((await userIsBlocked(senderId, receiverId)) === true)
       return res.sendStatus(200);
     if (
@@ -968,7 +967,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
       sendMessage(senderId, receiverId, data);
       return res.send(data);
     } else {
-      return res.sendStatus(403); // ERROR
+      return res.sendStatus(403);
     }
   } catch (e) {
     return res.sendStatus(500).json({ msg: e });
@@ -1549,7 +1548,7 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
         [myIdInt, targetIdInt]
       );
       await sendNotification(myIdInt, targetIdInt, 'like');
-      await recalculUserScore(myIdInt);
+      await recalculUserScore(targetIdInt);
     }
     //
     const likedByTarget = await db.oneOrNone(
@@ -1562,7 +1561,7 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
         [targetIdInt, myIdInt]
       );
       await sendNotification(targetIdInt, myIdInt, 'like');
-      await recalculUserScore(targetIdInt);
+      await recalculUserScore(myIdInt);
     }
     //
     const name = chatName(myIdInt, targetIdInt);
@@ -1664,10 +1663,8 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     // eslint-disable-next-line no-unused-vars
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
     if ((await userIsBlocked(receiverId, senderId)) === true)
-      // return res.status(403).json({ msg: 'This user has blocked you' });
       return res.sendStatus(200);
     if ((await userIsBlocked(senderId, receiverId)) === true)
-      // return res.status(403).json({ msg: 'You have blocked this user' });
       return res.sendStatus(200);
     const date = new Date();
     date.setMinutes(date.getMinutes() + 2);
@@ -1744,10 +1741,8 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
       req.body.message.chat_id
     );
     if ((await userIsBlocked(receiverId, senderId)) === true)
-      // return res.status(403).json({ msg: 'This user has blocked you' });
       return res.sendStatus(200);
     if ((await userIsBlocked(senderId, receiverId)) === true)
-      // return res.status(403).json({ msg: 'You have blocked this user' });
       return res.sendStatus(200);
     let text = '';
     if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
