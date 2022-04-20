@@ -29,14 +29,14 @@
             </div>
             <img
               :src="user.url"
-              class="swiper-lazy h-100 w-100"
-              style="object-fit: cover"
+              class="swiper-lazy h-100 w-100 bg-primary"
+              style="object-fit: scale-down; max-height: 40vh"
               alt="Responsive image"
             />
           </div>
         </div>
 
-        <div class="swiper-button-next"></div>
+        <div class="swiper-button-next text-white"></div>
       </div>
     </div>
 
@@ -251,7 +251,6 @@ export default {
   }
 }
 #profile-image {
-  box-shadow: inset 0px 0px 50px 25px rgba(0, 0, 0, 0.9);
   height: 100%;
   width: 120%;
   margin-left: -10%;
