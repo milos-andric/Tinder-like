@@ -15,8 +15,8 @@ import nearbyCities from 'nearby-cities';
 import * as nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import express from 'express';
-import pgPromise from 'pg-promise';
 import { Server } from 'socket.io';
+import pgPromise from 'pg-promise';
 import buildFactory from '../model/factory';
 
 import {
@@ -767,6 +767,9 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
 // GET routes
 
 async function getCityFromLL(latitude, longitude) {
+  if (latitude === null || longitude === null) {
+    return ['', ''];
+  }
   const query = { lat: latitude, lon: longitude };
   try {
     let cities = await geocoder.reverse(query);
@@ -787,6 +790,9 @@ async function getCityFromLL(latitude, longitude) {
   }
 }
 async function getLLFromCity(city) {
+  if (!city || city === '') {
+    return undefined;
+  }
   const res = await geocoder.geocode(city);
   if (res.length) {
     return [res[0].latitude, res[0].longitude];
@@ -802,6 +808,9 @@ app.get('/me', authenticateToken, async (req, res) => {
         user.latitude,
         user.longitude
       );
+    } else {
+      user.ville = '';
+      user.zip = '';
     }
     return res.status(200).json(user);
   } catch (e) {
