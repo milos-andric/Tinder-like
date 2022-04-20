@@ -10,6 +10,7 @@
     <b-avatar v-else size="15vw" to="avatar"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
     <h4>{{ email }}</h4>
+    <h4 class="mt-3">{{ '@' + user_name }}</h4>
 
     <!-- Bio -->
     <blockquote class="blockquote mt-5">
