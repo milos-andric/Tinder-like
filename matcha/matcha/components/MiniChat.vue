@@ -1,6 +1,5 @@
 <template>
   <div class="d-flex">
-
     <!-- Chat box -->
     <div
       v-if="chatToggled"
@@ -58,8 +57,19 @@
           :class="item.sender_id === self_id ? 'myself' : 'other'"
           class="message"
         >
-          <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
-          <p>{{ item.message }}</p>
+          <div v-if="item.type === 1">
+            <p class="font-weight-bold mb-2">{{ item.user_name }}</p>
+            <p>{{ item.message }}</p>
+          </div>
+          <div v-else-if="item.type === 2 && item.sender_id === self_id">
+            <p>Vous avez envoyer une invitation à {{ otherUserName }}</p>
+          </div>
+          <div v-else-if="item.type === 2 && item.sender_id !== self_id">
+            <p>Vous avez reçu une invitation de {{ item.user_name }}</p>
+          </div>
+          <div v-else-if="item.type === 3">
+            <p>{{ item.message }}</p>
+          </div>
         </div>
       </div>
 
@@ -91,7 +101,13 @@
     <!-- Room selector -->
     <div
       class="position-absolute"
-      style="bottom: 191px; right: 0; width: 20%; z-index: 99; background: white"
+      style="
+        bottom: 191px;
+        right: 0;
+        width: 20%;
+        z-index: 99;
+        background: white;
+      "
     >
       <b-button
         v-b-toggle.chatBox

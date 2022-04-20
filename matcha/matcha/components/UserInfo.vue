@@ -4,6 +4,7 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
+    <h4 class="mt-3 field-overflow">{{ '#' + user_name }}</h4>
     <h4 v-if="(user_name !== '' && online === true) || id === self_id">
       Connected
     </h4>
@@ -68,7 +69,7 @@
         loadLike &&
         id !== self_id &&
         profile_pic !== null &&
-        seld_privilege === true
+        self_privilege === true
       "
       class="mt-3 mb-3"
     >
@@ -264,7 +265,7 @@ export default {
     return {
       self_id: 0,
       self_profile_pic: null,
-      seld_privilege: false,
+      self_privilege: false,
       likedback: false,
       matched: false,
 
@@ -298,7 +299,7 @@ export default {
     await this.$axios.get('/me').then(e => {
       this.self_id = e.data.user_id;
       this.self_profile_pic = e.data.profile_pic;
-      this.seld_privilege = e.data.privilege;
+      this.self_privilege = e.data.privilege;
     });
     await this.getInfos();
     this.loadUser = true;
@@ -447,5 +448,9 @@ export default {
 #icon-liked {
   cursor: pointer;
   color: rgb(255, 85, 47);
+}
+.field-overflow {
+  overflow-wrap: break-word;
+  width: auto;
 }
 </style>

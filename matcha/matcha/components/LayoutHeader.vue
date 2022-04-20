@@ -60,17 +60,20 @@
             @click="readNotification(x)"
           >
             <div class="p-0">
-              <div class="rounded p-1 bg-light d-flex">
-                <div class="text-left">
-                  <div class="text-truncate text-wrap" style="width: 10rem">
-                    {{ x.user_name }}
-                  </div>
-                  <div class="small">
-                    {{ x.message }}
-                  </div>
+              <div
+                class="rounded p-1 bg-light d-flex flex-column align-items-start"
+              >
+                <div class="mr-auto text-wrap order-1">
+                  {{ x.user_name }}
                 </div>
-                <div class="text-right text-muted ml-auto mb-auto small">
+                <div
+                  class="text-right text-muted ml-auto mb-auto order-0"
+                  style="font-size: 10px"
+                >
                   {{ dateFormat(x.created_on) }}
+                </div>
+                <div class="small order-2">
+                  {{ x.message }}
                 </div>
               </div>
             </div>
