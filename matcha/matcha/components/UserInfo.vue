@@ -4,7 +4,7 @@
     <b-avatar v-if="profile_pic" size="20vw" :src="profile_pic.url"></b-avatar>
     <b-avatar v-else size="15vw"></b-avatar>
     <h2 class="mt-3">{{ first_name + ' ' + last_name }}</h2>
-    <h4 class="mt-3 field-overflow">{{ '@' + user_name }}</h4>
+    <h4 class="mt-3 field-overflow">{{ '#' + user_name }}</h4>
     <h4 v-if="(user_name !== '' && online === true) || id === self_id">
       Connected
     </h4>
