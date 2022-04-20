@@ -159,6 +159,17 @@ export default {
     async build(number) {
       await this.$axios.post('registerMany', number);
     },
+
+    roomName(id1, id2) {
+      let chatName = '';
+      if (id1 !== id2) {
+        chatName += Math.min(id1, id2);
+        chatName += '-';
+        chatName += Math.max(id1, id2);
+        return chatName;
+      }
+    },
+
     manageNotifications(data) {
       data.forEach(e => {
         this.manageNotification(e);
@@ -178,7 +189,9 @@ export default {
             notif.type === 'invit' ||
             notif.type === 'date'
           )
-            notif.link = '/chat';
+            notif.link =
+              '/chat/' +
+              this.roomName(notif.user_id_send, notif.user_id_receiver);
           this.notifications.push(notif);
         }
       }

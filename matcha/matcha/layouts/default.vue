@@ -3,7 +3,7 @@
     <LayoutHeader />
 
     <div
-      :class="$nuxt.$route.path !== '/chat' ? 'py-5' : ''"
+      :class="$nuxt.$route.path.startsWith('/chat') ? '' : 'py-5'"
       style="flex: auto"
     >
       <Nuxt />

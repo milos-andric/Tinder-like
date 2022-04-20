@@ -332,6 +332,7 @@ export default {
         this.orientation = e.data.orientation;
         this.bio = e.data.bio;
         this.tags = e.data.tags;
+        this.score = e.data.score;
         this.last_connexion = e.data.last_connexion;
         this.profile_pic = e.data.profile_pic;
         this.privilege = e.data.privilege;

@@ -1261,13 +1261,17 @@ async function searchFilter(req, ids, ll) {
   }
   if (req.body.search.tags && ids.length) {
     for (let i = 0; i < req.body.search.tags.length; i++) {
-      sql = `SELECT * FROM users AS u
+      if (ids.length) {
+        sql = `SELECT * FROM users AS u
       JOIN user_tags AS uTag ON u.user_id = uTag.user_id
       JOIN tags AS tag ON tag.tag_id = uTag.tag_id
       WHERE u.user_id IN ($1:csv) AND tag.label LIKE $2`;
-      const tags = req.body.search.tags;
-      ids = await db.any(sql, [ids, tags[i]]);
-      ids = ids.map(e => e.user_id);
+        const tags = req.body.search.tags;
+        ids = await db.any(sql, [ids, tags[i]]);
+        ids = ids.map(e => e.user_id);
+      } else {
+        break;
+      }
     }
   }
   return ids;
@@ -1431,12 +1435,14 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
           req.user.user_id
         );
         mytagsId = mytagsId.map(e => e.user_tag_id);
-        ids = await db.any(
-          `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+        if (mytagsId.length) {
+          ids = await db.any(
+            `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
         WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
-          [mytagsId, ids]
-        );
-        ids = ids.map(e => e.user_id);
+            [mytagsId, ids]
+          );
+          ids = ids.map(e => e.user_id);
+        }
       }
     }
     sql += ' LIMIT 10';
