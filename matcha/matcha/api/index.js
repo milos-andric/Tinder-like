@@ -723,15 +723,6 @@ app.post('/user-block', authenticateToken, async (req, res) => {
       'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
       [sender, receiver]
     );
-    const room = await db.oneOrNone(
-      'SELECT * FROM chats WHERE (first_id=$1 AND second_id=$2) OR (second_id=$1 AND first_id=$2)',
-      [sender, receiver]
-    );
-    if (room) {
-      await db.none('DELETE FROM messages WHERE chat_id=$1', [room.name]);
-      await db.none('DELETE FROM chats WHERE name=$1', [room.name]);
-    }
-
     return res.status(200).json({ msg: 'Successfully blocked user' });
   } catch (e) {
     return res.status(400).json({ msg: "Couldn't block user" });
@@ -832,8 +823,11 @@ app.get('/is-liked/:target_id', authenticateToken, async (req, res) => {
       'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
       [myIdInt, targetIdInt]
     );
-    if (liked && liked.length) return res.status(200).json(true);
-    else return res.status(200).json(false);
+    if (liked && liked.length) {
+      return res.status(200).json(true);
+    } else {
+      return res.status(200).json(false);
+    }
   } catch (e) {
     return res.status(404).json({ msg: e });
   }
@@ -850,6 +844,41 @@ app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
     return res.status(404).json({ msg: e });
   }
 });
+
+app.get(
+  '/user-informations/:target_id',
+  authenticateToken,
+  async (req, res) => {
+    const myIdInt = Number(req.user.user_id);
+    const targetIdInt = Number(req.params.target_id);
+    try {
+      const liked = await db.oneOrNone(
+        'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+        [targetIdInt, myIdInt]
+      );
+      let matched = false;
+      if (liked) {
+        matched = await db.oneOrNone(
+          'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+          [myIdInt, targetIdInt]
+        );
+      }
+      const ret = {
+        liked: false,
+        matched: false,
+      };
+      if (liked) {
+        ret.liked = true;
+      }
+      if (matched) {
+        ret.matched = true;
+      }
+      return res.status(200).json(ret);
+    } catch (e) {
+      return res.status(404).json({ msg: e });
+    }
+  }
+);
 
 const idToUsername = async id => {
   const user = await getUserInfos(id);
@@ -892,13 +921,9 @@ const sendMessage = (myId, targetId, data) => {
   const receiverListSocket = getSocketById(targetId);
   if (senderListSocket.length) {
     emitMessages(senderListSocket, data);
-  } else {
-    console.log('error sender socket');
   }
   if (receiverListSocket.length) {
     emitMessages(receiverListSocket, data);
-  } else {
-    console.log('error receiver socket');
   }
 };
 
@@ -922,6 +947,8 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
   try {
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
     if ((await userIsBlocked(receiverId, senderId)) === true)
+      return res.sendStatus(200);
+    if ((await userIsBlocked(senderId, receiverId)) === true)
       return res.sendStatus(200);
     if (
       (await isIdInRoom(req.user.user_id, req.body.room)) &&
@@ -1609,7 +1636,36 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
     if (myIdInt === targetIdInt)
       return res.status(200).json({ msg: 'You cannot match yourself' });
     if ((await userIsBlocked(targetIdInt, myIdInt)) === true)
-      return res.status(403).json({ msg: "It's harssment ?" });
+      return res.status(403).json({ msg: 'This user has blocked you' });
+    if ((await userIsBlocked(myIdInt, targetIdInt)) === true)
+      return res.status(403).json({ msg: 'You have blocked this user' });
+    // FUNCTION MAYBE ? ( -> /like )
+    const likedByMe = await db.oneOrNone(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [myIdInt, targetIdInt]
+    );
+    if (!likedByMe) {
+      await db.none(
+        `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+        [myIdInt, targetIdInt]
+      );
+      await sendNotification(myIdInt, targetIdInt, 'like');
+      await recalculUserScore(targetIdInt);
+    }
+    //
+    const likedByTarget = await db.oneOrNone(
+      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+      [targetIdInt, myIdInt]
+    );
+    if (!likedByTarget) {
+      await db.none(
+        `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+        [targetIdInt, myIdInt]
+      );
+      await sendNotification(targetIdInt, myIdInt, 'like');
+      await recalculUserScore(myIdInt);
+    }
+    //
     const name = chatName(myIdInt, targetIdInt);
     const alreadyExist = await db.oneOrNone(
       'SELECT * FROM chats WHERE name=$1',
@@ -1617,14 +1673,11 @@ app.post('/devil-match', authenticateToken, async (req, res) => {
     );
     if (!alreadyExist) {
       await db.any(
-        'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 ) ',
+        'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 )',
         [myIdInt, targetIdInt, chatName(myIdInt, targetIdInt)]
       );
-      await sendNotification(myIdInt, targetIdInt, 'like');
       await sendNotification(myIdInt, targetIdInt, 'match');
-      await sendNotification(targetIdInt, myIdInt, 'like');
       await sendNotification(targetIdInt, myIdInt, 'match');
-      await recalculUserScore(myIdInt);
       return res.status(200).json({ msg: 'Successfully Devil Matched' });
     }
     return res.status(200).json({ msg: 'You have already Devil Matched' });
@@ -1711,6 +1764,10 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     console.log(req.body);
     // eslint-disable-next-line no-unused-vars
     const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
+    if ((await userIsBlocked(receiverId, senderId)) === true)
+      return res.sendStatus(200);
+    if ((await userIsBlocked(senderId, receiverId)) === true)
+      return res.sendStatus(200);
     const date = new Date();
     date.setMinutes(date.getMinutes() + 2);
     const text =
@@ -1737,6 +1794,7 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
     res.sendStatus(500);
   }
 });
+
 async function updateDate(receiverId, msg, resp, newMsg) {
   const date = await db.one(
     `SELECT * FROM mail_dates WHERE sender_id=$1 AND msg_id=$2`,
@@ -1758,10 +1816,12 @@ async function updateDate(receiverId, msg, resp, newMsg) {
     return date;
   }
 }
+
 async function getEmailid(id) {
   const email = await db.one('SELECT email FROM users WHERE user_id=$1', [id]);
   return email.email;
 }
+
 function sendDateEmail(email, date) {
   const mailOptions = {
     from: 'Matcha <camagru.tmarcon@gmail.com>',
@@ -1771,6 +1831,7 @@ function sendDateEmail(email, date) {
   };
   transporter.sendMail(mailOptions);
 }
+
 app.post('/acceptDate', authenticateToken, async (req, res) => {
   if (!req.body.message && !req.body.resp && !req.body.message.chat_id) {
     res.sendStatus(400);
@@ -1781,7 +1842,10 @@ app.post('/acceptDate', authenticateToken, async (req, res) => {
       req,
       req.body.message.chat_id
     );
-
+    if ((await userIsBlocked(receiverId, senderId)) === true)
+      return res.sendStatus(200);
+    if ((await userIsBlocked(senderId, receiverId)) === true)
+      return res.sendStatus(200);
     let text = '';
     if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
       if (req.body.resp) {

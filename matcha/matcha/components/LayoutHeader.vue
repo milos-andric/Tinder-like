@@ -10,8 +10,18 @@
     <b-collapse id="nav-collapse" is-nav>
       <!-- Left aligned nav items -->
       <b-navbar-nav>
-        <b-nav-item class="mx-1 font-weight-bold" style="color: white !important" to="/match">Match</b-nav-item>
-        <b-nav-item class="mx-1 font-weight-bold" style="color: white !important" to="/chat">Chat</b-nav-item>
+        <b-nav-item
+          class="mx-1 font-weight-bold"
+          style="color: white !important"
+          to="/match"
+          >Match</b-nav-item
+        >
+        <b-nav-item
+          class="mx-1 font-weight-bold"
+          style="color: white !important"
+          to="/chat"
+          >Chat</b-nav-item
+        >
         <b-nav-item v-b-modal.generate class="mx-1">Generate users</b-nav-item>
       </b-navbar-nav>
 
@@ -52,7 +62,7 @@
             <div class="p-0">
               <div class="rounded p-1 bg-light d-flex">
                 <div class="text-left">
-                  <div class="text-truncate text-wrap" style="width: 6rem">
+                  <div class="text-truncate text-wrap" style="width: 10rem">
                     {{ x.user_name }}
                   </div>
                   <div class="small">
@@ -216,3 +226,9 @@ export default {
   },
 };
 </script>
+
+<style>
+[role='menuitem'] {
+  padding: 0.25rem !important;
+}
+</style>

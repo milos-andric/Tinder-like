@@ -142,7 +142,7 @@ export default {
       messages: [],
       suggestions: [
         'Hello ! Your pictures are beautiful 🥵🥵 ! I love your interests too 🤩 , tell me more about it ! 👂',
-        'Hey 👋 ! Nice to meet you ! Matcha Corp. organizes a party 🥳 and I need a +1 ! are you intrested 😉 ?',
+        'Hey 👋 ! Nice to meet you ! Matcha Corp. organizes a party 🥳 and I need a +1 ! are you interested 😉 ?',
         "Hi, excuse me but my phone has a huge problem 😱 ... It dosen't have you number ❤️ , give me your 06 ! 🎯",
       ],
       loadInfos: false,
