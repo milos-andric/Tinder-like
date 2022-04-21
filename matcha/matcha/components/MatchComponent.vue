@@ -210,10 +210,12 @@ export default {
       else return '';
     },
     async updateList(search) {
+      console.log('update');
       this.search = search;
       const res = await this.generateMatches();
       this.users = res.data;
-
+      this.$nextTick(() => (this.swiper.activeIndex = 0));
+      this.$nextTick(() => this.swiper.slideTo(0, 0));
       this.$nextTick(() => this.swiper.update());
     },
   },
