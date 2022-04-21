@@ -584,7 +584,7 @@ app.post(
 
       return res.status(200).json(data);
     } catch (e) {
-      return res.status(500).json({ msg: 'Username or email already exists' });
+      return res.status(403).json({ msg: 'Username or email already exists' });
     }
   }
 );
@@ -760,7 +760,7 @@ app.post('/getRandomTags', authenticateToken, async (req, res) => {
     if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
     return res.status(200).json({ tags });
   } catch (_e) {
-    return res.status(500);
+    return res.status(200).json({});
   }
 });
 

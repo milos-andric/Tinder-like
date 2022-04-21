@@ -10,7 +10,8 @@ vue/multi-word-component-names */
 
 <script>
 export default {
-  layout: 'blog', // you can set a custom layout for the error page
+  auth: 'guest',
+  layout: 'empty',
   props: ['error'],
 };
 </script>
