@@ -210,7 +210,6 @@ export default {
       else return '';
     },
     async updateList(search) {
-      console.log('update');
       this.search = search;
       const res = await this.generateMatches();
       this.users = res.data;

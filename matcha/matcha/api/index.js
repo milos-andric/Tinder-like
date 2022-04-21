@@ -60,10 +60,10 @@ function socketIdentification(socket) {
   const token = socket.handshake.auth.token.split(' ')[1];
   return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) {
-      console.log(`${socket.id} is disconnected because bad token !`);
+      // console.log(`${socket.id} is disconnected because bad token !`);
       socket.disconnect(true);
     } else {
-      console.log(`${socket.id} is identified ! as ` + user.user_name);
+      // console.log(`${socket.id} is identified ! as ` + user.user_name);
       return user;
     }
   });
@@ -122,7 +122,7 @@ async function sendNotification(myId, targetId, typeNotif) {
 }
 
 io.on('connection', socket => {
-  console.log(`${socket.id} is connected to / by io !`);
+  // console.log(`${socket.id} is connected to / by io !`);
   if (socket.handshake.auth?.token) {
     const user = socketIdentification(socket);
     if (user) {
