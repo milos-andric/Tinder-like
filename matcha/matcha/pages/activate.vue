@@ -6,6 +6,7 @@
 export default {
   name: 'ActivatePage',
   auth: 'guest',
+  layout: 'empty',
   async beforeMount() {
     if (this.$route.query.user_id && this.$route.query.code)
       await this.$axios

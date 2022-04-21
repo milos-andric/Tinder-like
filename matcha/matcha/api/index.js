@@ -24,6 +24,12 @@ import {
   validateUsername,
   validateEmail,
   validateInt,
+  validateIntRequired,
+  validateIntOptional,
+  validateObject,
+  validateIntRequiredInObject,
+  validateIntOptionalInObject,
+  validateDoubleArrayIntOptionalInObject,
   validatePassword,
   validateText,
   validateAge,
@@ -404,7 +410,7 @@ app.post(
   }
 );
 
-app.post('/activate', (req, res) => {
+app.post('/activate', validateIntRequired('user_id'), (req, res) => {
   db.one(
     'UPDATE users SET activation_code=$1 WHERE user_id=$2 AND activation_code=$3 RETURNING activation_code',
     ['activated', req.body.user_id, req.body.code]
@@ -617,7 +623,7 @@ app.post(
                 .catch(() => res.status(400).json({ msg: 'Database error 2' }));
             });
           } else
-            return res.status(403).json({ msg: 'Invalid current password' });
+            return res.status(400).json({ msg: 'Invalid current password' });
         });
       })
       .catch(() => res.status(400).json({ msg: 'Database error 1' }));
@@ -658,22 +664,27 @@ app.post('/upload-image', authenticateToken, (req, res) => {
   });
 });
 
-app.post('/delete-image', authenticateToken, (req, res) => {
-  try {
-    db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
-      req.user.user_id,
-      req.body.id,
-    ]);
-    db.any(
-      'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
-      [req.user.user_id, req.body.id]
-    );
-    fs.unlink('static' + req.body.url, () => {});
-    return res.status(200).json({ msg: 'Success' });
-  } catch (e) {
-    return res.status(400).json({ msg: 'Image not found' });
+app.post(
+  '/delete-image',
+  authenticateToken,
+  validateIntRequired('id'),
+  (req, res) => {
+    try {
+      db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
+        req.user.user_id,
+        req.body.id,
+      ]);
+      db.any(
+        'UPDATE users SET profile_pic = NULL WHERE user_id = $1 AND profile_pic = $2',
+        [req.user.user_id, req.body.id]
+      );
+      fs.unlink('static' + req.body.url, () => {});
+      return res.status(200).json({ msg: 'Success' });
+    } catch (e) {
+      return res.status(400).json({ msg: 'Image not found' });
+    }
   }
-});
+);
 
 app.post('/profile-image', authenticateToken, async (req, res) => {
   try {
@@ -705,64 +716,79 @@ app.post('/logout', authenticateToken, async (req, res) => {
 
 // User actions
 
-app.post('/user-block', authenticateToken, async (req, res) => {
-  const sender = req.user.user_id;
-  const receiver = req.body.receiver;
+app.post(
+  '/user-block',
+  authenticateToken,
+  validateIntRequired('receiver'),
+  async (req, res) => {
+    const sender = req.user.user_id;
+    const receiver = req.body.receiver;
 
-  if (sender === receiver)
-    return res.status(200).json({ msg: 'You cannot block yourself' });
+    if (sender === receiver)
+      return res.status(200).json({ msg: 'You cannot block yourself' });
 
-  try {
-    const data = await db.any(
-      'SELECT * FROM blocks WHERE sender_id = $1 AND blocked_id = $2',
-      [sender, receiver]
-    );
-    if (data.length !== 0)
-      return res.status(200).json({ msg: 'User already blocked' });
-    await db.none(
-      'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
-      [sender, receiver]
-    );
-    return res.status(200).json({ msg: 'Successfully blocked user' });
-  } catch (e) {
-    return res.status(400).json({ msg: "Couldn't block user" });
+    try {
+      const data = await db.any(
+        'SELECT * FROM blocks WHERE sender_id = $1 AND blocked_id = $2',
+        [sender, receiver]
+      );
+      if (data.length !== 0)
+        return res.status(200).json({ msg: 'User already blocked' });
+      await db.none(
+        'INSERT INTO blocks ( sender_id, blocked_id ) VALUES ( $1, $2 )',
+        [sender, receiver]
+      );
+      return res.status(200).json({ msg: 'Successfully blocked user' });
+    } catch (e) {
+      return res.status(400).json({ msg: "Couldn't block user" });
+    }
   }
-});
+);
 
-app.post('/user-report', authenticateToken, async (req, res) => {
-  const sender = req.user.user_id;
-  const receiver = req.body.receiver;
+app.post(
+  '/user-report',
+  authenticateToken,
+  validateIntRequired('receiver'),
+  async (req, res) => {
+    const sender = req.user.user_id;
+    const receiver = req.body.receiver;
 
-  if (sender === receiver)
-    return res.status(200).json({ msg: 'You cannot report yourself' });
+    if (sender === receiver)
+      return res.status(200).json({ msg: 'You cannot report yourself' });
 
-  try {
-    const data = await db.any(
-      'SELECT * FROM reports WHERE sender_id = $1 AND reported_id = $2',
-      [sender, receiver]
-    );
-    if (data.length !== 0)
-      return res.status(200).json({ msg: 'User already reported' });
-    await db.none(
-      'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
-      [sender, receiver]
-    );
-    return res.status(200).json({ msg: 'Successfully reported user' });
-  } catch (e) {
-    return res.status(400).json({ msg: "Couldn't report user" });
+    try {
+      const data = await db.any(
+        'SELECT * FROM reports WHERE sender_id = $1 AND reported_id = $2',
+        [sender, receiver]
+      );
+      if (data.length !== 0)
+        return res.status(200).json({ msg: 'User already reported' });
+      await db.none(
+        'INSERT INTO reports ( sender_id, reported_id ) VALUES ( $1, $2 )',
+        [sender, receiver]
+      );
+      return res.status(200).json({ msg: 'Successfully reported user' });
+    } catch (e) {
+      return res.status(400).json({ msg: "Couldn't report user" });
+    }
   }
-});
+);
 
-app.post('/getRandomTags', authenticateToken, async (req, res) => {
-  try {
-    const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
-    const tags = await db.manyOrNone(sql, [req.body.number]);
-    if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
-    return res.status(200).json({ tags });
-  } catch (_e) {
-    return res.status(200).json({});
+app.post(
+  '/getRandomTags',
+  authenticateToken,
+  validateIntRequired('number'),
+  async (req, res) => {
+    try {
+      const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
+      const tags = await db.manyOrNone(sql, [req.body.number]);
+      if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
+      return res.status(200).json({ tags });
+    } catch (_e) {
+      return res.status(200).json({});
+    }
   }
-});
+);
 
 // GET routes
 
@@ -994,6 +1020,9 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
 });
 
 app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql = 'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1';
     const rooms = await db.manyOrNone(sql, [req.user.user_id]);
@@ -1052,6 +1081,9 @@ const options = {
 const geocoder = NodeGeocoder(options);
 
 app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql =
       'SELECT * FROM likes WHERE liker_id = $1 OR target_id = $1 ORDER BY created_on DESC';
@@ -1084,6 +1116,9 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql =
       'SELECT * FROM views WHERE viewer_id = $1 OR target_id = $1 ORDER BY created_on DESC';
@@ -1116,6 +1151,9 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql =
       'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 ORDER BY created_on DESC';
@@ -1148,6 +1186,9 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql =
       'SELECT * FROM blocks WHERE sender_id = $1 OR blocked_id = $1 ORDER BY created_on DESC';
@@ -1180,6 +1221,9 @@ app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
 });
 
 app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     const sql =
       'SELECT * FROM reports WHERE sender_id = $1 OR reported_id = $1 ORDER BY created_on DESC';
@@ -1247,17 +1291,17 @@ async function searchFilter(req, ids, ll) {
     maxDate.setYear(maxDate.getFullYear() - req.body.search.age[0]);
     const minDate = new Date();
     minDate.setYear(minDate.getFullYear() - req.body.search.age[1]);
-    ids = await db.any(sql, [ids, minDate, maxDate]);
+    const truemin = new Date(Math.min(maxDate, minDate));
+    const truemax = new Date(Math.max(maxDate, minDate));
+    ids = await db.any(sql, [ids, truemin, truemax]);
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.fame && ids.length) {
+    const truemin = Math.min(req.body.search.fame[0], req.body.search.fame[1]);
+    const truemax = Math.max(req.body.search.fame[0], req.body.search.fame[1]);
     sql =
       'SELECT user_id FROM users WHERE user_id IN ($1:csv) AND score BETWEEN $2 AND $3';
-    ids = await db.any(sql, [
-      ids,
-      req.body.search.fame[0],
-      req.body.search.fame[1],
-    ]);
+    ids = await db.any(sql, [ids, truemin, truemax]);
     ids = ids.map(e => e.user_id);
   }
   if (req.body.search.tags && ids.length) {
@@ -1278,24 +1322,44 @@ async function searchFilter(req, ids, ll) {
   return ids;
 }
 
-app.post('/search', authenticateToken, async (req, res) => {
-  // sanitize all inputs.
-  // verify no additional data
-  // verify data type value
-  // search db
-  try {
-    if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-
-    let ids = await db.any(
-      `SELECT user_id FROM users
+app.post(
+  '/search',
+  authenticateToken,
+  validateObject('search'),
+  validateIntOptionalInObject('search', 'distance'),
+  validateDoubleArrayIntOptionalInObject('search', 'age'),
+  validateDoubleArrayIntOptionalInObject('search', 'fame'),
+  async (req, res) => {
+    // sanitize all inputs.
+    // verify no additional data
+    // verify data type value
+    // search db
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
+    try {
+      let ids = await db.any(
+        `SELECT user_id FROM users
       WHERE users.user_id != $1
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = users.user_id)`,
-      req.user.user_id
-    );
-    ids = ids.map(e => e.user_id);
-    const ll = getLL(req.user, req.body.search.ip);
-    ids = await searchFilter(req, ids, ll);
-    const sql = `SELECT *,distance FROM (SELECT *, (
+        req.user.user_id
+      );
+      ids = ids.map(e => e.user_id);
+      const ll = getLL(req.user, req.body.search.ip);
+      ids = await searchFilter(req, ids, ll);
+      const sql = `SELECT al.user_id,
+      first_name,
+      last_name,
+      user_name,
+      age,
+      gender,
+      orientation,
+      bio,
+      profile_pic,
+      score,
+      latitude,
+      longitude,
+      distance FROM (SELECT *, (
     6371 *
     acos(cos(radians($2)) *
     cos(radians(users.latitude)) *
@@ -1304,14 +1368,15 @@ app.post('/search', authenticateToken, async (req, res) => {
     sin(radians($2)) *
     sin(radians(users.latitude)))
     ) AS distance FROM users) al WHERE user_id IN ($1:csv)`;
-    if (ids.length) {
-      const find = await db.any(sql, [ids, ll[0], ll[1]]);
-      return res.status(200).send(find);
-    } else return res.status(200).send([]);
-  } catch (e) {
-    return res.sendStatus(500).json({ msg: e });
+      if (ids.length) {
+        const find = await db.any(sql, [ids, ll[0], ll[1]]);
+        return res.status(200).send(find);
+      } else return res.status(200).send([]);
+    } catch (e) {
+      return res.sendStatus(500).json({ msg: e });
+    }
   }
-});
+);
 
 const calculatePonderation = async (req, ids, ll) => {
   const sql = `SELECT *,distance,(1000 - distance) * (score / 10) AS orderScore FROM (SELECT users.score, users.user_id, (
@@ -1350,26 +1415,35 @@ const calculatePonderation = async (req, ids, ll) => {
   return resp;
 };
 
-app.post('/matchFilter', authenticateToken, async (req, res) => {
-  try {
-    if (!req.body.search) return res.status(404).json({ msg: 'No data found' });
-    let ids = await db.any(
-      `SELECT *
+app.post(
+  '/matchFilter',
+  authenticateToken,
+  validateObject('search'),
+  validateIntOptionalInObject('search', 'distance'),
+  validateDoubleArrayIntOptionalInObject('search', 'age'),
+  validateDoubleArrayIntOptionalInObject('search', 'fame'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      let ids = await db.any(
+        `SELECT *
       FROM users u
       WHERE u.user_id != $1
       AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`,
-      req.user.user_id
-    );
-    ids = ids.map(e => e.user_id);
-    const ll = getLL(req.user, req.body.search.ip);
-    ids = await searchFilter(req, ids, ll);
-    if (ids.length === 0) {
-      return res.status(200).send([]);
-    }
+        req.user.user_id
+      );
+      ids = ids.map(e => e.user_id);
+      const ll = getLL(req.user, req.body.search.ip);
+      ids = await searchFilter(req, ids, ll);
+      if (ids.length === 0) {
+        return res.status(200).send([]);
+      }
 
-    let sql = `SELECT al.user_id,
+      let sql = `SELECT al.user_id,
     first_name,
     last_name,
     user_name,
@@ -1391,10 +1465,10 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
     sin(radians($2)) *
     sin(radians(users.latitude)))
     ) AS distance FROM users) al JOIN images ON images.image_id = al.profile_pic WHERE al.user_id IN ($1:csv) `;
-    if (req.body.search.order === 'algorithm') {
-      ids = await calculatePonderation(req, ids, ll);
-      ids = ids.map(e => e.user_id);
-      const sqltest = `SELECT b.user_id,
+      if (req.body.search.order === 'algorithm') {
+        ids = await calculatePonderation(req, ids, ll);
+        ids = ids.map(e => e.user_id);
+        const sqltest = `SELECT b.user_id,
         first_name,
         last_name,
         user_name,
@@ -1417,50 +1491,51 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
         ) AS distance FROM users) AS al
       JOIN   unnest(ARRAY[$1:list]) WITH ORDINALITY t(user_id, ord) USING (user_id)
       ORDER  BY t.ord LIMIT 10) b JOIN images ON images.image_id = b.profile_pic ORDER BY ord`;
-      const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
-      await Promise.all(
-        r.map(async e => {
-          [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
-        })
-      );
-      return res.status(200).send(r);
-    } else if (req.body.search.order && ids.length) {
-      if (req.body.search.order === 'location') {
-        sql += ' ORDER BY distance';
-      } else if (req.body.search.order === 'fame') {
-        sql += ' ORDER BY score DESC';
-      } else if (req.body.search.order === 'age') {
-        sql += ' ORDER BY age DESC';
-      } else if (req.body.search.order === 'tags') {
-        let mytagsId = await db.any(
-          `SELECT tag_id FROM user_tags WHERE user_id=$1`,
-          req.user.user_id
+        const r = await db.any(sqltest, [ids, ll[0], ll[1]]);
+        await Promise.all(
+          r.map(async e => {
+            [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
+          })
         );
-        mytagsId = mytagsId.map(e => e.tag_id);
-        if (mytagsId.length) {
-          ids = await db.any(
-            `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
-            WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count DESC`,
-            [mytagsId, ids]
+        return res.status(200).send(r);
+      } else if (req.body.search.order && ids.length) {
+        if (req.body.search.order === 'location') {
+          sql += ' ORDER BY distance';
+        } else if (req.body.search.order === 'fame') {
+          sql += ' ORDER BY score DESC';
+        } else if (req.body.search.order === 'age') {
+          sql += ' ORDER BY age DESC';
+        } else if (req.body.search.order === 'tags') {
+          let mytagsId = await db.any(
+            `SELECT tag_id FROM user_tags WHERE user_id=$1`,
+            req.user.user_id
           );
-          ids = ids.map(e => e.user_id);
+          mytagsId = mytagsId.map(e => e.tag_id);
+          if (mytagsId.length && ids.length) {
+            ids = await db.any(
+              `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
+            WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count DESC`,
+              [mytagsId, ids]
+            );
+            ids = ids.map(e => e.user_id);
+          }
         }
       }
+      sql += ' LIMIT 10';
+      if (ids.length) {
+        const find = await db.any(sql, [ids, ll[0], ll[1]]);
+        await Promise.all(
+          find.map(async e => {
+            [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
+          })
+        );
+        return res.status(200).send(find);
+      } else res.status(200).send([]);
+    } catch (error) {
+      return res.sendStatus(500);
     }
-    sql += ' LIMIT 10';
-    if (ids.length) {
-      const find = await db.any(sql, [ids, ll[0], ll[1]]);
-      await Promise.all(
-        find.map(async e => {
-          [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
-        })
-      );
-      return res.status(200).send(find);
-    } else res.status(200).send([]);
-  } catch (error) {
-    res.sendStatus(500);
   }
-});
+);
 
 const updateManyTags = async () => {
   await Promise.all([
@@ -1483,7 +1558,7 @@ app.post('/registerMany', async (req, res) => {
     await updateManyTags();
     return res.sendStatus(200);
   } catch (e) {
-    return res.sendStatus(500);
+    return res.sendStatus(409);
   }
 });
 
@@ -1537,6 +1612,9 @@ async function postNotification(sender, receiver, type) {
 }
 
 app.post('/read-notifications', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(403);
+  }
   try {
     await db.none(
       `UPDATE notifications SET watched=$1 WHERE user_id_receiver=$2`,
@@ -1548,17 +1626,25 @@ app.post('/read-notifications', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/read-notification', authenticateToken, async (req, res) => {
-  try {
-    await db.none(
-      `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
-      [true, req.body.id, req.user.user_id]
-    );
-    return res.sendStatus(200);
-  } catch (e) {
-    return res.status(500).json({ msg: e });
+app.post(
+  '/read-notification',
+  authenticateToken,
+  validateIntRequired('id'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      await db.none(
+        `UPDATE notifications SET watched=$1 WHERE notification_id=$2 AND user_id_receiver=$3`,
+        [true, req.body.id, req.user.user_id]
+      );
+      return res.sendStatus(200);
+    } catch (e) {
+      return res.status(500).json({ msg: e });
+    }
   }
-});
+);
 
 app.get('/get-notifications', authenticateToken, async (req, res) => {
   try {
@@ -1590,79 +1676,105 @@ async function recalculUserScore(myId) {
   } catch {}
 }
 
-app.post('/like', authenticateToken, async (req, res) => {
-  try {
-    const targetIdInt = Number(req.body.targetId);
-    const user = await getUserInfos(req.user.user_id);
-    if (user.user_id === targetIdInt)
-      return res.status(200).json({ msg: 'You cannot like yourself' });
+app.post(
+  '/like',
+  authenticateToken,
+  validateIntRequired('targetId'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      const targetIdInt = Number(req.body.targetId);
+      const user = await getUserInfos(req.user.user_id);
+      if (user.user_id === targetIdInt)
+        return res.status(200).json({ msg: 'You cannot like yourself' });
 
-    const like = await db.any(
-      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-      [user.user_id, targetIdInt]
-    );
-    if (like.length !== 0)
-      return res.status(200).json({ msg: 'User already liked' });
+      const like = await db.any(
+        'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+        [user.user_id, targetIdInt]
+      );
+      if (like.length !== 0)
+        return res.status(200).json({ msg: 'User already liked' });
 
-    const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-    await db.any(sql, [user.user_id, targetIdInt]);
-    await sendNotification(req.user.user_id, targetIdInt, 'like');
-    await recalculUserScore(targetIdInt);
-    matchDetector(user.user_id, targetIdInt);
-    return res.sendStatus(200);
-  } catch (e) {
-    return res.status(500).json({ msg: e });
+      const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+      await db.any(sql, [user.user_id, targetIdInt]);
+      await sendNotification(req.user.user_id, targetIdInt, 'like');
+      await recalculUserScore(targetIdInt);
+      matchDetector(user.user_id, targetIdInt);
+      return res.sendStatus(200);
+    } catch (e) {
+      return res.status(500).json({ msg: e });
+    }
   }
-});
+);
 
-app.post('/unlike', authenticateToken, async (req, res) => {
-  try {
-    const targetId = req.body.targetId;
-    const user = await getUserInfos(req.user.user_id);
-    if (user.user_id === targetId)
-      return res.status(403).json({ msg: 'You cannot unlike yourself' });
-    await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
-      user.user_id,
-      targetId,
-    ]);
-    await sendNotification(req.user.user_id, targetId, 'unlike');
-    await recalculUserScore(targetId);
-    return res.sendStatus(200);
-  } catch (e) {
-    return res.status(500).json({ msg: e });
+app.post(
+  '/unlike',
+  authenticateToken,
+  validateIntRequired('targetId'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      const targetId = req.body.targetId;
+      const user = await getUserInfos(req.user.user_id);
+      if (user.user_id === targetId)
+        return res.status(403).json({ msg: 'You cannot unlike yourself' });
+      await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
+        user.user_id,
+        targetId,
+      ]);
+      await sendNotification(req.user.user_id, targetId, 'unlike');
+      await recalculUserScore(targetId);
+      return res.sendStatus(200);
+    } catch (e) {
+      return res.status(500).json({ msg: e });
+    }
   }
-});
+);
 
-app.post('/view', authenticateToken, async (req, res) => {
-  try {
-    const user = await getUserInfos(req.user.user_id);
-    const targetId = req.body.targetId;
+app.post(
+  '/view',
+  authenticateToken,
+  validateIntRequired('targetId'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      const user = await getUserInfos(req.user.user_id);
+      const targetId = req.body.targetId;
 
-    // Check if not viewing yourself
-    if (user.user_id === targetId)
-      return res.status(200).json({ msg: 'You cannot view yourself' });
+      // Check if not viewing yourself
+      if (user.user_id === targetId)
+        return res.status(200).json({ msg: 'You cannot view yourself' });
 
-    // Get already viewed users
-    const data = await db.any(
-      'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
-      [user.user_id, targetId]
-    );
-    // View if not already did
-    if (data.length === 0) {
-      await db.any(
-        `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
+      // Get already viewed users
+      const data = await db.any(
+        'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
         [user.user_id, targetId]
       );
-    }
+      // View if not already did
+      if (data.length === 0) {
+        await db.any(
+          `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
+          [user.user_id, targetId]
+        );
+      }
 
-    return res.sendStatus(200);
-  } catch (e) {
-    return res.status(500).json({ msg: e });
+      return res.sendStatus(200);
+    } catch (e) {
+      return res.status(500).json({ msg: e });
+    }
   }
-});
+);
 
 app.post('/devil', authenticateToken, async (req, res) => {
-  // TODO check if pass by devil picture ??
+  if (!req.user) {
+    return res.status(403);
+  }
   try {
     const user = await getUserInfos(req.user.user_id);
     const myIdInt = Number(user.user_id);
@@ -1678,102 +1790,70 @@ app.post('/devil', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/devil-match', authenticateToken, async (req, res) => {
-  try {
-    const user = await getUserInfos(req.user.user_id);
-    const myIdInt = Number(user.user_id);
-    const targetIdInt = Number(req.body.targetId);
-    if (user.privilege === false)
-      return res.status(403).json({ msg: "You haven't the Devil privilege" });
-    if (myIdInt === targetIdInt)
-      return res.status(200).json({ msg: 'You cannot match yourself' });
-    if ((await userIsBlocked(targetIdInt, myIdInt)) === true)
-      return res.status(403).json({ msg: 'This user has blocked you' });
-    if ((await userIsBlocked(myIdInt, targetIdInt)) === true)
-      return res.status(403).json({ msg: 'You have blocked this user' });
-    // FUNCTION MAYBE ? ( -> /like )
-    const likedByMe = await db.oneOrNone(
-      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-      [myIdInt, targetIdInt]
-    );
-    if (!likedByMe) {
-      await db.none(
-        `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+app.post(
+  '/devil-match',
+  authenticateToken,
+  validateIntRequired('targetId'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.status(403);
+    }
+    try {
+      const user = await getUserInfos(req.user.user_id);
+      const myIdInt = Number(user.user_id);
+      const targetIdInt = Number(req.body.targetId);
+      if (user.privilege === false)
+        return res.status(403).json({ msg: "You haven't the Devil privilege" });
+      if (myIdInt === targetIdInt)
+        return res.status(200).json({ msg: 'You cannot match yourself' });
+      if ((await userIsBlocked(targetIdInt, myIdInt)) === true)
+        return res.status(403).json({ msg: 'This user has blocked you' });
+      if ((await userIsBlocked(myIdInt, targetIdInt)) === true)
+        return res.status(403).json({ msg: 'You have blocked this user' });
+      const likedByMe = await db.oneOrNone(
+        'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
         [myIdInt, targetIdInt]
       );
-      await sendNotification(myIdInt, targetIdInt, 'like');
-      await recalculUserScore(targetIdInt);
-    }
-    //
-    const likedByTarget = await db.oneOrNone(
-      'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
-      [targetIdInt, myIdInt]
-    );
-    if (!likedByTarget) {
-      await db.none(
-        `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+      if (!likedByMe) {
+        await db.none(
+          `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+          [myIdInt, targetIdInt]
+        );
+        await sendNotification(myIdInt, targetIdInt, 'like');
+        await recalculUserScore(targetIdInt);
+      }
+      const likedByTarget = await db.oneOrNone(
+        'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
         [targetIdInt, myIdInt]
       );
-      await sendNotification(targetIdInt, myIdInt, 'like');
-      await recalculUserScore(myIdInt);
-    }
-    //
-    const name = chatName(myIdInt, targetIdInt);
-    const alreadyExist = await db.oneOrNone(
-      'SELECT * FROM chats WHERE name=$1',
-      [name]
-    );
-    if (!alreadyExist) {
-      await db.any(
-        'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 )',
-        [myIdInt, targetIdInt, chatName(myIdInt, targetIdInt)]
+      if (!likedByTarget) {
+        await db.none(
+          `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`,
+          [targetIdInt, myIdInt]
+        );
+        await sendNotification(targetIdInt, myIdInt, 'like');
+        await recalculUserScore(myIdInt);
+      }
+      const name = chatName(myIdInt, targetIdInt);
+      const alreadyExist = await db.oneOrNone(
+        'SELECT * FROM chats WHERE name=$1',
+        [name]
       );
-      await sendNotification(myIdInt, targetIdInt, 'match');
-      await sendNotification(targetIdInt, myIdInt, 'match');
-      return res.status(200).json({ msg: 'Successfully Devil Matched' });
+      if (!alreadyExist) {
+        await db.any(
+          'INSERT INTO chats (first_id, second_id, name) VALUES ( $1, $2, $3 )',
+          [myIdInt, targetIdInt, name]
+        );
+        await sendNotification(myIdInt, targetIdInt, 'match');
+        await sendNotification(targetIdInt, myIdInt, 'match');
+        return res.status(200).json({ msg: 'Successfully Devil Matched' });
+      }
+      return res.status(200).json({ msg: 'You have already Devil Matched' });
+    } catch (e) {
+      return res.status(500).json({ msg: e });
     }
-    return res.status(200).json({ msg: 'You have already Devil Matched' });
-  } catch (e) {
-    return res.status(500).json({ msg: e });
   }
-});
-
-async function findPartnerFor(user, ip) {
-  // filter by gender and tags
-  // order by distance then by fame
-  // exclude block view like
-  const data = [user.user_id];
-  const ll = getLL(user, ip);
-  data.push(ll[0]);
-  data.push(ll[1]);
-  let sql = `SELECT *,
-  (
-    6371 *
-    acos(cos(radians($2)) *
-    cos(radians(u.latitude)) *
-    cos(radians(u.longitude) -
-    radians($3)) +
-    sin(radians($2)) *
-    sin(radians(u.latitude )))
-    ) AS distance
-  FROM users u
-  WHERE u.user_id != $1
-  AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
-  AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`;
-  if (user.orientation !== 2) {
-    sql += ` AND gender = $4`;
-    data.push(user.orientation);
-  }
-  sql += ` ORDER BY distance LIMIT 10`;
-  const res = await db.any(sql, data);
-  await Promise.all(
-    res.map(async e => {
-      [e.ville, e.zip] = await getCityFromLL(e.latitude, e.longitude);
-      delete e.password;
-    })
-  );
-  return res;
-}
+);
 
 function getLL(user, ip) {
   if (user.latitude && user.longitude) {
@@ -1787,17 +1867,6 @@ function getLL(user, ip) {
     }
   }
 }
-
-app.post('/getRecommandation', authenticateToken, async (req, res) => {
-  try {
-    const user = await getUserInfos(req.user.user_id);
-    const partner = await findPartnerFor(user, req.body.ip);
-
-    return res.status(200).json(partner);
-  } catch (e) {
-    return res.sendStatus(500).json({ msg: e });
-  }
-});
 
 function getPosById(ip) {
   return lookup(ip)?.ll;
@@ -1828,7 +1897,14 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
       req.body.location;
     if (await isIdInRoom(req.user.user_id, req.body.room)) {
       const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW()) RETURNING *`;
-      const msgId = await db.one(sql, [req.user.user_id, req.body.room, text]);
+      const msgId = await db.oneOrNone(sql, [
+        req.user.user_id,
+        req.body.room,
+        text,
+      ]);
+      if (!msgId) {
+        return res.sendStatus(403);
+      }
       msgId.user_name = (await getUserInfos(req.user.user_id)).user_name;
       await db.none(
         `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
@@ -1846,11 +1922,11 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
 });
 
 async function updateDate(receiverId, msg, resp, newMsg) {
-  const date = await db.one(
+  const date = await db.oneOrNone(
     `SELECT * FROM mail_dates WHERE sender_id=$1 AND msg_id=$2`,
     [receiverId, msg.msg_id]
   );
-  const verifMsg = await db.one(
+  const verifMsg = await db.oneOrNone(
     `SELECT * FROM messages WHERE msg_id=$1 AND chat_id=$2`,
     [msg.msg_id, msg.chat_id]
   );
@@ -1883,7 +1959,12 @@ function sendDateEmail(email, date) {
 }
 
 app.post('/acceptDate', authenticateToken, async (req, res) => {
-  if (!req.body.message && !req.body.resp && !req.body.message.chat_id) {
+  if (
+    !req.body.message &&
+    !req.body.resp &&
+    typeof req.body.resp === 'boolean' &&
+    !req.body.message.chat_id
+  ) {
     return res.sendStatus(400);
   }
   try {

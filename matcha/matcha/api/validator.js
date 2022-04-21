@@ -100,3 +100,63 @@ export const validateTags = (data, msg) => {
     else return res.status(400).json({ msg });
   };
 };
+
+export const validateIntRequired = data => {
+  return (req, res, next) => {
+    const input = req.body[data];
+
+    if (!isNaN(input)) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateIntOptional = data => {
+  return (req, res, next) => {
+    const input = req.body[data];
+
+    if (!input || !isNaN(input)) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateObject = obj => {
+  return (req, res, next) => {
+    const input = req.body[obj];
+    if (typeof input === 'object' && input !== null) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateIntRequiredInObject = (obj, data) => {
+  return (req, res, next) => {
+    const input = req.body[obj][data];
+
+    if (!isNaN(input)) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateIntOptionalInObject = (obj, data) => {
+  return (req, res, next) => {
+    const input = req.body[obj][data];
+
+    if (!input || !isNaN(input)) next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateDoubleArrayIntOptionalInObject = (obj, data) => {
+  return (req, res, next) => {
+    const input = req.body[obj][data];
+
+    if (
+      !input ||
+      (Array.isArray(input) &&
+        input.length === 2 &&
+        !isNaN(input[0]) &&
+        !isNaN(input[1]))
+    )
+      next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
