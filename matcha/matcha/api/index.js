@@ -572,7 +572,7 @@ app.post(
             ( first_name, last_name, user_name, email, age, gender, orientation, bio, latitude, longitude )
             = ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ) WHERE user_id=$11`;
 
-      const data = await db.none(sql, [
+      await db.none(sql, [
         req.body.first_name,
         req.body.last_name,
         req.body.user_name,
@@ -588,7 +588,7 @@ app.post(
 
       await updateTags(req.user.user_id, req.body.tags);
 
-      return res.status(200).json(data);
+      return res.sendStatus(200);
     } catch (e) {
       return res.status(403).json({ msg: 'Username or email already exists' });
     }
@@ -620,13 +620,13 @@ app.post(
                 req.user.user_id,
               ])
                 .then(() => res.sendStatus(200))
-                .catch(() => res.status(400).json({ msg: 'Database error 2' }));
+                .catch(() => res.status(500).json({ msg: 'Database error 2' }));
             });
           } else
             return res.status(400).json({ msg: 'Invalid current password' });
         });
       })
-      .catch(() => res.status(400).json({ msg: 'Database error 1' }));
+      .catch(() => res.status(500).json({ msg: 'Database error 1' }));
   }
 );
 
@@ -659,7 +659,7 @@ app.post('/upload-image', authenticateToken, (req, res) => {
           return res.status(400).json({ msg: "Can't have more than 5 images" });
       })
       .catch(e => {
-        return res.status(400).json({ msg: 'Database error' });
+        return res.status(500).json({ msg: 'Database error' });
       });
   });
 });
@@ -931,9 +931,10 @@ const idToUsername = async id => {
 };
 
 const isIdInRoom = async (id, room) => {
+  const roomStr = String(room);
   const sql =
     'SELECT * FROM chats WHERE first_id = $1 OR second_id = $1 AND name = $2';
-  const res = await db.manyOrNone(sql, [id, room]);
+  const res = await db.manyOrNone(sql, [id, roomStr]);
   if (res.length) {
     return true;
   } else {
@@ -944,9 +945,10 @@ const isIdInRoom = async (id, room) => {
 app.post('/getRoomMessages', authenticateToken, async (req, res) => {
   try {
     if (await isIdInRoom(req.user.user_id, req.body.room)) {
+      const roomStr = String(req.body.room);
       const sql = `SELECT messages.*,users.user_id,users.first_name,users.last_name,users.user_name,users.profile_pic,users.last_connexion
      FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on`;
-      const messages = await db.manyOrNone(sql, [req.body.room]);
+      const messages = await db.manyOrNone(sql, [roomStr]);
       return res.send(messages);
     } else return res.sendStatus(403);
   } catch (e) {
@@ -1010,7 +1012,7 @@ app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
       };
       await sendNotification(senderId, receiverId, 'message');
       sendMessage(senderId, receiverId, data);
-      return res.send(data);
+      return res.sendStatus(200);
     } else {
       return res.sendStatus(403);
     }
@@ -1080,7 +1082,7 @@ const options = {
 
 const geocoder = NodeGeocoder(options);
 
-app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
+app.get('/getUserLikeHistory', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.sendStatus(403);
   }
@@ -1115,7 +1117,7 @@ app.post('/getUserLikeHistory', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
+app.get('/getUserViewHistory', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.sendStatus(403);
   }
@@ -1150,7 +1152,7 @@ app.post('/getUserViewHistory', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
+app.get('/getUserMatchHistory', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.sendStatus(403);
   }
@@ -1185,7 +1187,7 @@ app.post('/getUserMatchHistory', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
+app.get('/getUserBlockHistory', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.sendStatus(403);
   }
@@ -1220,7 +1222,7 @@ app.post('/getUserBlockHistory', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/getUserReportHistory', authenticateToken, async (req, res) => {
+app.get('/getUserReportHistory', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.sendStatus(403);
   }
@@ -1479,7 +1481,7 @@ app.post(
         profile_pic,
         score,
         latitude,
-    longitude,b.*,url FROM (SELECT *,
+    longitude,url FROM (SELECT *,
       distance FROM (SELECT *, (
         6371 *
         acos(cos(radians($2)) *

@@ -64,16 +64,10 @@ export default {
       history: [],
     };
   },
-  async mounted() {
-    const resp = await this.$axios.post('getUserLikeHistory', {
-      userId: this.userId,
-    });
-    this.history = resp.data;
-  },
   methods: {
     async getLikes() {
       if (this.currentTopic !== 'likes') {
-        const resp = await this.$axios.post('getUserLikeHistory', {
+        const resp = await this.$axios.get('getUserLikeHistory', {
           userId: this.userId,
         });
         this.currentTopic = 'likes';
@@ -82,7 +76,7 @@ export default {
     },
     async getViews() {
       if (this.currentTopic !== 'views') {
-        const resp = await this.$axios.post('getUserViewHistory', {
+        const resp = await this.$axios.get('getUserViewHistory', {
           userId: this.userId,
         });
         this.currentTopic = 'views';
@@ -91,7 +85,7 @@ export default {
     },
     async getMatchs() {
       if (this.currentTopic !== 'matchs') {
-        const resp = await this.$axios.post('getUserMatchHistory', {
+        const resp = await this.$axios.get('getUserMatchHistory', {
           userId: this.userId,
         });
         this.currentTopic = 'matchs';
@@ -100,7 +94,7 @@ export default {
     },
     async getBlocks() {
       if (this.currentTopic !== 'blocks') {
-        const resp = await this.$axios.post('getUserBlockHistory', {
+        const resp = await this.$axios.get('getUserBlockHistory', {
           userId: this.userId,
         });
         this.currentTopic = 'blocks';
@@ -109,7 +103,7 @@ export default {
     },
     async getReports() {
       if (this.currentTopic !== 'reports') {
-        const resp = await this.$axios.post('getUserReportHistory', {
+        const resp = await this.$axios.get('getUserReportHistory', {
           userId: this.userId,
         });
         this.currentTopic = 'reports';
