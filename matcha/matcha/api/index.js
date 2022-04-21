@@ -1910,7 +1910,7 @@ app.post('/proposeDate', authenticateToken, async (req, res) => {
       msgId.user_name = (await getUserInfos(req.user.user_id)).user_name;
       await db.none(
         `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
-        [req.user.user_id, 2, text, date, msgId.msg_id]
+        [req.user.user_id, receiverId, text, date, msgId.msg_id]
       );
       await sendNotification(senderId, receiverId, 'invit');
       sendMessage(req.user.user_id, receiverId, msgId);
