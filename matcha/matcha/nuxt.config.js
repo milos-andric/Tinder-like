@@ -120,7 +120,8 @@ export default {
     redirect: {
       login: '/login',
       logout: '/login',
-      home: '/',
+      callback: false,
+      home: false,
     },
   },
   server: {

@@ -91,6 +91,7 @@ export default {
             password: this.password,
           },
         });
+        this.$router.push('/');
       } catch (e) {
         this.successStatus = false;
         this.alertStatus = true;
