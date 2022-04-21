@@ -1326,10 +1326,10 @@ const calculatePonderation = async (req, ids, ll) => {
   const resp = await db.manyOrNone(sql, [ids, ll[0], ll[1]]);
 
   let mytagsId = await db.any(
-    `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
+    `SELECT tag_id FROM user_tags WHERE user_id=$1`,
     req.user.user_id
   );
-  mytagsId = mytagsId.map(e => e.user_tag_id);
+  mytagsId = mytagsId.map(e => e.tag_id);
   if (mytagsId.length) {
     const idsTags = await db.any(
       `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
@@ -1433,14 +1433,14 @@ app.post('/matchFilter', authenticateToken, async (req, res) => {
         sql += ' ORDER BY age DESC';
       } else if (req.body.search.order === 'tags') {
         let mytagsId = await db.any(
-          `SELECT user_tag_id FROM user_tags WHERE user_id=$1`,
+          `SELECT tag_id FROM user_tags WHERE user_id=$1`,
           req.user.user_id
         );
-        mytagsId = mytagsId.map(e => e.user_tag_id);
+        mytagsId = mytagsId.map(e => e.tag_id);
         if (mytagsId.length) {
           ids = await db.any(
             `SELECT users.user_id,count(*) FROM user_tags INNER JOIN users ON users.user_id=user_tags.user_id
-        WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count`,
+            WHERE user_tags.tag_id IN ($1:csv)  AND user_tags.user_id IN ($2:csv) group by users.user_id ORDER BY count DESC`,
             [mytagsId, ids]
           );
           ids = ids.map(e => e.user_id);
@@ -1466,14 +1466,14 @@ const updateManyTags = async () => {
   await Promise.all([
     updateTags(5, ['chat']),
     updateTags(6, ['musique', 'chien']),
-    updateTags(7, ['nature', 'randonné']),
+    updateTags(7, ['nature', 'randonne']),
     updateTags(8, ['chien', 'chat', 'tarantule']),
-    updateTags(9, ['licorne', 'homo sapiens', 'filme']),
-    updateTags(10, ['licorne', 'homo sapiens', 'filme']),
-    updateTags(11, ['licorne', 'homo sapiens', 'filme', 'Calcutta']),
+    updateTags(9, ['licorne', 'homo-sapiens', 'filme']),
+    updateTags(10, ['licorne', 'homo-sapiens', 'filme']),
+    updateTags(11, ['licorne', 'homo-sapiens', 'filme', 'Calcutta']),
     updateTags(12, ['carambar', 'math', 'filme']),
-    updateTags(13, ['caribou', 'livre', 'comédie', 'UNESCO']),
-    updateTags(14, ['voyage', 'série TV', 'filme']),
+    updateTags(13, ['caribou', 'livre', 'comedie', 'UNESCO']),
+    updateTags(14, ['voyage', 'serie-TV', 'filme']),
   ]);
 };
 

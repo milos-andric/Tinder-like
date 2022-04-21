@@ -93,7 +93,7 @@ export const validateTags = (data, msg) => {
 
     let ret = true;
     tags.forEach(tag => {
-      if (!tag.match(/^[A-Za-z0-9_]+$/) || tag.length > 16) ret = false;
+      if (!tag.match(/^[A-Za-z0-9_-]+$/) || tag.length > 16) ret = false;
     });
 
     if (ret) next();

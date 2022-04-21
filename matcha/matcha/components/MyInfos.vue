@@ -262,6 +262,10 @@ export default {
     },
     async updateInfo() {
       try {
+        let tmpVille;
+        if (this.ville.trim() !== '') {
+          tmpVille = this.ville;
+        }
         await this.$axios.post('updateUserInfo', {
           first_name: this.first_name,
           last_name: this.last_name,
@@ -272,7 +276,7 @@ export default {
           orientation: this.orientation,
           bio: this.bio,
           tags: this.tags,
-          ville: this.ville,
+          ville: tmpVille,
         });
         this.successStatus = true;
         this.alertStatus = false;
