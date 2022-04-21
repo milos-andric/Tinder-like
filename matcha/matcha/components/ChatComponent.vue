@@ -68,7 +68,7 @@
       </div>
     </div>
 
-    <div id="chat-submit" class="w-100">
+    <div v-if="room.length" id="chat-submit" class="w-100">
       <b-input-group>
         <b-form-input
           v-model="input"

@@ -189,7 +189,7 @@ export default {
       max: 1000,
     },
     fameSlider: {
-      value: [20,200],
+      value: [20, 200],
       max: 500,
     },
     tagsValue: [],
@@ -206,9 +206,20 @@ export default {
         onCellClicked: e => this.$router.push('/user/' + e.data.user_id),
       },
       { field: 'last_name', sortable: true, filter: true },
-      { field: 'age',valueFormatter: this.dateFormat,sortable: true, filter: true },
+      {
+        field: 'age',
+        valueFormatter: this.dateFormat,
+        sortable: true,
+        filter: true,
+      },
       { headerName: 'Fame', field: 'score', sortable: true, filter: true },
-      { headerName: 'Distance (km)', field: 'distance', sortable: true, filter: true },
+      {
+        headerName: 'Distance (km)',
+        field: 'distance',
+        valueFormatter: this.distanceFormat,
+        sortable: true,
+        filter: true,
+      },
     ];
   },
   methods: {
@@ -235,14 +246,19 @@ export default {
     loadTag(tag) {
       this.tagsValue.push(tag);
     },
-    dateFormat(data)
-    {
+    dateFormat(data) {
       if (data.value)
-        return new Date().getFullYear() - new Date(data.value).getFullYear()
-       else {
-         return ""
-       }
-    }
+        return new Date().getFullYear() - new Date(data.value).getFullYear();
+      else {
+        return '';
+      }
+    },
+    distanceFormat(data) {
+      if (data.value) return data.value.toFixed(1);
+      else {
+        return null;
+      }
+    },
   },
 };
 </script>
