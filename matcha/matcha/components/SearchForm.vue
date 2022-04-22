@@ -204,21 +204,45 @@ export default {
         sortable: true,
         filter: true,
         onCellClicked: e => this.$router.push('/user/' + e.data.user_id),
+        filterParams: {
+          suppressAndOrCondition: true,
+        },
       },
-      { field: 'last_name', sortable: true, filter: true },
       {
-        field: 'age',
-        valueFormatter: this.dateFormat,
+        field: 'last_name',
         sortable: true,
         filter: true,
+        filterParams: {
+          suppressAndOrCondition: true,
+        },
       },
-      { headerName: 'Fame', field: 'score', sortable: true, filter: true },
+      {
+        field: 'age',
+        valueGetter: this.dateFormat,
+        sortable: true,
+        filter: 'agNumberColumnFilter',
+        filterParams: {
+          suppressAndOrCondition: true,
+        },
+      },
+      {
+        headerName: 'Fame',
+        field: 'score',
+        sortable: true,
+        filter: 'agNumberColumnFilter',
+        filterParams: {
+          suppressAndOrCondition: true,
+        },
+      },
       {
         headerName: 'Distance (km)',
         field: 'distance',
         valueFormatter: this.distanceFormat,
         sortable: true,
-        filter: true,
+        filter: 'agNumberColumnFilter',
+        filterParams: {
+          suppressAndOrCondition: true,
+        },
       },
     ];
   },
@@ -246,11 +270,13 @@ export default {
     loadTag(tag) {
       this.tagsValue.push(tag);
     },
-    dateFormat(data) {
-      if (data.value)
-        return new Date().getFullYear() - new Date(data.value).getFullYear();
+    dateFormat(params) {
+      if (params.data.age)
+        return (
+          new Date().getFullYear() - new Date(params.data.age).getFullYear()
+        );
       else {
-        return '';
+        return null;
       }
     },
     distanceFormat(data) {
