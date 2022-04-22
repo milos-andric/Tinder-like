@@ -27,7 +27,6 @@ import {
   validateBoolean,
   validateString,
   validateIntRequired,
-  validateIntOptional,
   validateObject,
   validateIntRequiredInObject,
   validateIntOptionalInObject,
@@ -39,6 +38,8 @@ import {
   validateAge,
   validateTags,
 } from './validator';
+
+const axios = require('axios').default;
 
 const pgp = pgPromise();
 const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
@@ -55,6 +56,54 @@ app.use(fileUpload({ createParentPath: true }));
 // if (process.env.NODE_ENV === 'production') {
 // registerUsers();
 // }
+
+app.post('/googleAuth', async (req, res) => {
+  try {
+    const code = req.body.code; // code from service provider which is appended to the frontend's URL
+    const clientId =
+      '154688020943-qggb8idvqclbq5r4t9huhg5msd0ik4r3.apps.googleusercontent.com';
+    const clientSecret = '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';
+    // The clientId and clientSecret should always be private, put them in the .env file
+    const url = 'https://oauth2.googleapis.com/token'; // link to api to exchange code for token.
+    console.log(code);
+    const { data } = await axios.post(url, {
+      code: req.body.code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: 'http://localhost:8000',
+      grant_type: 'authorization_code',
+    });
+    const tokenFromGoogle = data.access_token;
+    console.log(tokenFromGoogle);
+    const urlForGettingUserInfo =
+      'https://www.googleapis.com/oauth2/v2/userinfo';
+
+    const userData = await axios.get(urlForGettingUserInfo, {
+      headers: {
+        Authorization: `Bearer ${tokenFromGoogle}`,
+      },
+    });
+
+    const body = {
+      username: userData.data.username,
+      email: userData.data.email,
+      serviceProvider: 'google',
+    };
+
+    console.log(body);
+
+    return res.status(200).json({
+      success: true,
+      token: 'lol',
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      err,
+    });
+  }
+});
 
 const users = [];
 const http = require('http');
@@ -174,7 +223,7 @@ io.on('connection', socket => {
     );
   });
 });
-server.listen(3001);
+// server.listen(3001);
 
 // Functions
 
