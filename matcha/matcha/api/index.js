@@ -32,6 +32,7 @@ import {
   validateIntRequiredInObject,
   validateIntOptionalInObject,
   validateDoubleArrayIntOptionalInObject,
+  validateStringRequiredInObject,
   validateParamsIntRequired,
   validateParamsIntOptional,
   validatePassword,
@@ -2020,7 +2021,11 @@ app.post(
     try {
       // eslint-disable-next-line no-unused-vars
       const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
-      if (senderId === undefined || receiverId === undefined) {
+      if (
+        senderId === undefined ||
+        receiverId === undefined ||
+        (await roomExist(req.body.room)) !== true
+      ) {
         return res.sendStatus(400);
       }
       if ((await userIsBlocked(receiverId, senderId)) === true)
@@ -2098,11 +2103,37 @@ function sendDateEmail(email, date) {
   transporter.sendMail(mailOptions);
 }
 
+async function dateExist(receiverId, messageId) {
+  const receiverIdInt = Number(receiverId);
+  const messageIdInt = Number(messageId);
+  const res = await db.oneOrNone(
+    `SELECT * FROM mail_dates WHERE sender_id=$1 AND msg_id=$2`,
+    [receiverIdInt, messageIdInt]
+  );
+  if (res) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+async function roomExist(name) {
+  const nameRoom = String(name);
+  const res = await db.oneOrNone('SELECT * FROM chats WHERE name=$1', [
+    nameRoom,
+  ]);
+  if (res) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 app.post(
   '/acceptDate',
   authenticateToken,
   validateObject('message'),
-  validateIntRequiredInObject('message', 'chat_id'),
+  validateStringRequiredInObject('message', 'chat_id'),
   validateIntRequiredInObject('message', 'msg_id'),
   validateBoolean('resp'),
   async (req, res) => {
@@ -2115,6 +2146,14 @@ app.post(
         req,
         req.body.message.chat_id
       );
+      if (
+        senderId === undefined ||
+        receiverId === undefined ||
+        (await roomExist(req.body.message.chat_id)) !== true ||
+        (await dateExist(receiverId, req.body.message.msg_id)) !== true
+      ) {
+        return res.sendStatus(400);
+      }
       if ((await userIsBlocked(receiverId, senderId)) === true)
         return res.sendStatus(200);
       if ((await userIsBlocked(senderId, receiverId)) === true)
