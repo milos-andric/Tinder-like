@@ -24,12 +24,16 @@ import {
   validateUsername,
   validateEmail,
   validateInt,
+  validateBoolean,
+  validateString,
   validateIntRequired,
   validateIntOptional,
   validateObject,
   validateIntRequiredInObject,
   validateIntOptionalInObject,
   validateDoubleArrayIntOptionalInObject,
+  validateParamsIntRequired,
+  validateParamsIntOptional,
   validatePassword,
   validateText,
   validateAge,
@@ -410,7 +414,7 @@ app.post(
   }
 );
 
-app.post('/activate', validateIntRequired('user_id'), (req, res) => {
+app.post('/activate', validateIntRequired('user_id', true), (req, res) => {
   db.one(
     'UPDATE users SET activation_code=$1 WHERE user_id=$2 AND activation_code=$3 RETURNING activation_code',
     ['activated', req.body.user_id, req.body.code]
@@ -567,6 +571,9 @@ app.post(
   validateText('bio', 255, 'Bio must be shorter than 255 chars long'),
   validateTags('tags', 'Invalid tag format'),
   async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     try {
       const sql = `UPDATE users SET
             ( first_name, last_name, user_name, email, age, gender, orientation, bio, latitude, longitude )
@@ -603,6 +610,9 @@ app.post(
     'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
   ),
   (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     if (req.body.newPass !== req.body.secPass)
       return res
         .status(400)
@@ -631,6 +641,9 @@ app.post(
 );
 
 app.post('/upload-image', authenticateToken, (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   if (!req.files)
     return res.status(400).json({ msg: 'No files were uploaded.' });
 
@@ -667,8 +680,11 @@ app.post('/upload-image', authenticateToken, (req, res) => {
 app.post(
   '/delete-image',
   authenticateToken,
-  validateIntRequired('id'),
+  validateIntRequired('id', true),
   (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     try {
       db.none('DELETE FROM images WHERE user_id = $1 AND image_id = $2', [
         req.user.user_id,
@@ -687,6 +703,9 @@ app.post(
 );
 
 app.post('/profile-image', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     await db.none(`UPDATE users SET profile_pic=$1 WHERE user_id=$2`, [
       req.body.image ? req.body.image.image_id : null,
@@ -706,6 +725,9 @@ function setLastConnexion(id) {
 }
 
 app.post('/logout', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   try {
     await setLastConnexion(req.user.user_id);
     return res.status(200).json({ msg: 'Successfully logged out' });
@@ -719,8 +741,11 @@ app.post('/logout', authenticateToken, async (req, res) => {
 app.post(
   '/user-block',
   authenticateToken,
-  validateIntRequired('receiver'),
+  validateIntRequired('receiver', true),
   async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     const sender = req.user.user_id;
     const receiver = req.body.receiver;
 
@@ -748,8 +773,11 @@ app.post(
 app.post(
   '/user-report',
   authenticateToken,
-  validateIntRequired('receiver'),
+  validateIntRequired('receiver', true),
   async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     const sender = req.user.user_id;
     const receiver = req.body.receiver;
 
@@ -782,10 +810,9 @@ app.post(
     try {
       const sql = `SELECT label FROM tags ORDER BY random() LIMIT $1`;
       const tags = await db.manyOrNone(sql, [req.body.number]);
-      if (tags.length === 0) return res.status(200).json({ tags: ['chien'] });
       return res.status(200).json({ tags });
     } catch (_e) {
-      return res.status(200).json({});
+      return res.status(500).json({});
     }
   }
 );
@@ -826,6 +853,9 @@ async function getLLFromCity(city) {
   return undefined;
 }
 app.get('/me', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(403);
+  }
   const id = req.user.user_id;
   try {
     const user = await getUserInfosMe(id);
@@ -844,56 +874,87 @@ app.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/user/:user_id', authenticateToken, async (req, res) => {
-  const myId = req.user.user_id;
-  let targetId;
-  if (req.params && req.params.user_id) targetId = req.params.user_id;
-  try {
-    const user = await getUserInfos(targetId);
-    user.last_connexion = timeDifference(user.last_connexion);
-    await sendNotification(myId, targetId, 'view');
-    await recalculUserScore(targetId);
-    [user.ville, user.zip] = await getCityFromLL(user.latitude, user.longitude);
-    return res.status(200).json(user);
-  } catch (e) {
-    return res.status(404).json({ msg: e });
-  }
-});
-
-app.get('/is-liked/:target_id', authenticateToken, async (req, res) => {
-  const myIdInt = Number(req.user.user_id);
-  const targetIdInt = Number(req.params.target_id);
-  try {
-    const liked = await db.manyOrNone(
-      'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
-      [myIdInt, targetIdInt]
-    );
-    if (liked && liked.length) {
-      return res.status(200).json(true);
-    } else {
-      return res.status(200).json(false);
+app.get(
+  '/user/:user_id',
+  authenticateToken,
+  validateParamsIntRequired('user_id', true),
+  async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
     }
-  } catch (e) {
-    return res.status(404).json({ msg: e });
+    const myId = req.user.user_id;
+    let targetId;
+    if (req.params && req.params.user_id) targetId = req.params.user_id;
+    try {
+      const user = await getUserInfos(targetId);
+      user.last_connexion = timeDifference(user.last_connexion);
+      await sendNotification(myId, targetId, 'view');
+      await recalculUserScore(targetId);
+      [user.ville, user.zip] = await getCityFromLL(
+        user.latitude,
+        user.longitude
+      );
+      return res.status(200).json(user);
+    } catch (e) {
+      return res.status(404).json({ msg: e });
+    }
   }
-});
+);
 
-app.get('/user-images/:user_id?', authenticateToken, async (req, res) => {
-  let id = req.user.user_id;
-  if (req.params && req.params.user_id) id = req.params.user_id;
-
-  try {
-    const images = await getUserImages(id);
-    return res.status(200).json(images);
-  } catch (e) {
-    return res.status(404).json({ msg: e });
+app.get(
+  '/is-liked/:target_id',
+  authenticateToken,
+  validateParamsIntRequired('target_id', true),
+  async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
+    const myIdInt = Number(req.user.user_id);
+    const targetIdInt = Number(req.params.target_id);
+    try {
+      const liked = await db.manyOrNone(
+        'SELECT * FROM likes WHERE liker_id=$1 AND target_id=$2',
+        [myIdInt, targetIdInt]
+      );
+      if (liked && liked.length) {
+        return res.status(200).json(true);
+      } else {
+        return res.status(200).json(false);
+      }
+    } catch (e) {
+      return res.status(404).json({ msg: e });
+    }
   }
-});
+);
+
+app.get(
+  '/user-images/:user_id?',
+  authenticateToken,
+  validateParamsIntOptional('user_id', true),
+  async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
+    let id = req.user.user_id;
+    if (req.params && req.params.user_id) id = req.params.user_id;
+
+    try {
+      const images = await getUserImages(id);
+      return res.status(200).json(images);
+    } catch (e) {
+      return res.status(404).json({ msg: e });
+    }
+  }
+);
 
 app.get(
   '/user-informations/:target_id',
   authenticateToken,
+  validateParamsIntRequired('target_id', true),
   async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
     const myIdInt = Number(req.user.user_id);
     const targetIdInt = Number(req.params.target_id);
     try {
@@ -942,19 +1003,27 @@ const isIdInRoom = async (id, room) => {
   }
 };
 
-app.post('/getRoomMessages', authenticateToken, async (req, res) => {
-  try {
-    if (await isIdInRoom(req.user.user_id, req.body.room)) {
-      const roomStr = String(req.body.room);
-      const sql = `SELECT messages.*,users.user_id,users.first_name,users.last_name,users.user_name,users.profile_pic,users.last_connexion
+app.post(
+  '/getRoomMessages',
+  authenticateToken,
+  validateString('room'),
+  async (req, res) => {
+    if (!req.user) {
+      return res.sendStatus(403);
+    }
+    try {
+      if (await isIdInRoom(req.user.user_id, req.body.room)) {
+        const roomStr = String(req.body.room);
+        const sql = `SELECT messages.*,users.user_id,users.first_name,users.last_name,users.user_name,users.profile_pic,users.last_connexion
      FROM messages JOIN users ON messages.sender_id=users.user_id WHERE chat_id = $1 ORDER BY messages.created_on`;
-      const messages = await db.manyOrNone(sql, [roomStr]);
-      return res.send(messages);
-    } else return res.sendStatus(403);
-  } catch (e) {
-    return res.sendStatus(500).json({ msg: e });
+        const messages = await db.manyOrNone(sql, [roomStr]);
+        return res.send(messages);
+      } else return res.sendStatus(403);
+    } catch (e) {
+      return res.sendStatus(500).json({ msg: e });
+    }
   }
-});
+);
 
 function emitMessages(socketIds, mess) {
   // require because old way to emit works for "individual socket" and no all socket for one user
@@ -976,50 +1045,70 @@ const sendMessage = (myId, targetId, data) => {
 
 function attributionRoomMessage(req, roomname) {
   const names = roomname.split('-');
-  let receiverId = '0';
-  let senderId = '0';
-  Number(names[0]) !== req.user.user_id
-    ? (receiverId = names[0])
-    : (receiverId = names[1]);
-  Number(names[0]) === req.user.user_id
-    ? (senderId = names[0])
-    : (senderId = names[1]);
-  return [senderId, receiverId];
+  if (names.length === 2) {
+    let receiverId;
+    let senderId;
+    Number(names[0]) !== req.user.user_id
+      ? (receiverId = names[0])
+      : (receiverId = names[1]);
+    Number(names[0]) === req.user.user_id
+      ? (senderId = names[0])
+      : (senderId = names[1]);
+    if (
+      !isNaN(senderId) &&
+      !isNaN(receiverId) &&
+      senderId > 0 &&
+      receiverId > 0
+    ) {
+      return [senderId, receiverId];
+    }
+  }
+  return [undefined, undefined];
 }
 
-app.post('/sendRoomMessages', authenticateToken, async (req, res) => {
-  if (!req.body.room || !req.body.message) {
-    return res.sendStatus(400);
-  }
-  try {
-    const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
-    if ((await userIsBlocked(receiverId, senderId)) === true)
-      return res.sendStatus(200);
-    if ((await userIsBlocked(senderId, receiverId)) === true)
-      return res.sendStatus(200);
-    if (
-      (await isIdInRoom(req.user.user_id, req.body.room)) &&
-      req.body.message.length > 0
-    ) {
-      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
-      await db.any(sql, [req.user.user_id, req.body.room, req.body.message]);
-      const data = {
-        sender_id: (await getUserInfos(req.user.user_id)).user_id,
-        user_name: (await getUserInfos(req.user.user_id)).user_name,
-        chat_id: req.body.room,
-        message: req.body.message,
-        type: 1,
-      };
-      await sendNotification(senderId, receiverId, 'message');
-      sendMessage(senderId, receiverId, data);
-      return res.sendStatus(200);
-    } else {
+app.post(
+  '/sendRoomMessages',
+  authenticateToken,
+  validateString('room'),
+  validateString('message'),
+  async (req, res) => {
+    if (!req.user) {
       return res.sendStatus(403);
     }
-  } catch (e) {
-    return res.sendStatus(500).json({ msg: e });
+    if (!req.body.room || !req.body.message) {
+      return res.sendStatus(400);
+    }
+    try {
+      const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
+      if ((await userIsBlocked(receiverId, senderId)) === true)
+        return res.sendStatus(200);
+      if ((await userIsBlocked(senderId, receiverId)) === true)
+        return res.sendStatus(200);
+      if (
+        (await isIdInRoom(req.user.user_id, req.body.room)) &&
+        req.body.message.length > 0
+      ) {
+        const roomStr = String(req.body.room);
+        const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "created_on") VALUES ($1, $2, $3, NOW())`;
+        await db.any(sql, [req.user.user_id, roomStr, req.body.message]);
+        const data = {
+          sender_id: (await getUserInfos(req.user.user_id)).user_id,
+          user_name: (await getUserInfos(req.user.user_id)).user_name,
+          chat_id: req.body.room,
+          message: req.body.message,
+          type: 1,
+        };
+        await sendNotification(senderId, receiverId, 'message');
+        sendMessage(senderId, receiverId, data);
+        return res.sendStatus(200);
+      } else {
+        return res.sendStatus(403);
+      }
+    } catch (e) {
+      return res.sendStatus(500).json({ msg: e });
+    }
   }
-});
+);
 
 app.get('/getAvailableRooms', authenticateToken, async (req, res) => {
   if (!req.user) {
@@ -1631,7 +1720,7 @@ app.post('/read-notifications', authenticateToken, async (req, res) => {
 app.post(
   '/read-notification',
   authenticateToken,
-  validateIntRequired('id'),
+  validateIntRequired('id', true),
   async (req, res) => {
     if (!req.user) {
       return res.status(403);
@@ -1649,6 +1738,9 @@ app.post(
 );
 
 app.get('/get-notifications', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(403);
+  }
   try {
     const notifications = await db.manyOrNone(
       `SELECT notifications.*, users.user_name, users.created_on FROM notifications JOIN users ON users.user_id=notifications.user_id_send WHERE user_id_receiver=$1 AND watched=false`,
@@ -1681,7 +1773,7 @@ async function recalculUserScore(myId) {
 app.post(
   '/like',
   authenticateToken,
-  validateIntRequired('targetId'),
+  validateIntRequired('targetId', true),
   async (req, res) => {
     if (!req.user) {
       return res.status(403);
@@ -1714,7 +1806,7 @@ app.post(
 app.post(
   '/unlike',
   authenticateToken,
-  validateIntRequired('targetId'),
+  validateIntRequired('targetId', true),
   async (req, res) => {
     if (!req.user) {
       return res.status(403);
@@ -1740,7 +1832,7 @@ app.post(
 app.post(
   '/view',
   authenticateToken,
-  validateIntRequired('targetId'),
+  validateIntRequired('targetId', true),
   async (req, res) => {
     if (!req.user) {
       return res.status(403);
@@ -1795,7 +1887,7 @@ app.post('/devil', authenticateToken, async (req, res) => {
 app.post(
   '/devil-match',
   authenticateToken,
-  validateIntRequired('targetId'),
+  validateIntRequired('targetId', true),
   async (req, res) => {
     if (!req.user) {
       return res.status(403);
@@ -1874,54 +1966,64 @@ function getPosById(ip) {
   return lookup(ip)?.ll;
 }
 
-app.post('/proposeDate', authenticateToken, async (req, res) => {
-  if (
-    !req.body.room &&
-    !req.body.date &&
-    !req.body.hour &&
-    !req.body.location
-  ) {
-    return res.sendStatus(400);
-  }
-  try {
-    // eslint-disable-next-line no-unused-vars
-    const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
-    if ((await userIsBlocked(receiverId, senderId)) === true)
-      return res.sendStatus(200);
-    if ((await userIsBlocked(senderId, receiverId)) === true)
-      return res.sendStatus(200);
-    const date = new Date();
-    date.setMinutes(date.getMinutes() + 2);
-    const text =
-      'vous avez une date le ' +
-      date +
-      " à l'endroit nommée : " +
-      req.body.location;
-    if (await isIdInRoom(req.user.user_id, req.body.room)) {
-      const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW()) RETURNING *`;
-      const msgId = await db.oneOrNone(sql, [
-        req.user.user_id,
-        req.body.room,
-        text,
-      ]);
-      if (!msgId) {
-        return res.sendStatus(403);
-      }
-      msgId.user_name = (await getUserInfos(req.user.user_id)).user_name;
-      await db.none(
-        `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
-        [req.user.user_id, receiverId, text, date, msgId.msg_id]
-      );
-      await sendNotification(senderId, receiverId, 'invit');
-      sendMessage(req.user.user_id, receiverId, msgId);
-    } else {
+app.post(
+  '/proposeDate',
+  authenticateToken,
+  validateString('room'),
+  validateString('location'),
+  async (req, res) => {
+    if (!req.user) {
       return res.sendStatus(403);
     }
-    return res.sendStatus(200);
-  } catch (error) {
-    return res.sendStatus(500);
+    if (!req.body.date && !req.body.hour) {
+      return res.sendStatus(400);
+    }
+    if (req.body.room.length === 0) {
+      return res.sendStatus(400);
+    }
+    try {
+      // eslint-disable-next-line no-unused-vars
+      const [senderId, receiverId] = attributionRoomMessage(req, req.body.room);
+      if (senderId === undefined || receiverId === undefined) {
+        return res.sendStatus(400);
+      }
+      if ((await userIsBlocked(receiverId, senderId)) === true)
+        return res.sendStatus(200);
+      if ((await userIsBlocked(senderId, receiverId)) === true)
+        return res.sendStatus(200);
+      const date = new Date();
+      date.setMinutes(date.getMinutes() + 2);
+      const text =
+        'vous avez une date le ' +
+        date +
+        " à l'endroit nommée : " +
+        req.body.location;
+      if (await isIdInRoom(req.user.user_id, req.body.room)) {
+        const sql = `INSERT into messages  ( "sender_id", "chat_id", "message", "type", "created_on") VALUES ($1, $2, $3, 2, NOW()) RETURNING *`;
+        const msgId = await db.oneOrNone(sql, [
+          req.user.user_id,
+          req.body.room,
+          text,
+        ]);
+        if (!msgId) {
+          return res.sendStatus(403);
+        }
+        msgId.user_name = (await getUserInfos(req.user.user_id)).user_name;
+        await db.none(
+          `INSERT INTO mail_dates (sender_id,receiver_id,text,send_date,msg_id) VALUES ( $1, $2, $3, $4, $5 )`,
+          [req.user.user_id, receiverId, text, date, msgId.msg_id]
+        );
+        await sendNotification(senderId, receiverId, 'invit');
+        sendMessage(req.user.user_id, receiverId, msgId);
+      } else {
+        return res.sendStatus(403);
+      }
+      return res.sendStatus(200);
+    } catch (error) {
+      return res.sendStatus(500);
+    }
   }
-});
+);
 
 async function updateDate(receiverId, msg, resp, newMsg) {
   const date = await db.oneOrNone(
@@ -1960,71 +2062,74 @@ function sendDateEmail(email, date) {
   transporter.sendMail(mailOptions);
 }
 
-app.post('/acceptDate', authenticateToken, async (req, res) => {
-  if (
-    !req.body.message &&
-    !req.body.resp &&
-    typeof req.body.resp === 'boolean' &&
-    !req.body.message.chat_id
-  ) {
-    return res.sendStatus(400);
-  }
-  try {
-    // eslint-disable-next-line no-unused-vars
-    const [senderId, receiverId] = attributionRoomMessage(
-      req,
-      req.body.message.chat_id
-    );
-    if ((await userIsBlocked(receiverId, senderId)) === true)
-      return res.sendStatus(200);
-    if ((await userIsBlocked(senderId, receiverId)) === true)
-      return res.sendStatus(200);
-    let text = '';
-    if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
-      if (req.body.resp) {
-        text =
-          req.user.user_name +
-          ' à accepter la proposition de date. Vous recevrez un email juste avant le date';
-        const date = await updateDate(
-          receiverId,
-          req.body.message,
-          req.body.resp,
-          text
-        );
-        // https://github.com/node-schedule/node-schedule
-        const schedule = require('node-schedule');
-        const time = new Date();
-        time.setMinutes(time.getMinutes() + 1);
-        const email1 = await getEmailid(senderId);
-        const email2 = await getEmailid(receiverId);
-        schedule.scheduleJob(
-          time,
-          function (email1, email2, date) {
-            sendDateEmail(email1, date);
-            sendDateEmail(email2, date);
-          }.bind(null, email1, email2, date)
-        );
-      } else {
-        text = req.user.user_name + ' à refuser la proposition de date.';
-        await updateDate(receiverId, req.body.message, req.body.resp, text);
-      }
-      const data = {
-        sender_id: (await getUserInfos(req.user.user_id)).user_id,
-        user_name: (await getUserInfos(req.user.user_id)).user_name,
-        chat_id: req.body.message.chat_id,
-        type: 3,
-        message: text,
-      };
-      await sendNotification(senderId, receiverId, 'date');
-      sendMessage(req.user.user_id, receiverId, data);
-      return res.sendStatus(200);
-    } else {
+app.post(
+  '/acceptDate',
+  authenticateToken,
+  validateObject('message'),
+  validateIntRequiredInObject('message', 'chat_id'),
+  validateIntRequiredInObject('message', 'msg_id'),
+  validateBoolean('resp'),
+  async (req, res) => {
+    if (!req.user) {
       return res.sendStatus(403);
     }
-  } catch (error) {
-    return res.sendStatus(500);
+    try {
+      // eslint-disable-next-line no-unused-vars
+      const [senderId, receiverId] = attributionRoomMessage(
+        req,
+        req.body.message.chat_id
+      );
+      if ((await userIsBlocked(receiverId, senderId)) === true)
+        return res.sendStatus(200);
+      if ((await userIsBlocked(senderId, receiverId)) === true)
+        return res.sendStatus(200);
+      let text = '';
+      if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
+        if (req.body.resp) {
+          text =
+            req.user.user_name +
+            ' à accepter la proposition de date. Vous recevrez un email juste avant le date';
+          const date = await updateDate(
+            receiverId,
+            req.body.message,
+            req.body.resp,
+            text
+          );
+          // https://github.com/node-schedule/node-schedule
+          const schedule = require('node-schedule');
+          const time = new Date();
+          time.setMinutes(time.getMinutes() + 1);
+          const email1 = await getEmailid(senderId);
+          const email2 = await getEmailid(receiverId);
+          schedule.scheduleJob(
+            time,
+            function (email1, email2, date) {
+              sendDateEmail(email1, date);
+              sendDateEmail(email2, date);
+            }.bind(null, email1, email2, date)
+          );
+        } else {
+          text = req.user.user_name + ' à refuser la proposition de date.';
+          await updateDate(receiverId, req.body.message, req.body.resp, text);
+        }
+        const data = {
+          sender_id: (await getUserInfos(req.user.user_id)).user_id,
+          user_name: (await getUserInfos(req.user.user_id)).user_name,
+          chat_id: req.body.message.chat_id,
+          type: 3,
+          message: text,
+        };
+        await sendNotification(senderId, receiverId, 'date');
+        sendMessage(req.user.user_id, receiverId, data);
+        return res.sendStatus(200);
+      } else {
+        return res.sendStatus(403);
+      }
+    } catch (error) {
+      return res.sendStatus(500);
+    }
   }
-});
+);
 export default {
   path: '/api',
   handler: app,
