@@ -1,5 +1,6 @@
 version: "3.7"
-
+# DEV: sh -c "npm i && npm run dev -- --port 3000"
+# PROD: command: sh -c "npm i && npm run build && npm run start -- --port 3000"
 services:
   postgres:
     container_name: postgres_container
