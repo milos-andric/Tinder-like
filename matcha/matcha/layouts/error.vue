@@ -5,6 +5,8 @@ vue/multi-word-component-names */
     <h1 v-if="error.statusCode === 404">Page not found</h1>
     <h1 v-else>An error occurred {{ error.statusCode }}</h1>
     <NuxtLink to="/">Home page</NuxtLink>
+    <h2>or</h2>
+    <NuxtLink to="/login">Login page</NuxtLink>
   </div>
 </template>
 

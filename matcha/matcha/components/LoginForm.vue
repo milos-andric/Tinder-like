@@ -30,18 +30,6 @@
       </div>
 
       <div class="d-flex justify-content-between align-items-center">
-        <!-- Checkbox -->
-        <div class="form-check mb-0">
-          <input
-            id="form2Example3"
-            class="form-check-input me-2"
-            type="checkbox"
-            value=""
-          />
-          <label class="form-check-label" for="form2Example3">
-            Remember me
-          </label>
-        </div>
         <nuxt-link to="/recover" class="text-primary"
           >Forgot password?</nuxt-link
         >
