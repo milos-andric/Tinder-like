@@ -101,21 +101,36 @@ export const validateTags = (data, msg) => {
   };
 };
 
-export const validateIntRequired = data => {
+export const validateIntRequired = (data, positive = false) => {
   return (req, res, next) => {
     const input = req.body[data];
 
-    if (!isNaN(input)) next();
-    else return res.status(400).json({ msg: 'Invalid input' });
+    if (
+      input !== null &&
+      input !== '' &&
+      !Array.isArray(input) &&
+      !isNaN(input) &&
+      input >= 0
+    ) {
+      if (positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
   };
 };
 
-export const validateIntOptional = data => {
+export const validateIntOptional = (data, positive = false) => {
   return (req, res, next) => {
     const input = req.body[data];
 
-    if (!input || !isNaN(input)) next();
-    else return res.status(400).json({ msg: 'Invalid input' });
+    if (
+      !input ||
+      (input !== '' && !Array.isArray(input) && !isNaN(input) && input >= 0)
+    ) {
+      if (input && positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
   };
 };
 
@@ -127,25 +142,44 @@ export const validateObject = obj => {
   };
 };
 
-export const validateIntRequiredInObject = (obj, data) => {
+export const validateIntRequiredInObject = (obj, data, positive = false) => {
   return (req, res, next) => {
     const input = req.body[obj][data];
 
-    if (!isNaN(input)) next();
-    else return res.status(400).json({ msg: 'Invalid input' });
+    if (
+      input !== null &&
+      input !== '' &&
+      !Array.isArray(input) &&
+      !isNaN(input) &&
+      input >= 0
+    ) {
+      if (positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
   };
 };
 
-export const validateIntOptionalInObject = (obj, data) => {
+export const validateIntOptionalInObject = (obj, data, positive = false) => {
   return (req, res, next) => {
     const input = req.body[obj][data];
 
-    if (!input || !isNaN(input)) next();
-    else return res.status(400).json({ msg: 'Invalid input' });
+    if (
+      !input ||
+      (input !== '' && !Array.isArray(input) && !isNaN(input) && input >= 0)
+    ) {
+      if (input && positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
   };
 };
 
-export const validateDoubleArrayIntOptionalInObject = (obj, data) => {
+export const validateDoubleArrayIntOptionalInObject = (
+  obj,
+  data,
+  positive = false
+) => {
   return (req, res, next) => {
     const input = req.body[obj][data];
 
@@ -154,9 +188,68 @@ export const validateDoubleArrayIntOptionalInObject = (obj, data) => {
       (Array.isArray(input) &&
         input.length === 2 &&
         !isNaN(input[0]) &&
-        !isNaN(input[1]))
-    )
+        input[0] !== '' &&
+        input[0] >= 0 &&
+        !isNaN(input[1]) &&
+        input[1] !== '' &&
+        input[1] >= 0)
+    ) {
+      if (input && positive && input[0] === 0 && input[1] === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
       next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateString = data => {
+  return (req, res, next) => {
+    const input = req.body[data];
+    if (typeof input === 'string') next();
     else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateBoolean = data => {
+  return (req, res, next) => {
+    const input = req.body[data];
+    if (typeof input === 'boolean') next();
+    else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateParamsIntRequired = (data, positive = false) => {
+  return (req, res, next) => {
+    let input = req.params[data];
+
+    if (input !== undefined) input = Number(input);
+    if (
+      input !== null &&
+      input !== undefined &&
+      input !== '' &&
+      !Array.isArray(input) &&
+      !isNaN(input) &&
+      input >= 0
+    ) {
+      if (input && positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
+  };
+};
+
+export const validateParamsIntOptional = (data, positive = false) => {
+  return (req, res, next) => {
+    let input = req.params[data];
+
+    if (input !== undefined) input = Number(input);
+    if (
+      input === null ||
+      input === undefined ||
+      (input !== '' && !Array.isArray(input) && !isNaN(input) && input >= 0)
+    ) {
+      if (input !== null && positive && input === 0)
+        return res.status(400).json({ msg: 'Invalid input' });
+      next();
+    } else return res.status(400).json({ msg: 'Invalid input' });
   };
 };
