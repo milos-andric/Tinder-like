@@ -64,6 +64,12 @@ export default {
       history: [],
     };
   },
+  async mounted() {
+    const resp = await this.$axios.get('getUserLikeHistory', {
+      userId: this.userId,
+    });
+    this.history = resp.data;
+  },
   methods: {
     async getLikes() {
       if (this.currentTopic !== 'likes') {

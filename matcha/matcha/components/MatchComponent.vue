@@ -75,7 +75,7 @@
           value="location"
           checked
           buttons
-          >Sort by location</b-form-radio
+          >Sort by Location</b-form-radio
         >
         <b-form-radio
           v-model="sort"
@@ -185,6 +185,8 @@ export default {
       });
     },
     async generateMatches() {
+      const ip = await this.$axios.get('/getIP');
+      this.search.ip = ip.data.ip;
       const search = this.search;
       search.order = this.sort;
       const res = await this.$axios.post('matchFilter', { search });

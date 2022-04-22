@@ -1429,6 +1429,7 @@ app.post(
       return res.sendStatus(403);
     }
     try {
+      const user = await getUserInfos(req.user.user_id);
       let ids = await db.any(
         `SELECT user_id FROM users
       WHERE users.user_id != $1
@@ -1436,7 +1437,7 @@ app.post(
         req.user.user_id
       );
       ids = ids.map(e => e.user_id);
-      const ll = getLL(req.user, req.body.search.ip);
+      const ll = await getLL(user.user_id, req.body.search.ip);
       ids = await searchFilter(req, ids, ll);
       const sql = `SELECT al.user_id,
       first_name,
@@ -1518,17 +1519,32 @@ app.post(
       return res.status(403);
     }
     try {
+      const user = await getUserInfos(req.user.user_id);
+      let listGender;
+      if (user.orientation === 2) {
+        listGender = [0, 1];
+      } else if (user.orientation === 1) {
+        listGender = [1];
+      } else if (user.orientation === 0) {
+        listGender = [0];
+      }
+      let listOrientation;
+      if (user.gender === 1) {
+        listOrientation = [1, 2];
+      } else if (user.gender === 0) {
+        listOrientation = [0, 2];
+      }
       let ids = await db.any(
         `SELECT *
       FROM users u
-      WHERE u.user_id != $1
+      WHERE u.user_id != $1 AND gender IN ($2:csv) and orientation IN ($3:csv)
       AND NOT EXISTS (SELECT * FROM views v WHERE v.viewer_id = $1 AND v.target_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM blocks v WHERE v.sender_id = $1 AND v.blocked_id = u.user_id)
       AND NOT EXISTS (SELECT * FROM likes l WHERE l.liker_id = $1  AND l.target_id = u.user_id)`,
-        req.user.user_id
+        [req.user.user_id, listGender, listOrientation]
       );
       ids = ids.map(e => e.user_id);
-      const ll = getLL(req.user, req.body.search.ip);
+      const ll = await getLL(user.user_id, req.body.search.ip);
       ids = await searchFilter(req, ids, ll);
       if (ids.length === 0) {
         return res.status(200).send([]);
@@ -1555,7 +1571,7 @@ app.post(
     radians($3)) +
     sin(radians($2)) *
     sin(radians(users.latitude)))
-    ) AS distance FROM users) al JOIN images ON images.image_id = al.profile_pic WHERE al.user_id IN ($1:csv) `;
+    ) AS distance FROM users) al JOIN images ON images.image_id = al.profile_pic WHERE al.user_id IN ($1:csv)`;
       if (req.body.search.order === 'algorithm') {
         ids = await calculatePonderation(req, ids, ll);
         ids = ids.map(e => e.user_id);
@@ -1570,8 +1586,7 @@ app.post(
         profile_pic,
         score,
         latitude,
-    longitude,url FROM (SELECT *,
-      distance FROM (SELECT *, (
+    longitude,url,distance FROM (SELECT * FROM (SELECT *, (
         6371 *
         acos(cos(radians($2)) *
         cos(radians(users.latitude)) *
@@ -1788,14 +1803,20 @@ app.post(
         'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
         [user.user_id, targetIdInt]
       );
+      const targetExist = await db.oneOrNone(
+        'SELECT * FROM users WHERE user_id = $1',
+        [targetIdInt]
+      );
       if (like.length !== 0)
         return res.status(200).json({ msg: 'User already liked' });
 
-      const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
-      await db.any(sql, [user.user_id, targetIdInt]);
-      await sendNotification(req.user.user_id, targetIdInt, 'like');
-      await recalculUserScore(targetIdInt);
-      matchDetector(user.user_id, targetIdInt);
+      if (targetExist) {
+        const sql = `INSERT INTO likes ( liker_id, target_id ) VALUES ( $1, $2 )`;
+        await db.any(sql, [user.user_id, targetIdInt]);
+        await sendNotification(req.user.user_id, targetIdInt, 'like');
+        await recalculUserScore(targetIdInt);
+        matchDetector(user.user_id, targetIdInt);
+      }
       return res.sendStatus(200);
     } catch (e) {
       return res.status(500).json({ msg: e });
@@ -1814,14 +1835,24 @@ app.post(
     try {
       const targetId = req.body.targetId;
       const user = await getUserInfos(req.user.user_id);
+      const likeExist = await db.any(
+        'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
+        [user.user_id, targetId]
+      );
+      const targetExist = await db.oneOrNone(
+        'SELECT * FROM users WHERE user_id = $1',
+        [targetId]
+      );
       if (user.user_id === targetId)
         return res.status(403).json({ msg: 'You cannot unlike yourself' });
-      await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
-        user.user_id,
-        targetId,
-      ]);
-      await sendNotification(req.user.user_id, targetId, 'unlike');
-      await recalculUserScore(targetId);
+      if (likeExist && targetExist) {
+        await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
+          user.user_id,
+          targetId,
+        ]);
+        await sendNotification(req.user.user_id, targetId, 'unlike');
+        await recalculUserScore(targetId);
+      }
       return res.sendStatus(200);
     } catch (e) {
       return res.status(500).json({ msg: e });
@@ -1850,8 +1881,12 @@ app.post(
         'SELECT * FROM views WHERE viewer_id = $1 AND target_id = $2',
         [user.user_id, targetId]
       );
+      const targetExist = await db.oneOrNone(
+        'SELECT * FROM users WHERE user_id = $1',
+        [targetId]
+      );
       // View if not already did
-      if (data.length === 0) {
+      if (data.length === 0 && targetExist) {
         await db.any(
           `INSERT INTO views ( viewer_id, target_id ) VALUES ( $1, $2 )`,
           [user.user_id, targetId]
@@ -1949,7 +1984,8 @@ app.post(
   }
 );
 
-function getLL(user, ip) {
+async function getLL(userId, ip) {
+  const user = await getUserInfos(userId);
   if (user.latitude && user.longitude) {
     return [user.latitude, user.longitude];
   } else {

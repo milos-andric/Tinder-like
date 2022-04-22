@@ -132,8 +132,8 @@ export default {
       max: 1000,
     },
     fameSlider: {
-      value: [20,200],
-      max:500,
+      value: [20, 200],
+      max: 500,
     },
     tagsValue: [],
 
@@ -141,7 +141,7 @@ export default {
     alertStatus: false,
   }),
   methods: {
-    async searchVal() {
+    searchVal() {
       try {
         const search = {};
         if (this.ageChecked === true) search.age = this.ageSlider.value;
@@ -149,8 +149,6 @@ export default {
           search.distance = this.locationSlider.value;
         if (this.fameChecked === true) search.fame = this.fameSlider.value;
         if (this.tagsChecked === true) search.tags = this.tagsValue;
-        const ip = await this.$axios.get('/getIP');
-        search.ip = ip.data.ip;
         this.$emit('updateList', search);
       } catch (e) {
         this.alertMsg = e.response.data.msg;
