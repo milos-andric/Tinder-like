@@ -2120,10 +2120,11 @@ app.post(
       if ((await userIsBlocked(senderId, receiverId)) === true)
         return res.sendStatus(200);
       let text = '';
+      const user = await getUserInfos(req.user.user_id);
       if (await isIdInRoom(req.user.user_id, req.body.message.chat_id)) {
         if (req.body.resp) {
           text =
-            req.user.user_name +
+            user.user_name +
             ' à accepter la proposition de date. Vous recevrez un email juste avant le date';
           const date = await updateDate(
             receiverId,
@@ -2145,12 +2146,12 @@ app.post(
             }.bind(null, email1, email2, date)
           );
         } else {
-          text = req.user.user_name + ' à refuser la proposition de date.';
+          text = user.user_name + ' à refuser la proposition de date.';
           await updateDate(receiverId, req.body.message, req.body.resp, text);
         }
         const data = {
-          sender_id: (await getUserInfos(req.user.user_id)).user_id,
-          user_name: (await getUserInfos(req.user.user_id)).user_name,
+          sender_id: user.user_id,
+          user_name: user.user_name,
           chat_id: req.body.message.chat_id,
           type: 3,
           message: text,
