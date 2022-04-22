@@ -8,6 +8,7 @@
         <input
           id="usernameInput"
           v-model="username"
+          autocomplete="username"
           type="text"
           class="form-control form-control-lg"
           name="username"

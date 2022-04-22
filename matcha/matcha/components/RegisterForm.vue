@@ -52,6 +52,7 @@
         <input
           v-model="password"
           type="password"
+          autocomplete="new-password"
           class="form-control form-control-lg"
           name="password"
           required

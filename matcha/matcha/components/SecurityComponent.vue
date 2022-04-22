@@ -9,6 +9,7 @@
           id="oldPass"
           v-model="oldPass"
           type="password"
+          autocomplete="current-password"
           class="form-control form-control-lg"
           name="oldPass"
           required
@@ -21,6 +22,7 @@
           id="newPass"
           v-model="newPass"
           type="password"
+          autocomplete="new-password"
           class="form-control form-control-lg"
           name="newPass"
           required
@@ -33,6 +35,7 @@
           id="secPass"
           v-model="secPass"
           type="password"
+          autocomplete="new-password"
           class="form-control form-control-lg"
           name="secPass"
           required

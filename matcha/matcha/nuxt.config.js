@@ -67,6 +67,7 @@ export default {
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
+    '~/modules/api',
     // https://go.nuxtjs.dev/bootstrap
     'bootstrap-vue/nuxt',
     // https://go.nuxtjs.dev/axios
@@ -166,10 +167,18 @@ export default {
   },
 
   // Express middleware route
-  serverMiddleware: {
-    '/api': '~/api',
-  },
+  // serverMiddleware: {
+  //   '/api': '~/api',
+  // },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
-  build: {},
+  build: {
+    extend(config, ctx) {
+      config.performance.maxAssetSize = 2000000
+      config.performance.maxEntrypointSize = 2000000
+    },
+    babel: {
+      compact: true,
+    }
+  },
 };
