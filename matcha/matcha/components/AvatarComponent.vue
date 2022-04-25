@@ -61,9 +61,15 @@ export default {
     };
   },
   async beforeMount() {
-    await this.$axios.get('/user-images').then(e => {
-      this.images = e.data;
-    });
+    try {
+      await this.$axios.get('/user-images').then(e => {
+        this.images = e.data;
+      });
+    } catch (e) {
+      this.$nuxt.context.error({
+        status: 404,
+      });
+    }
   },
   methods: {
     changeImage(image) {

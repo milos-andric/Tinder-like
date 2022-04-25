@@ -185,12 +185,22 @@ export default {
       });
     },
     async generateMatches() {
-      const ip = await this.$axios.get('/getIP');
-      this.search.ip = ip.data.ip;
-      const search = this.search;
-      search.order = this.sort;
-      const res = await this.$axios.post('matchFilter', { search });
-      return res;
+      try {
+        const ip = await this.$axios.get('/getIP');
+        if (ip) {
+          this.search.ip = ip.data.ip;
+          const search = this.search;
+          search.order = this.sort;
+          const res = await this.$axios.post('matchFilter', { search });
+          return res;
+        } else {
+          return [];
+        }
+      } catch (e) {
+        this.$nuxt.context.error({
+          status: 404,
+        });
+      }
     },
     dislike() {
       this.swiper.slideNext();

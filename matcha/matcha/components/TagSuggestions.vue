@@ -39,11 +39,17 @@ export default {
   },
   methods: {
     async getTags() {
-      this.hasBeenClicked();
-      const resp = await this.$axios.post('getRandomTags', {
-        number: this.numberOfTags,
-      });
-      this.tags = resp.data.tags;
+      try {
+        this.hasBeenClicked();
+        const resp = await this.$axios.post('getRandomTags', {
+          number: this.numberOfTags,
+        });
+        this.tags = resp.data.tags;
+      } catch (e) {
+        this.$nuxt.context.error({
+          status: 400,
+        });
+      }
     },
     sendTag(tag) {
       this.$emit('loadTag', tag);

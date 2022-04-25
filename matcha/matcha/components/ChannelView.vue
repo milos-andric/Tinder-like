@@ -67,7 +67,11 @@ export default {
       } else {
         this.changeActiveRoom(resp.data[0]);
       }
-    } catch (e) {}
+    } catch (e) {
+      this.$nuxt.context.error({
+        status: 404,
+      });
+    }
   },
   methods: {
     changeActiveRoomByName(channelName) {

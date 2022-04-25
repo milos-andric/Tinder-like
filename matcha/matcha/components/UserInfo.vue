@@ -309,9 +309,15 @@ export default {
     await this.getInfos();
     this.loadUser = true;
     await this.isliked();
-    await this.$axios.get('/user-images/' + this.id).then(e => {
-      this.images = e.data;
-    });
+    try {
+      await this.$axios.get('/user-images/' + this.id).then(e => {
+        this.images = e.data;
+      });
+    } catch (e) {
+      this.$nuxt.context.error({
+        status: 400,
+      });
+    }
     await this.additionalInfos();
   },
   async mounted() {
@@ -329,21 +335,27 @@ export default {
 
   methods: {
     async getInfos() {
-      await this.$axios.get('/user/' + this.id).then(e => {
-        this.first_name = e.data.first_name;
-        this.last_name = e.data.last_name;
-        this.user_name = e.data.user_name;
-        this.gender = e.data.gender;
-        this.ville = e.data.ville;
-        this.orientation = e.data.orientation;
-        this.bio = e.data.bio;
-        this.tags = e.data.tags;
-        this.score = e.data.score;
-        this.last_connexion = e.data.last_connexion;
-        this.profile_pic = e.data.profile_pic;
-        this.privilege = e.data.privilege;
-        if (e.data.age) this.birth_date = new Date(e.data.age);
-      });
+      try {
+        await this.$axios.get('/user/' + this.id).then(e => {
+          this.first_name = e.data.first_name;
+          this.last_name = e.data.last_name;
+          this.user_name = e.data.user_name;
+          this.gender = e.data.gender;
+          this.ville = e.data.ville;
+          this.orientation = e.data.orientation;
+          this.bio = e.data.bio;
+          this.tags = e.data.tags;
+          this.score = e.data.score;
+          this.last_connexion = e.data.last_connexion;
+          this.profile_pic = e.data.profile_pic;
+          this.privilege = e.data.privilege;
+          if (e.data.age) this.birth_date = new Date(e.data.age);
+        });
+      } catch (e) {
+        this.$nuxt.context.error({
+          status: 404,
+        });
+      }
     },
 
     getOrientationIcon() {

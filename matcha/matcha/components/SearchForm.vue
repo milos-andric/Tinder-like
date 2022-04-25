@@ -258,10 +258,12 @@ export default {
         if (this.fameChecked === true) search.fame = this.fameSlider.value;
         if (this.tagsChecked === true) search.tags = this.tagsValue;
         const ip = await this.$axios.get('/getIP');
-        search.ip = ip.data.ip;
-        const res = await this.$axios.post('search', { search });
-        this.list = res.data;
-        this.rowData = res.data;
+        if (ip) {
+          search.ip = ip.data.ip;
+          const res = await this.$axios.post('search', { search });
+          this.list = res.data;
+          this.rowData = res.data;
+        }
       } catch (e) {
         this.alertMsg = e.response.data.msg;
         this.alertStatus = true;

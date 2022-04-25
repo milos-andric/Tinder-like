@@ -153,29 +153,35 @@ export default {
     };
   },
   async mounted() {
-    const me = await this.$axios.get('/me');
-    this.self_id = me.data.user_id;
-    this.loadInfos = true;
+    try {
+      const me = await this.$axios.get('/me');
+      this.self_id = me.data.user_id;
+      this.loadInfos = true;
 
-    this.socket = this.$nuxtSocket({
-      name: 'chat',
-      channel: '/',
-      auth: {
-        token: localStorage.getItem('auth._token.local'),
-      },
-      reconnection: false,
-    });
+      this.socket = this.$nuxtSocket({
+        name: 'chat',
+        channel: '/',
+        auth: {
+          token: localStorage.getItem('auth._token.local'),
+        },
+        reconnection: false,
+      });
 
-    this.socket.on('receiveChatMessage', data => {
-      if (data.chat_id === this.room) {
-        if (data.type === 3) {
-          this.getMessage(this.room);
-        } else {
-          this.messages.push(data);
-          this.scrollToLast();
+      this.socket.on('receiveChatMessage', data => {
+        if (data.chat_id === this.room) {
+          if (data.type === 3) {
+            this.getMessage(this.room);
+          } else {
+            this.messages.push(data);
+            this.scrollToLast();
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      this.$nuxt.context.error({
+        status: 404,
+      });
+    }
   },
   methods: {
     async getMessage(room) {

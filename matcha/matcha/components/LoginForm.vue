@@ -89,12 +89,18 @@ export default {
   },
   async beforeMount() {
     let res;
-    if (this.$route.query.code) {
-      res = await this.$axios.post('/googleAuth', {
-        code: this.$route.query.code,
+    try {
+      if (this.$route.query.code) {
+        res = await this.$axios.post('/googleAuth', {
+          code: this.$route.query.code,
+        });
+        this.$auth.setUserToken(res.data.token);
+        this.$router.push('/me');
+      }
+    } catch (e) {
+      this.$nuxt.context.error({
+        status: 409,
       });
-      this.$auth.setUserToken(res.data.token);
-      this.$router.push('/me');
     }
   },
   methods: {
