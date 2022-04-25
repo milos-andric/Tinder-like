@@ -39,8 +39,6 @@ import {
   validateTags,
 } from './validator';
 
-const axios = require('axios').default;
-
 const pgp = pgPromise();
 const db = pgp('postgres://postgres:changeme@postgres:5432/matcha_db');
 
@@ -53,10 +51,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ createParentPath: true }));
 
-// if (process.env.NODE_ENV === 'production') {
-// registerUsers();
-// }
-
+const users = [];
+const http = require('http');
+const axios = require('axios').default;
+const { lookup } = require('geoip-lite');
+const server = http.createServer();
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+  },
+});
 app.post('/googleAuth', async (req, res) => {
   try {
     const code = req.body.code; // code from service provider which is appended to the frontend's URL
@@ -65,7 +69,6 @@ app.post('/googleAuth', async (req, res) => {
     const clientSecret = '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';
     // The clientId and clientSecret should always be private, put them in the .env file
     const url = 'https://oauth2.googleapis.com/token'; // link to api to exchange code for token.
-    console.log(code);
     const { data } = await axios.post(url, {
       code: req.body.code,
       client_id: clientId,
@@ -74,7 +77,6 @@ app.post('/googleAuth', async (req, res) => {
       grant_type: 'authorization_code',
     });
     const tokenFromGoogle = data.access_token;
-    console.log(tokenFromGoogle);
     const urlForGettingUserInfo =
       'https://www.googleapis.com/oauth2/v2/userinfo';
 
@@ -84,37 +86,37 @@ app.post('/googleAuth', async (req, res) => {
       },
     });
 
-    const body = {
-      username: userData.data.username,
-      email: userData.data.email,
-      serviceProvider: 'google',
-    };
-
-    console.log(body);
-
+    let user = await db.oneOrNone('SELECT * FROM users WHERE email=$1', [
+      userData.data.email,
+    ]);
+    if (!user) {
+      const sql = `INSERT INTO users
+    ( first_name, last_name, user_name, email, password, gender, activation_code )
+    VALUES ( $1, $2, $3, $4, $5, $6, $7 ) RETURNING user_id`;
+      await db.one(sql, [
+        userData.data.email.substring(0, 10),
+        userData.data.email.substring(0, 10),
+        userData.data.email.substring(0, 10),
+        userData.data.email,
+        '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm',
+        0,
+        true,
+      ]);
+      user = await db.oneOrNone('SELECT * FROM users WHERE email=$1', [
+        userData.data.email,
+      ]);
+    }
     return res.status(200).json({
       success: true,
-      token: 'lol',
+      token: generateAccessToken(user),
     });
   } catch (err) {
-    console.log(err);
     return res.status(400).json({
       success: false,
       err,
     });
   }
 });
-
-const users = [];
-const http = require('http');
-const { lookup } = require('geoip-lite');
-const server = http.createServer();
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-  },
-});
-
 function socketIdentification(socket) {
   const token = socket.handshake.auth.token.split(' ')[1];
   return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
@@ -181,7 +183,6 @@ async function sendNotification(myId, targetId, typeNotif) {
 }
 
 io.on('connection', socket => {
-  // console.log(`${socket.id} is connected to / by io !`);
   if (socket.handshake.auth?.token) {
     const user = socketIdentification(socket);
     if (user) {
@@ -223,7 +224,7 @@ io.on('connection', socket => {
     );
   });
 });
-// server.listen(3001);
+server.listen(3001);
 
 // Functions
 

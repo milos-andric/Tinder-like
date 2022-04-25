@@ -46,7 +46,7 @@
 
         <a
           href="https://accounts.google.com/o/oauth2/v2/auth?client_id=154688020943-qggb8idvqclbq5r4t9huhg5msd0ik4r3.apps.googleusercontent.com&scope=email&redirect_uri=http://localhost:8000&auth_type=rerequest&display=popup&response_type=code"
-          >aled</a
+          >googleAuth</a
         >
 
         <p class="small fw-bold mt-2 pt-1 mb-0">
@@ -77,12 +77,19 @@ export default {
     };
   },
   async beforeMount() {
-    if (this.$route.query.code)
-      await this.$axios.post('/googleAuth', {
+    let res;
+    if (this.$route.query.code) {
+      res = await this.$axios.post('/googleAuth', {
         code: this.$route.query.code,
       });
+      this.$auth.setUserToken(res.data.token);
+      this.$router.push('/me');
+    }
   },
   methods: {
+    googleAuth() {
+      this.$auth.loginWith('social');
+    },
     async login() {
       try {
         await this.$auth.loginWith('local', {

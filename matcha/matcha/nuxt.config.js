@@ -174,11 +174,11 @@ export default {
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
     extend(config, ctx) {
-      config.performance.maxAssetSize = 2000000
-      config.performance.maxEntrypointSize = 2000000
+      config.performance.maxAssetSize = 2000000;
+      config.performance.maxEntrypointSize = 2000000;
     },
     babel: {
       compact: true,
-    }
+    },
   },
 };

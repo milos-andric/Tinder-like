@@ -3,6 +3,11 @@
     <b-navbar toggleable="lg" type="dark" variant="primary">
       <!-- Brand -->
       <b-navbar-brand class="font-weight-bold" to="/">MATCHA</b-navbar-brand>
+      <b-navbar-nav class="ml-auto">
+        <b-nav-item class="mx-1" @click="logout">
+          <font-awesome-icon color="white" icon="power-off" />
+        </b-nav-item>
+      </b-navbar-nav>
     </b-navbar>
 
     <div class="py-5" style="flex: auto">
@@ -33,6 +38,15 @@
   </div>
 </template>
 
+<script>
+export default {
+  methods: {
+    logout() {
+      this.$auth.logout();
+    },
+  },
+};
+</script>
 <style scoped>
 #name-wrapper {
   display: flex;
