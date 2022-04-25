@@ -421,7 +421,18 @@ app.post(
     'password',
     'Password must contains at least 8 chars, 1 lowercase, 1 uppercase and 1 number'
   ),
-  (req, res) => {
+  async (req, res) => {
+    const usernameExist = await db.oneOrNone(
+      'SELECT user_name FROM users WHERE user_name=$1',
+      [req.body.user_name]
+    );
+    if (usernameExist)
+      return res.status(409).json({ msg: 'Username already used' });
+    const emailExist = await db.oneOrNone(
+      'SELECT email FROM users WHERE email=$1',
+      [req.body.email]
+    );
+    if (emailExist) return res.status(409).json({ msg: 'Email already used' });
     const sql = `INSERT INTO users
             ( first_name, last_name, user_name, email, password, gender, activation_code )
             VALUES ( $1, $2, $3, $4, $5, $6, $7 ) RETURNING user_id`;
