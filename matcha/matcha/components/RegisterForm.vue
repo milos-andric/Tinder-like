@@ -59,6 +59,18 @@
         />
       </div>
 
+      <div class="form-outline mb-4">
+        <label for="birth_date" class="form-label">Birth date</label>
+
+        <b-form-datepicker
+          id="birth_date"
+          v-model="birth_date"
+          class="mb-2"
+          :max="max_date"
+          locale="fr"
+        ></b-form-datepicker>
+      </div>
+
       <div class="form-outline mb-3">
         <label class="form-label">Gender</label>
         <div class="d-flex">
@@ -127,6 +139,9 @@
 <script>
 export default {
   data() {
+    const maxDate = new Date();
+    maxDate.setYear(maxDate.getFullYear() - 18);
+
     return {
       first_name: '',
       last_name: '',
@@ -134,6 +149,8 @@ export default {
       email: '',
       password: '',
       gender: 0,
+      birth_date: null,
+      max_date: maxDate,
       alertStatus: false,
       successStatus: false,
       errorMsg: '',
@@ -148,6 +165,7 @@ export default {
           last_name: this.last_name,
           user_name: this.user_name,
           email: this.email,
+          birth_date: this.birth_date,
           password: this.password,
           gender: this.gender,
         });

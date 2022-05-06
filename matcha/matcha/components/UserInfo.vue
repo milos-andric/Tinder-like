@@ -157,7 +157,9 @@
       v-if="self_profile_pic !== null && profile_pic !== null && liked === false"
       -->
       <b-button
-        v-if="profile_pic !== null && liked === false"
+        v-if="
+          profile_pic !== null && self_profile_pic !== null && liked === false
+        "
         v-b-tooltip.hover.top="'Like user'"
         class="shadow-lg btn-lg mx-1"
         variant="light"
@@ -173,7 +175,7 @@
 
       <b-button
         v-else-if="
-          profile_pic !== null && profile_pic !== null && liked === true
+          profile_pic !== null && self_profile_pic !== null && liked === true
         "
         v-b-tooltip.hover.top="'Unlike user'"
         class="shadow-lg btn-lg mx-1"

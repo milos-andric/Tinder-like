@@ -106,15 +106,6 @@
       </b-form-group>
     </div>
   </div>
-  <!--
-  <div v-else class="text-center">
-    <b-spinner
-      variant="primary"
-      style="width: 5rem; height: 5rem"
-      label="Large Spinner Text Centered"
-    ></b-spinner>
-  </div>
-  -->
 </template>
 
 <script>
@@ -166,6 +157,19 @@ export default {
     });
   },
   async beforeMount() {
+
+    const me = (await this.$axios.get('/me')).data;
+
+      if (!(
+        me.first_name &&
+        me.last_name &&
+        me.user_name &&
+        me.email &&
+        me.age &&
+        me.profile_pic
+      ))
+       return this.$router.push('/user?completed=false');
+
     const res = await this.generateMatches();
     this.load = true;
     this.users = res.data;

@@ -134,6 +134,10 @@ export default {
     };
   },
   async beforeMount() {
+    if (this.$route.query.completed === "false") {
+      this.alertMsg = 'You must at least have a profile picture before finding match';
+      this.alertStatus = true;
+    }
     await this.getUserData();
     this.load = true;
   },

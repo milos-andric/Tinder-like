@@ -415,6 +415,7 @@ app.post(
     'user_name',
     'Username must be at between 3 and 16 chars long'
   ),
+  validateAge('birth_date', 'You must be older than 18 yo'),
   validateEmail('email'),
   validateInt('gender', 0, 1),
   validatePassword(
@@ -434,8 +435,8 @@ app.post(
     );
     if (emailExist) return res.status(409).json({ msg: 'Email already used' });
     const sql = `INSERT INTO users
-            ( first_name, last_name, user_name, email, password, gender, activation_code )
-            VALUES ( $1, $2, $3, $4, $5, $6, $7 ) RETURNING user_id`;
+            ( first_name, last_name, user_name, email, age, password, gender, activation_code )
+            VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 ) RETURNING user_id`;
 
     const activationCode = uuid.v1();
 
@@ -445,6 +446,7 @@ app.post(
         req.body.last_name,
         req.body.user_name,
         req.body.email,
+        req.body.birth_date,
         hash,
         req.body.gender,
         activationCode,
