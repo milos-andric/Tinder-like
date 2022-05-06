@@ -1859,9 +1859,15 @@ app.post(
     }
     try {
       const targetIdInt = Number(req.body.targetId);
+      const targetUser = await getUserInfos(targetIdInt);
       const user = await getUserInfos(req.user.user_id);
       if (user.user_id === targetIdInt)
         return res.status(200).json({ msg: 'You cannot like yourself' });
+
+      if (user.profile_pic === null)
+        return res.status(200).json({ msg: 'You cannot like until you have a profile pic' });
+      if (targetUser.profile_pic === null)
+        return res.status(200).json({ msg: 'User is not likable' });
 
       const like = await db.any(
         'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
@@ -1898,6 +1904,7 @@ app.post(
     }
     try {
       const targetId = req.body.targetId;
+      const targetUser = await getUserInfos(targetId);
       const user = await getUserInfos(req.user.user_id);
       const likeExist = await db.any(
         'SELECT * FROM likes WHERE liker_id = $1 AND target_id = $2',
@@ -1909,6 +1916,12 @@ app.post(
       );
       if (user.user_id === targetId)
         return res.status(403).json({ msg: 'You cannot unlike yourself' });
+
+      if (user.profile_pic === null)
+        return res.status(200).json({ msg: 'You cannot like until you have a profile pic' });
+      if (targetUser.profile_pic === null)
+        return res.status(200).json({ msg: 'User is not likable' });
+
       if (likeExist && targetExist) {
         await db.any(`DELETE FROM likes WHERE liker_id=$1 AND target_id=$2`, [
           user.user_id,
