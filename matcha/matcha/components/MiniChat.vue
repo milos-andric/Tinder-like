@@ -3,8 +3,8 @@
     <!-- Chat box -->
     <div
       v-if="chatToggled"
-      class="position-absolute w-50 mr-4 border bg-white"
-      style="bottom: 192px; right: 20%; z-index: 99"
+      id="chat-box"
+      class="position-absolute mr-4 border bg-white"
     >
       <b-button
         class="d-flex justify-content-between align-items-center px-3"
@@ -99,16 +99,7 @@
     </div>
 
     <!-- Room selector -->
-    <div
-      class="position-absolute"
-      style="
-        bottom: 191px;
-        right: 0;
-        width: 20%;
-        z-index: 99;
-        background: white;
-      "
-    >
+    <div id="room-selector" class="position-absolute">
       <b-button
         v-b-toggle.chatBox
         class="d-flex justify-content-between align-items-center px-3"
@@ -258,5 +249,46 @@ export default {
 }
 #no-chat {
   background-color: rgb(206, 105, 105);
+}
+
+@media only screen and (max-width: 500px) {
+  #name-wrapper,
+  #copyrights {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+  }
+}
+
+#room-selector {
+  bottom: 191px;
+  right: 0;
+  width: 25%;
+  z-index: 99;
+  background: white;
+}
+
+#chat-box {
+  bottom: 192px;
+  right: 25%;
+  z-index: 99;
+  width: 50%;
+}
+
+@media only screen and (max-width: 500px) {
+  #room-selector {
+    bottom: 360px;
+    width: 30%;
+  }
+
+  #chat-box {
+    bottom: 360px;
+    right: 30%;
+    width: 60%;
+  }
+
+  .b-avatar {
+    display: none;
+  }
 }
 </style>

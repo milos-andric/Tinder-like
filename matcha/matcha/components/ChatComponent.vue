@@ -1,6 +1,6 @@
 <template>
   <div v-if="loadInfos" class="d-flex flex-column">
-    <div class="d-flex w-100" style="height: calc(100vh - 300px)">
+    <div id="chat-container" class="d-flex w-100">
       <ChannelView :activeroom="room" @changeActiveRoom="onChangeActiveRoom" />
 
       <div class="w-100" style="flex-grow: 1">
@@ -268,6 +268,16 @@ export default {
 #message-box {
   background: white;
 }
+#chat-container {
+  height: calc(100vh - 298px)
+}
+
+@media only screen and (max-width: 500px) {
+  #chat-container {
+    height: calc(100vh - 360px - 55px - 50px)
+  }
+}
+
 .chat-list {
   height: 100%;
   display: inline-flex;

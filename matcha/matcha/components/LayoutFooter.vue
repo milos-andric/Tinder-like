@@ -13,7 +13,7 @@
         </div>
       </div>
 
-      <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2)">
+      <div id="copyrights" class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2)">
         © 2022 Copyright:
         <a class="text-white" href="#">42 MATCHA</a>
       </div>
@@ -26,5 +26,13 @@
   display: flex;
   flex-flow: row wrap;
   justify-content: space-around;
+}
+
+@media only screen and (max-width: 500px) {
+  #name-wrapper, #copyrights {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+  }
 }
 </style>

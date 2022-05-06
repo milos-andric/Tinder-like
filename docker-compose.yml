@@ -17,6 +17,25 @@ services:
       - postgres
     restart: unless-stopped
 
+  pgadmin:
+    logging:
+      driver: none
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      GUNICORN_ACCESS_LOGFILE: "/dev/null"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - postgres
+    restart: unless-stopped
+
   matcha:
     build: ./matcha
     stdin_open: true
@@ -27,6 +46,7 @@ services:
     volumes:
       - "${PWD}/matcha/matcha:/usr/src/app/"
     command: sh -c "npm i && npm run build && npm run start -- --port 3000"
+    # command: sh -c "npm i && npm run dev -- --port 3000"
     ports:
       - "8000:3000"
       - "3001:3001"
@@ -39,3 +59,4 @@ networks:
     driver: bridge
 volumes:
   postgres:
+  pgadmin:
