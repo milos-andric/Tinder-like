@@ -157,18 +157,19 @@ export default {
     });
   },
   async beforeMount() {
-
     const me = (await this.$axios.get('/me')).data;
 
-      if (!(
+    if (
+      !(
         me.first_name &&
         me.last_name &&
         me.user_name &&
         me.email &&
         me.age &&
         me.profile_pic
-      ))
-       return this.$router.push('/user?completed=false');
+      )
+    )
+      return this.$router.push('/user?completed=false');
 
     const res = await this.generateMatches();
     this.load = true;
@@ -178,9 +179,11 @@ export default {
   },
   methods: {
     async like() {
-      await this.$axios.post('like', {
-        targetId: this.users[this.selected].user_id,
-      });
+      if (this.users[this.selected] !== null) {
+        await this.$axios.post('like', {
+          targetId: this.users[this.selected].user_id,
+        });
+      }
       await this.swiper.slideNext();
     },
     async view() {

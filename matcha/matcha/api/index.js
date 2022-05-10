@@ -64,7 +64,6 @@ const io = new Server(server, {
 });
 app.post('/googleAuth', async (req, res) => {
   try {
-    const code = req.body.code; // code from service provider which is appended to the frontend's URL
     const clientId =
       '154688020943-qggb8idvqclbq5r4t9huhg5msd0ik4r3.apps.googleusercontent.com';
     const clientSecret = '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';
@@ -1865,7 +1864,9 @@ app.post(
         return res.status(200).json({ msg: 'You cannot like yourself' });
 
       if (user.profile_pic === null)
-        return res.status(200).json({ msg: 'You cannot like until you have a profile pic' });
+        return res
+          .status(200)
+          .json({ msg: 'You cannot like until you have a profile pic' });
       if (targetUser.profile_pic === null)
         return res.status(200).json({ msg: 'User is not likable' });
 
@@ -1918,7 +1919,9 @@ app.post(
         return res.status(403).json({ msg: 'You cannot unlike yourself' });
 
       if (user.profile_pic === null)
-        return res.status(200).json({ msg: 'You cannot like until you have a profile pic' });
+        return res
+          .status(200)
+          .json({ msg: 'You cannot like until you have a profile pic' });
       if (targetUser.profile_pic === null)
         return res.status(200).json({ msg: 'User is not likable' });
 

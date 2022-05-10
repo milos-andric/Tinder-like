@@ -134,22 +134,22 @@ CREATE TABLE IF NOT EXISTS "mail_dates" (
     CONSTRAINT "fk_mail_date_msg_id" FOREIGN KEY("msg_id") REFERENCES "messages"("msg_id")
 );
 
-INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "score", "activation_code", "privilege", "created_on")
-    VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', true, NOW());
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender", "score", "activation_code", "privilege", "age", "created_on")
+    VALUES ('toto', 'toto', 'toto', 'toto@toto.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 0,999,'activated', true, '1990-09-03 16:53:57.933', NOW());
 
     -- code Toto123456789
-INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "created_on")
-    VALUES ('titi', 'titi', 'titi', 'titi@titi.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', false, NOW());
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "age", "created_on")
+    VALUES ('titi', 'titi', 'titi', 'titi@titi.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', false, '1990-09-03 16:53:57.933', NOW());
 --     -- code Toto123456789
     -- code Toto123456789
-INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "created_on")
-    VALUES ('blocker', 'blocker', 'blocker', 'blocker@blocker.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', false, NOW());
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "age", "created_on")
+    VALUES ('blocker', 'blocker', 'blocker', 'blocker@blocker.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', false, '1990-09-03 16:53:57.933', NOW());
 --     -- code Toto123456789
-INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "created_on")
-    VALUES ('viewer', 'viewer', 'viewer', 'viewer@viewer.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', false, NOW());
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "age", "created_on")
+    VALUES ('viewer', 'viewer', 'viewer', 'viewer@viewer.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,0,'activated', false, '1990-09-03 16:53:57.933', NOW());
 --     -- code Toto123456789
-INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "created_on")
-    VALUES ('tata', 'tata', 'tata', 'tata@tata.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', false, NOW());
+INSERT into "users"("first_name", "last_name", "user_name", "email", "password", "gender","score","activation_code", "privilege", "age", "created_on")
+    VALUES ('tata', 'tata', 'tata', 'tata@tata.com', '$2b$10$5PVQ6HrCgSYhT/bZeb1HDeW2WoaptVIzvS3qLhIoRdGPKAjyph7Xm', 1,999,'activated', false, '1990-09-03 16:53:57.933', NOW());
 
 INSERT into "likes"
     ("liker_id", "target_id", "created_on")
